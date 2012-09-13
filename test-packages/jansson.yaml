@@ -1,0 +1,5 @@
+name: jansson
+version: 2.3
+
+arch:
+    native: jansson

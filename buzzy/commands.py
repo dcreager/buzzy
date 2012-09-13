@@ -13,7 +13,6 @@ __all__ = (
 )
 
 import importlib
-import logging
 import optparse
 import os.path
 import sys
@@ -30,7 +29,7 @@ global_options = optparse.OptionParser(
 global_options.disable_interspersed_args()
 global_options.add_option(
     "-v", "--verbose",
-    dest="verbosity", action="count", default=logging.INFO,
+    dest="verbosity", action="count", default=0,
     help="output more detailed progres information",
 )
 global_options.add_option(
@@ -47,7 +46,7 @@ def main(args):
 
     # Parse any global options
     (options, cmd_args) = global_options.parse_args(args)
-    logging.basicConfig(format="%(message)s", level=options.verbosity)
+    buzzy.config.verbosity = options.verbosity
 
     if options.pkgdb is not None:
         buzzy.config.pkgdb = os.path.abspath(options.pkgdb)
