@@ -12,20 +12,15 @@ __all__ = (
 
 import logging
 import os.path
-import subprocess
 import sys
 
 from buzzy import config
-
-def get_arch_from_uname():
-    return subprocess.check_output(["uname", "-m"]).decode("ascii").rstrip()
+from buzzy.os.arch import ArchLinux
 
 def detect_os():
     # Is this Arch Linux?
     if os.path.exists("/etc/arch-release"):
-        config.os_family = "linux"
-        config.os = "arch"
-        config.arch = get_arch_from_uname()
+        config.os = ArchLinux()
 
     if config.os is None:
         logging.error("Cannot determine which OS this is!")

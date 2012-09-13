@@ -7,15 +7,11 @@
 # ----------------------------------------------------------------------
 
 __all__ = (
-    "os",
-    "pkgdb",
-    "version",
+    "ArchLinux",
 )
 
-import os as _os
-pkgdb = _os.getcwd()
+from buzzy.os.utils import get_arch_from_uname
 
-import buzzy.version
-version = buzzy.version.version
-
-os = None
+class ArchLinux(object):
+    name = "linux (arch)"
+    arch = get_arch_from_uname()

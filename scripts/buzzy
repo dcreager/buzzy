@@ -8,6 +8,6 @@
 # ----------------------------------------------------------------------
 
 if __name__ == "__main__":
-    import buzzy.cmd
+    import buzzy.commands
     import sys
-    buzzy.cmd.main(sys.argv[1:])
+    buzzy.commands.main(sys.argv[1:])

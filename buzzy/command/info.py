@@ -7,15 +7,14 @@
 # ----------------------------------------------------------------------
 
 __all__ = (
-    "os",
-    "pkgdb",
-    "version",
+    "run",
 )
 
-import os as _os
-pkgdb = _os.getcwd()
+from buzzy import config
 
-import buzzy.version
-version = buzzy.version.version
-
-os = None
+def run(args):
+    print("buzzy %s" % config.version)
+    print()
+    print("Package DB:  %s" % config.pkgdb)
+    print("OS:          %s" % config.os.name)
+    print("Arch:        %s" % config.os.arch)
