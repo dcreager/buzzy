@@ -7,16 +7,18 @@
 # ----------------------------------------------------------------------
 
 __all__ = (
-    "os",
-    "db",
-    "version",
+    "log",
 )
 
-import os as _os
-db = _os.getcwd()
+import sys
 
-import buzzy.version
-version = buzzy.version.version
+import buzzy.config
 
-os = None
-verbosity = 0
+def log(verbosity, *args):
+    if verbosity <= buzzy.config.verbosity:
+        for arg in args:
+            if isinstance(arg, bytes):
+                sys.stderr.buffer.write(arg)
+            else:
+                sys.stderr.write(str(arg))
+        sys.stderr.write("\n")

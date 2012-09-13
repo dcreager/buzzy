@@ -7,21 +7,24 @@
 # ----------------------------------------------------------------------
 
 __all__ = (
-    "detect_os",
+    "install",
+    "run",
 )
 
-import os.path
 import sys
 
 import buzzy.config
+import buzzy.recipe
 from buzzy.errors import BuzzyError
-from buzzy.os.arch import ArchLinux
 
-def detect_os():
-    # Is this Arch Linux?
-    if os.path.exists("/etc/arch-release"):
-        buzzy.config.os = ArchLinux()
+def install(recipe_names):
+    recipes = buzzy.recipe.dependency_chain(recipe_names, "depends")
+    buzzy.config.os.install(recipes)
 
-    if buzzy.config.os is None:
-        raise BuzzyError("Cannot determine which OS this is!")
+
+def run(args):
+    if not args:
+        raise BuzzyError("Must provide at least one recipe name")
         sys.exit(1)
+
+    install(args)

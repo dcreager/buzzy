@@ -8,6 +8,11 @@
 # ----------------------------------------------------------------------
 
 if __name__ == "__main__":
-    import buzzy.cmd
+    import buzzy.commands
+    from buzzy.errors import BuzzyError
     import sys
-    buzzy.cmd.main(sys.argv[1:])
+    try:
+        buzzy.commands.main(sys.argv[1:])
+    except BuzzyError as e:
+        e.print()
+        sys.exit(1)

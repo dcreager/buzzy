@@ -14,18 +14,29 @@ __all__ = (
 
 import importlib
 import optparse
-import logging
+import os.path
 import sys
 
-from buzzy import config
-from buzzy import detect
+import buzzy.config
+import buzzy.detect
+from buzzy.errors import BuzzyError
 
 
 global_options = optparse.OptionParser(
     prog="buzzy",
-    version="%%prog %s" % config.version,
+    version="%%prog %s" % buzzy.config.version,
 )
 global_options.disable_interspersed_args()
+global_options.add_option(
+    "-v", "--verbose",
+    dest="verbosity", action="count", default=0,
+    help="output more detailed progres information",
+)
+global_options.add_option(
+    "-d", "--recipe-database",
+    dest="db", default=None,
+    help="location of the recipe database", metavar="DIR",
+)
 
 
 def main(args):
@@ -34,11 +45,14 @@ def main(args):
     """
 
     # Parse any global options
-    logging.basicConfig(format="%(message)s")
     (options, cmd_args) = global_options.parse_args(args)
+    buzzy.config.verbosity = options.verbosity
+
+    if options.db is not None:
+        buzzy.config.db = os.path.abspath(options.db)
 
     # Detect the current OS
-    detect.detect_os()
+    buzzy.detect.detect_os()
 
     if len(cmd_args) == 0:
         # If no command was given, default to the "info" command.
@@ -47,30 +61,29 @@ def main(args):
         run_command(cmd_args[0], cmd_args[1:])
 
 
+import buzzy.command.info
+import buzzy.command.install
+commands = {
+    "info": buzzy.command.info.run,
+    "install": buzzy.command.install.run,
+}
+
 def run_command(command_name, args):
     # We can have several possible implementations of each command: a generic
     # one, which doesn't depend on the current OS, and implementations specific
     # to the current OS and OS family.  We want to run them all, in increasing
     # order of specificity.
 
-    success = False
-    if try_command("common", command_name, args):
-        success = True
+    found = False
 
-    if not success:
-        logging.error("No command named %s" % command_name)
-        sys.exit(1)
+    if command_name in commands:
+        commands[command_name](args)
+        found = True
 
+    if hasattr(buzzy.config.os, "cmd_%s" % command_name):
+        cmd = getattr(buzzy.config.os, "cmd_%s" % command_name)
+        cmd(args)
+        found = True
 
-def try_command(flavor, command_name, args):
-    # Try to load the module that implements this command.
-    mod_name = "buzzy.%s.cmd.%s" % (flavor, command_name)
-    try:
-        mod = importlib.import_module(mod_name)
-    except ImportError:
-        # If the module doesn't exist, don't do anything
-        return False
-
-    # Then try to run it.
-    mod.run(args)
-    return True
+    if not found:
+        raise BuzzyError("No command named %s" % command_name)
