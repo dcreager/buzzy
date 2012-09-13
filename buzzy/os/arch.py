@@ -10,8 +10,17 @@ __all__ = (
     "ArchLinux",
 )
 
-from buzzy.os.utils import get_arch_from_uname
+import logging
+
+import buzzy.os.utils
 
 class ArchLinux(object):
     name = "linux (arch)"
-    arch = get_arch_from_uname()
+    arch = buzzy.os.utils.get_arch_from_uname()
+
+    def __init__(self):
+        self.installed = set()
+
+    def install(self, pkgs):
+        for pkg in pkgs:
+            logging.info("Installing %s" % pkg["name"])

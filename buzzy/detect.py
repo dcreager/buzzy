@@ -10,18 +10,18 @@ __all__ = (
     "detect_os",
 )
 
-import logging
 import os.path
 import sys
 
-from buzzy import config
+import buzzy.config
+from buzzy.errors import BuzzyError
 from buzzy.os.arch import ArchLinux
 
 def detect_os():
     # Is this Arch Linux?
     if os.path.exists("/etc/arch-release"):
-        config.os = ArchLinux()
+        buzzy.config.os = ArchLinux()
 
-    if config.os is None:
-        logging.error("Cannot determine which OS this is!")
+    if buzzy.config.os is None:
+        raise BuzzyError("Cannot determine which OS this is!")
         sys.exit(1)

@@ -7,14 +7,24 @@
 # ----------------------------------------------------------------------
 
 __all__ = (
+    "install",
     "run",
 )
 
+import sys
+
 import buzzy.config
+import buzzy.pkg
+from buzzy.errors import BuzzyError
+
+def install(pkg_names):
+    pkgs = buzzy.pkg.dependency_chain(pkg_names, "depends")
+    buzzy.config.os.install(pkgs)
+
 
 def run(args):
-    print("buzzy %s" % buzzy.config.version)
-    print()
-    print("Package DB:  %s" % buzzy.config.pkgdb)
-    print("OS:          %s" % buzzy.config.os.name)
-    print("Arch:        %s" % buzzy.config.os.arch)
+    if not args:
+        raise BuzzyError("Must provide at least one package name")
+        sys.exit(1)
+
+    install(args)

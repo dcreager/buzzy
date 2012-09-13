@@ -13,19 +13,31 @@ __all__ = (
 )
 
 import importlib
-import optparse
 import logging
+import optparse
+import os.path
 import sys
 
-from buzzy import config
-from buzzy import detect
+import buzzy.config
+import buzzy.detect
+from buzzy.errors import BuzzyError
 
 
 global_options = optparse.OptionParser(
     prog="buzzy",
-    version="%%prog %s" % config.version,
+    version="%%prog %s" % buzzy.config.version,
 )
 global_options.disable_interspersed_args()
+global_options.add_option(
+    "-v", "--verbose",
+    dest="verbosity", action="count", default=logging.INFO,
+    help="output more detailed progres information",
+)
+global_options.add_option(
+    "-d", "--package-database",
+    dest="pkgdb", default=None,
+    help="location of the package database", metavar="DIR",
+)
 
 
 def main(args):
@@ -34,11 +46,14 @@ def main(args):
     """
 
     # Parse any global options
-    logging.basicConfig(format="%(message)s")
     (options, cmd_args) = global_options.parse_args(args)
+    logging.basicConfig(format="%(message)s", level=options.verbosity)
+
+    if options.pkgdb is not None:
+        buzzy.config.pkgdb = os.path.abspath(options.pkgdb)
 
     # Detect the current OS
-    detect.detect_os()
+    buzzy.detect.detect_os()
 
     if len(cmd_args) == 0:
         # If no command was given, default to the "info" command.
@@ -48,8 +63,10 @@ def main(args):
 
 
 import buzzy.command.info
+import buzzy.command.install
 commands = {
     "info": buzzy.command.info.run,
+    "install": buzzy.command.install.run,
 }
 
 def run_command(command_name, args):
@@ -64,11 +81,10 @@ def run_command(command_name, args):
         commands[command_name](args)
         found = True
 
-    if hasattr(config.os, "cmd_%s" % command_name):
-        cmd = getattr(config.os, "cmd_%s" % command_name)
+    if hasattr(buzzy.config.os, "cmd_%s" % command_name):
+        cmd = getattr(buzzy.config.os, "cmd_%s" % command_name)
         cmd(args)
         found = True
 
     if not found:
-        logging.error("No command named %s" % command_name)
-        sys.exit(1)
+        raise BuzzyError("No command named %s" % command_name)

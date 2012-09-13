@@ -9,5 +9,10 @@
 
 if __name__ == "__main__":
     import buzzy.commands
+    from buzzy.errors import BuzzyError
     import sys
-    buzzy.commands.main(sys.argv[1:])
+    try:
+        buzzy.commands.main(sys.argv[1:])
+    except BuzzyError as e:
+        sys.stderr.write("%s\n" % e)
+        sys.exit(1)
