@@ -14,17 +14,17 @@ __all__ = (
 import sys
 
 import buzzy.config
-import buzzy.pkg
+import buzzy.recipe
 from buzzy.errors import BuzzyError
 
-def install(pkg_names):
-    pkgs = buzzy.pkg.dependency_chain(pkg_names, "depends")
-    buzzy.config.os.install(pkgs)
+def install(recipe_names):
+    recipes = buzzy.recipe.dependency_chain(recipe_names, "depends")
+    buzzy.config.os.install(recipes)
 
 
 def run(args):
     if not args:
-        raise BuzzyError("Must provide at least one package name")
+        raise BuzzyError("Must provide at least one recipe name")
         sys.exit(1)
 
     install(args)

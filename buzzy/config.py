@@ -8,12 +8,12 @@
 
 __all__ = (
     "os",
-    "pkgdb",
+    "db",
     "version",
 )
 
 import os as _os
-pkgdb = _os.getcwd()
+db = _os.getcwd()
 
 import buzzy.version
 version = buzzy.version.version

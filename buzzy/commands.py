@@ -33,9 +33,9 @@ global_options.add_option(
     help="output more detailed progres information",
 )
 global_options.add_option(
-    "-d", "--package-database",
-    dest="pkgdb", default=None,
-    help="location of the package database", metavar="DIR",
+    "-d", "--recipe-database",
+    dest="db", default=None,
+    help="location of the recipe database", metavar="DIR",
 )
 
 
@@ -48,8 +48,8 @@ def main(args):
     (options, cmd_args) = global_options.parse_args(args)
     buzzy.config.verbosity = options.verbosity
 
-    if options.pkgdb is not None:
-        buzzy.config.pkgdb = os.path.abspath(options.pkgdb)
+    if options.db is not None:
+        buzzy.config.db = os.path.abspath(options.db)
 
     # Detect the current OS
     buzzy.detect.detect_os()

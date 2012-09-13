@@ -21,10 +21,10 @@ class ArchLinux(object):
     def __init__(self):
         self.installed = set()
 
-    # Returns a list of native package names for pkg.
-    def native_packages(self, pkg):
+    # Returns a list of native package names for a recipe.
+    def native_packages(self, recipe):
         try:
-            native = pkg["arch"]["native"]
+            native = recipe["arch"]["native"]
             if isinstance(native, str):
                 return [native]
             else:
@@ -32,16 +32,16 @@ class ArchLinux(object):
         except KeyError:
             return []
 
-    def install(self, pkgs):
+    def install(self, recipes):
         native_packages = []
-        built_packages = []
+        built_recipes = []
 
         # Install all of the native packages first.
-        for pkg in pkgs:
-            native = self.native_packages(pkg)
+        for recipe in recipes:
+            native = self.native_packages(recipe)
             native_packages.extend(native)
             if not native:
-                built_packages.append(pkg)
+                built_recipes.append(recipe)
 
         if native_packages:
             log(0, "Installing native packages")
@@ -49,5 +49,5 @@ class ArchLinux(object):
             cmd.extend(native_packages)
             buzzy.utils.sudo(cmd)
 
-        for pkg in built_packages:
-            log(0, "Installing built package %s" % pkg["name"])
+        for recipe in built_recipes:
+            log(0, "Installing built recipe %s" % recipe["name"])
