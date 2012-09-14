@@ -1,4 +1,0 @@
-package_name: libbar
-version: 1.0
-depends:
-    - libfoo

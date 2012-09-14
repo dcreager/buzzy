@@ -9,6 +9,7 @@
 import collections
 import os
 import os.path
+import re
 
 import buzzy.config
 import buzzy.recipe
@@ -63,18 +64,27 @@ class NativePackage(buzzy.recipe.SchemaVisitor):
 
     def __init__(self, recipe):
         self.recipe = recipe
-        self.installed = False
         super(NativePackage, self).__init__()
+
+    def full_package_spec(self):
+        return "%s=%s-%s" % \
+            (self.name, self.recipe.version, self.recipe.revision)
+
+    def installed(self):
+        return buzzy.utils.if_run(["pacman", "-T", self.full_package_spec()])
 
     def build(self):
         # Nothing to build for a native package
         pass
 
     def install(self):
-        if not self.installed:
-            install_deps(self.recipe, "depends")
+        install_deps(self.recipe, "depends")
+        if self.installed():
+            log(0, "Native package %s already installed" % self.name)
+        else:
             log(0, "Installing native package %s" % self.name)
-            buzzy.utils.sudo(["pacman", "-S", "--noconfirm", self.name])
+            buzzy.utils.sudo(["pacman", "-S", "--noconfirm",
+                              self.full_package_spec()])
             self.installed = True
 
 
@@ -87,10 +97,11 @@ def build_path(package_name):
 
 # Some standard priorities for the various code blocks.
 BUILD_CD           =  0
-BUILD_PRE          = 10
-BUILD_CONFIGURE    = 20
-BUILD_MAKE         = 30
-BUILD_POST         = 40
+BUILD_UNPACK       = 10
+BUILD_PRE          = 20
+BUILD_CONFIGURE    = 30
+BUILD_MAKE         = 40
+BUILD_POST         = 50
 
 INSTALL_CD         =  0
 INSTALL_PRE        = 10
@@ -109,12 +120,9 @@ class Pkgbuild(object):
 
 
     class ScalarVariable(Variable):
-        def set(self, value, modifier=None):
+        def set(self, value):
             if value is not None:
-                if modifier is None:
-                    self.content = value
-                else:
-                    self.content = modifier(value)
+                self.content = value
 
         def __str__(self):
             return repr(self.content)
@@ -125,25 +133,17 @@ class Pkgbuild(object):
             elements = map(repr, self.content)
             return "(%s)" % " ".join(elements)
 
-        def append(self, value, modifier=None):
+        def append(self, value):
             if value is not None:
                 if self.content is None:
                     self.content = []
-                if modifier is None:
-                    self.content.append(value)
-                else:
-                    self.content.append(modifier(value))
+                self.content.append(value)
 
-        def extend(self, value, modifier=None):
+        def extend(self, value):
             if value is not None:
                 if self.content is None:
                     self.content = []
-                if modifier is None:
-                    for element in value:
-                        self.content.append(element)
-                else:
-                    for element in value:
-                        self.content.extend(modifier(element))
+                self.content.extend(value)
 
 
     class CodeVariable(Variable):
@@ -153,25 +153,17 @@ class Pkgbuild(object):
                 lines.extend(map(lambda x: "  %s" % x, self.content[priority]))
             return "\n".join(lines)
 
-        def append(self, priority, value, modifier=None):
+        def append(self, priority, value):
             if value is not None:
-                if self.content is None:
-                    self.content = collections.defaultdict(list)
-                if modifier is None:
-                    self.content[priority].append(value)
-                else:
-                    self.content[priority].append(modifier(value))
+                self.extend(priority, [value])
 
-        def extend(self, value, modifier=None):
+        def extend(self, priority, value):
             if value is not None:
                 if self.content is None:
                     self.content = collections.defaultdict(list)
-                if modifier is None:
-                    for element in value:
-                        self.content[priority].append(element)
-                else:
-                    for element in value:
-                        self.content[priority].extend(modifier(element))
+                for element in value:
+                    lines = buzzy.utils.trim(element).splitlines()
+                    self.content[priority].extend(lines)
 
         def output(self, out):
             if self.content is not None:
@@ -213,13 +205,14 @@ class DownloadSource(buzzy.recipe.SchemaVisitor):
     required = ["url", "md5"]
     optional = ["extracted"]
 
-    def __init__(self, recipe, pkgbuild):
-        self.recipe = recipe
-        self.pkgbuild = pkgbuild
+    def __init__(self, package):
+        self.package = package
+        self.recipe = package.recipe
+        self.pkgbuild = package.pkgbuild
         super(DownloadSource, self).__init__()
 
     def process(self):
-        self.url = self.url % self.recipe.yaml_content
+        self.url = self.recipe.subst(self.url)
         if self.extracted is None:
             self.extracted = buzzy.utils.tarball_basename(self.url)
 
@@ -233,13 +226,58 @@ class DownloadSource(buzzy.recipe.SchemaVisitor):
         package.append(INSTALL_CD, 'cd "$srcdir/%s"' % self.extracted)
 
 
+class GitSource(buzzy.recipe.SchemaVisitor):
+    kind = "git source"
+    required = ["url"]
+    optional = ["tag", "branch"]
+
+    def __init__(self, package):
+        self.package = package
+        self.recipe = package.recipe
+        self.pkgbuild = package.pkgbuild
+        super(GitSource, self).__init__()
+
+    def process(self):
+        if self.branch is not None and self.tag is not None:
+            raise BuzzyError("Cannot specify both branch and tag")
+        if self.branch is not None:
+            self.commit = self.branch
+            self.dev_build = True
+        else:
+            self.commit = self.tag
+            self.dev_build = False
+
+        self.url = self.recipe.subst(self.url)
+        self.commit = self.recipe.subst(self.commit)
+        self.repo_name = re.sub("\.git$", "", os.path.basename(self.url))
+
+        self.pkgbuild.list("makedepends").append("git")
+
+        if self.dev_build:
+            self.package.name = "%s-git" % self.package.name
+            self.pkgbuild.scalar("_gitroot").set(self.url)
+            self.pkgbuild.scalar("_gitname").set(self.commit)
+
+        build = self.pkgbuild.code("build")
+        build.append(BUILD_UNPACK, """
+        rm -rf "${srcdir}/%(repo_name)s"
+        cd "${srcdir}"
+        git clone --depth 1 --branch "%(commit)s" "%(url)s"
+        cd "${srcdir}/%(repo_name)s"
+        git checkout -b buzzy-build "%(commit)s"
+        """ % buzzy.utils.extract_attrs(self))
+
+        package = self.pkgbuild.code("package")
+        package.append(INSTALL_CD, 'cd "$srcdir/%s"' % self.repo_name)
+
 
 class Source(buzzy.recipe.TableVisitor):
     kind = "source"
 
-    def __init__(self, recipe, pkgbuild):
+    def __init__(self, package):
         self.types = {
-            "download": DownloadSource(recipe, pkgbuild),
+            "download": DownloadSource(package),
+            "git": GitSource(package),
         }
         super(Source, self).__init__()
 
@@ -250,9 +288,10 @@ class Source(buzzy.recipe.TableVisitor):
 class AutotoolsBuild(buzzy.recipe.Visitor):
     kind = "autotools build"
 
-    def __init__(self, recipe, pkgbuild):
-        self.recipe = recipe
-        self.pkgbuild = pkgbuild
+    def __init__(self, package):
+        self.package = package
+        self.recipe = package.recipe
+        self.pkgbuild = package.pkgbuild
         super(AutotoolsBuild, self).__init__()
 
     def scalar(self, value):
@@ -272,12 +311,54 @@ class AutotoolsBuild(buzzy.recipe.Visitor):
         package.append(INSTALL_STAGE, 'make DESTDIR="$pkgdir" install')
 
 
+class CmakeBuild(buzzy.recipe.Visitor):
+    kind = "cmake build"
+
+    def __init__(self, package):
+        self.package = package
+        self.recipe = package.recipe
+        self.pkgbuild = package.pkgbuild
+        super(CmakeBuild, self).__init__()
+
+    def scalar(self, value):
+        self.process()
+
+    seq = scalar
+    map = scalar
+
+    def process(self):
+        self.pkgbuild.list("makedepends").append("cmake")
+
+        build = self.pkgbuild.code("build")
+        build.append(BUILD_CONFIGURE, """
+        cmake_src=$(pwd)
+        mkdir -p "${startdir}/cmake-build"
+        pushd "${startdir}/cmake-build"
+        cmake -DCMAKE_INSTALL_PREFIX=/usr "${cmake_src}"
+        popd
+        """ % buzzy.utils.extract_attrs(self))
+
+        build.append(BUILD_MAKE, """
+        pushd "${startdir}/cmake-build"
+        make
+        popd
+        """ % buzzy.utils.extract_attrs(self))
+
+        package = self.pkgbuild.code("package")
+        package.append(INSTALL_STAGE, """
+        pushd "${startdir}/cmake-build"
+        make DESTDIR="$pkgdir" install
+        popd
+        """ % buzzy.utils.extract_attrs(self))
+
+
 class Build(buzzy.recipe.TableVisitor):
     kind = "build"
 
-    def __init__(self, recipe, pkgbuild):
+    def __init__(self, package):
         self.types = {
-            "autotools": AutotoolsBuild(recipe, pkgbuild),
+            "autotools": AutotoolsBuild(package),
+            "cmake": CmakeBuild(package),
         }
         super(Build, self).__init__()
 
@@ -292,16 +373,15 @@ class BuiltPackage(buzzy.recipe.MapForeach):
         self.name = recipe.package_name
         self.recipe = recipe
         self.built = False
-        self.installed = False
         self.build_path = build_path(self.name)
         pkgbuild_path = os.path.join(self.build_path, "PKGBUILD")
         self.pkgbuild = Pkgbuild(pkgbuild_path)
 
         # Nested visitors
         self.visitors = {}
-        source = Source(recipe, self.pkgbuild)
+        source = Source(self)
         self.visitors["sources"] = buzzy.recipe.SeqForeach("sources", source)
-        self.visitors["build"] = Build(recipe, self.pkgbuild)
+        self.visitors["build"] = Build(self)
 
         super(BuiltPackage, self).__init__()
 
@@ -311,6 +391,13 @@ class BuiltPackage(buzzy.recipe.MapForeach):
 
     def package_path(self):
         return os.path.join(self.build_path, self.package_filename())
+
+    def full_package_spec(self):
+        return "%s=%s-%s" % \
+            (self.name, self.recipe.version, self.recipe.revision)
+
+    def installed(self):
+        return buzzy.utils.if_run(["pacman", "-T", self.full_package_spec()])
 
     def start_map(self):
         self.pkgbuild.list("arch").append(arch)
@@ -367,10 +454,14 @@ class BuiltPackage(buzzy.recipe.MapForeach):
         self.pkgbuild.scalar("url").set(value)
 
     def map_depends(self, value):
-        self.pkgbuild.list("depends").extend(value, recipe_package_names)
+        for recipe_name in value:
+            packages = recipe_package_names(recipe_name)
+            self.pkgbuild.list("depends").extend(packages)
 
     def map_build_depends(self, value):
-        self.pkgbuild.list("makedepends").extend(value, recipe_package_names)
+        for recipe_name in value:
+            packages = [x for x in recipe_package_names(recipe_name)]
+            self.pkgbuild.list("makedepends").extend(packages)
 
     def map_license_file(self, value):
         self.have_license_file = True
@@ -384,7 +475,7 @@ class BuiltPackage(buzzy.recipe.MapForeach):
                              self.arch_license)
 
     def make_pkgbuild(self):
-        log(1, "Creating PKGBUILD file")
+        log(0, "Creating PKGBUILD file")
         self.pkgbuild.write()
 
     def clean_build_path(self):
@@ -395,7 +486,7 @@ class BuiltPackage(buzzy.recipe.MapForeach):
                 os.remove(os.path.join(self.build_path, path))
             except OSError:
                 pass
-        log(1, "Cleaning build directory")
+        log(0, "Cleaning build directory")
         rmdir("src")
         rm(self.package_filename())
 
@@ -409,13 +500,14 @@ class BuiltPackage(buzzy.recipe.MapForeach):
             self.built = True
 
     def install(self):
-        if not self.installed:
-            install_deps(self.recipe, "depends")
+        install_deps(self.recipe, "depends")
+        if self.installed():
+            log(0, "Built package %s already installed" % self.name)
+        else:
             self.build()
             log(0, "Installing built package %s" % self.name)
             buzzy.utils.sudo(["pacman", "-U", "--noconfirm",
                               self.package_path()])
-            self.installed = True
 
 
 #-----------------------------------------------------------------------

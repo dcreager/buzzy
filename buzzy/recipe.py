@@ -363,6 +363,9 @@ class Recipe(SchemaVisitor):
             curr = curr[part]
         return curr
 
+    def subst(self, value):
+        return value % self.yaml_content
+
 
 #-----------------------------------------------------------------------
 # Loading recipes from the package database

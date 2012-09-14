@@ -1,0 +1,17 @@
+package_name: libcork
+version: 0.7.0
+revision: 1
+description: >
+    A unit testing framework for C
+url: http://check.sourceforge.net/
+license: BSD
+build_depends:
+    - check
+
+sources:
+    - type: git
+      url: git://github.com/redjack/libcork.git
+      tag: "%(version)s"
+
+build: cmake
+license_file: LICENSE.txt
