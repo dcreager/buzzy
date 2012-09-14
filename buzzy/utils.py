@@ -6,16 +6,16 @@
 # Please see the COPYING file in this distribution for license details.
 # ----------------------------------------------------------------------
 
-__all__ = (
-    "run",
-)
-
+import os
+import os.path
+import re
 import subprocess
 import sys
 
 import buzzy.config
 from buzzy.errors import BuzzyError
 from buzzy.log import log
+
 
 def _run(pretty_name, cmd, **kw):
     """
@@ -42,3 +42,23 @@ def run(cmd, **kw):
 def sudo(cmd, **kw):
     cmd.insert(0, "sudo")
     return _run(cmd[1], cmd, **kw)
+
+
+def get_arch_from_uname():
+    return subprocess.check_output(["uname", "-m"]).decode("ascii").rstrip()
+
+
+def makedirs(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+
+TARBALL_EXTS = re.compile(r"""
+    (
+        ((\.tar)?(\.bz2|\.gz|\.xz|\.Z)?)
+      | (\.zip)
+    )$
+""", re.VERBOSE)
+
+def tarball_basename(path):
+    return TARBALL_EXTS.sub("", os.path.basename(path))

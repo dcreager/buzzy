@@ -1,4 +1,4 @@
-name: baz
+package_name: baz
 version: 3.0
 revision: 3
 depends:

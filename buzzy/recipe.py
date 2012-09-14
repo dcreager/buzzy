@@ -6,10 +6,6 @@
 # Please see the COPYING file in this distribution for license details.
 # ----------------------------------------------------------------------
 
-__all__ = (
-    "load",
-)
-
 import itertools
 import os.path
 import sys
@@ -313,9 +309,9 @@ class TableVisitor(Visitor):
     """
 
     def try_type(self, type_name, value):
-        try:
+        if type_name in self.types:
             self.types[type_name].visit(value)
-        except KeyError:
+        else:
             raise BuzzyError("Don't know how to process a %s %s" %
                              (type_name, self.kind))
 
@@ -323,9 +319,9 @@ class TableVisitor(Visitor):
         self.try_type(value, value)
 
     def map(self, value):
-        try:
+        if "type" in value:
             self.try_type(value["type"], value)
-        except KeyError:
+        else:
             raise BuzzyError("Missing \"type\" attribute in %s" % self.kind)
 
 
@@ -335,16 +331,20 @@ class TableVisitor(Visitor):
 class Recipe(SchemaVisitor):
     kind = "recipe"
     required = [
-        "name",
+        "package_name",
+        "revision",
         "version",
     ]
     optional = [
         "build_depends",
         "depends",
         "description",
-        "revision",
         "url",
     ]
+
+    def __init__(self, recipe_name):
+        self.recipe_name = recipe_name
+        super(Recipe, self).__init__()
 
     def __contains__(self, key):
         try:
@@ -380,11 +380,7 @@ def load(recipe_name):
         except IOError:
             raise BuzzyError("No recipe named %s" % recipe_name)
 
-        if content['name'] != os.path.basename(recipe_name):
-            raise BuzzyError("Invalid recipe description: name must be %s" %
-                             recipe_name)
-
-        recipe = Recipe()
+        recipe = Recipe(recipe_name)
         recipe.visit(content)
         recipes[recipe_name] = recipe
 

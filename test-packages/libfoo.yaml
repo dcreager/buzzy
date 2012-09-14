@@ -1,3 +1,3 @@
-name: libfoo
+package_name: libfoo
 version: 0.5
 revision: 1

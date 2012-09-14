@@ -6,17 +6,12 @@
 # Please see the COPYING file in this distribution for license details.
 # ----------------------------------------------------------------------
 
-__all__ = (
-    "os",
-    "db",
-    "verbosity",
-    "version",
-)
-
 import os as _os
+from os import path
 
 import buzzy.version
 
+build_dir = path.abspath(".buzzy")
 db = _os.getcwd()
 os = None
 verbosity = 0
