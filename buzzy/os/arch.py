@@ -309,6 +309,9 @@ class BuiltPackage(buzzy.recipe.MapForeach):
         return "%s-%s-%s-%s.pkg.tar.xz" % \
             (self.name, self.recipe.version, self.recipe.revision, arch)
 
+    def package_path(self):
+        return os.path.join(self.build_path, self.package_filename())
+
     def start_map(self):
         self.pkgbuild.list("arch").append(arch)
         self.need_license_file = False
@@ -410,6 +413,8 @@ class BuiltPackage(buzzy.recipe.MapForeach):
             install_deps(self.recipe, "depends")
             self.build()
             log(0, "Installing built package %s" % self.name)
+            buzzy.utils.sudo(["pacman", "-U", "--noconfirm",
+                              self.package_path()])
             self.installed = True
 
 
