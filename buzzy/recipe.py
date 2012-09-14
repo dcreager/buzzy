@@ -268,22 +268,28 @@ class SchemaVisitor(Visitor):
             curr = getattr(curr, name)
         setattr(curr, python_name[-1], value)
 
-    def scalar(self, value):
+    def initialize(self):
         self.root.initialize()
-        self.root.scalar(value)
+
+    def finalize(self):
         self.root.finalize()
+
+    def scalar(self, value):
+        self.initialize()
+        self.root.scalar(value)
+        self.finalize()
         self.process()
 
     def list(self, value):
-        self.root.initialize()
+        self.initialize()
         self.root.list(value)
-        self.root.finalize()
+        self.finalize()
         self.process()
 
     def map(self, value):
-        self.root.initialize()
+        self.initialize()
         self.root.map(value)
-        self.root.finalize()
+        self.finalize()
         self.process()
 
     def process(self):

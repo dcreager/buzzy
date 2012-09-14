@@ -7,6 +7,8 @@ url: http://check.sourceforge.net/
 license: BSD
 build_depends:
     - check
+depends:
+    - jansson
 
 sources:
     - type: git

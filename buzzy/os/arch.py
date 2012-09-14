@@ -24,18 +24,31 @@ arch = buzzy.utils.get_arch_from_uname()
 #-----------------------------------------------------------------------
 # General package functions
 
+def is_native_package(package_name):
+    return buzzy.utils.if_run(["pacman", "-Si", package_name])
+
 # Returns a list of packages for a recipe.
 def recipe_packages(recipe):
-    if "arch.native" in recipe:
-        package = NativePackage(recipe)
-        package.visit(recipe.yaml_content)
-        return [package]
-    else:
-        # For now, we only allow one built package per recipe.  That will
-        # probably change.
-        package = BuiltPackage(recipe)
-        package.visit(recipe.yaml_content)
-        return [package]
+    if not hasattr(recipe, "packages"):
+        native = False
+
+        if "arch.native" in recipe:
+            native = isinstance(recipe["arch.native"], str)
+        elif is_native_package(recipe.package_name):
+            native = True
+
+        if native:
+            package = NativePackage(recipe)
+            package.visit(recipe.yaml_content)
+            recipe.packages = [package]
+        else:
+            # For now, we only allow one built package per recipe.  That will
+            # probably change.
+            package = BuiltPackage(recipe)
+            package.visit(recipe.yaml_content)
+            recipe.packages = [package]
+
+    return recipe.packages
 
 # Get the list of package names for a recipe.
 def recipe_package_names(recipe_name):
@@ -59,8 +72,8 @@ def install_deps(recipe, attr):
 
 class NativePackage(buzzy.recipe.SchemaVisitor):
     kind = "Arch native package"
-    required = [("arch.native", "name")]
-    optional = []
+    required = []
+    optional = [("arch.native", "name")]
 
     def __init__(self, recipe):
         self.recipe = recipe
@@ -72,6 +85,11 @@ class NativePackage(buzzy.recipe.SchemaVisitor):
 
     def installed(self):
         return buzzy.utils.if_run(["pacman", "-T", self.full_package_spec()])
+
+    def initialize(self):
+        super(NativePackage, self).initialize()
+        # This will be overridden by an arch.native argument, if present.
+        self.name = self.recipe.package_name
 
     def build(self):
         # Nothing to build for a native package

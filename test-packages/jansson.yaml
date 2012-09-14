@@ -5,6 +5,3 @@ description: >
     C library for encoding, decoding and manipulating JSON data
 url: http://www.digip.org/jansson/
 license: MIT
-
-arch:
-    native: jansson
