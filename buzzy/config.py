@@ -85,6 +85,11 @@ def new_env():
     ask("recipe_database", "Where is your recipe database?")
     ask("build_dir", "Where should I build packages?",
         path.join(env_path, "build"))
+    ask("package_dir", "Where should I put the packages that I build?",
+        path.join(env_path, "packages"))
+
+    # Allow the OS-specific code to configure things, too.
+    os.configure()
 
     try:
         buzzy.utils.makedirs(env_path)
