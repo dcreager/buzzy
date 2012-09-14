@@ -3,3 +3,4 @@ dist
 *.py[co]
 MANIFEST
 RELEASE-VERSION
+.buzzy
