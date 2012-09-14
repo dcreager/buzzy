@@ -1,0 +1,14 @@
+name: jansson
+version: 2.3
+description: >
+    C library for encoding, decoding and manipulating JSON data
+url: http://www.digip.org/jansson/
+license: MIT
+
+sources:
+    - type: download
+      url: http://www.digip.org/jansson/releases/%(name)s-%(version)s.tar.bz2
+      md5: 9f322b4b43b1b4f38473c52b49dabf99
+
+build: autotools
+license-file: LICENSE

@@ -9,14 +9,15 @@
 __all__ = (
     "os",
     "db",
+    "verbosity",
     "version",
 )
 
 import os as _os
-db = _os.getcwd()
 
 import buzzy.version
-version = buzzy.version.version
 
+db = _os.getcwd()
 os = None
 verbosity = 0
+version = buzzy.version.version
