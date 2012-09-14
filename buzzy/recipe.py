@@ -382,7 +382,8 @@ def load(recipe_name):
     """
 
     if recipe_name not in recipes:
-        recipe_filename = os.path.join(buzzy.config.db, "%s.yaml" % recipe_name)
+        recipe_filename = os.path.join(buzzy.config.env.recipe_database,
+                                       "%s.yaml" % recipe_name)
         try:
             recipe_file = open(recipe_filename, "r")
             content = yaml.safe_load(recipe_file)

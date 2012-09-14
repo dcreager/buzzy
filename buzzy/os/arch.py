@@ -111,7 +111,7 @@ class NativePackage(buzzy.recipe.SchemaVisitor):
 
 # The directory that we build a package in.
 def build_path(package_name):
-    return os.path.join(buzzy.config.build_dir, package_name, "build")
+    return os.path.join(buzzy.config.env.build_dir, package_name, "build")
 
 # Some standard priorities for the various code blocks.
 BUILD_CD           =  0
@@ -390,7 +390,6 @@ class BuiltPackage(buzzy.recipe.MapForeach):
     def __init__(self, recipe):
         self.name = recipe.package_name
         self.recipe = recipe
-        self.built = False
         self.build_path = build_path(self.name)
         pkgbuild_path = os.path.join(self.build_path, "PKGBUILD")
         self.pkgbuild = Pkgbuild(pkgbuild_path)
@@ -408,11 +407,14 @@ class BuiltPackage(buzzy.recipe.MapForeach):
             (self.name, self.recipe.version, self.recipe.revision, arch)
 
     def package_path(self):
-        return os.path.join(self.build_path, self.package_filename())
+        return os.path.join(pkgdest, self.package_filename())
 
     def full_package_spec(self):
         return "%s=%s-%s" % \
             (self.name, self.recipe.version, self.recipe.revision)
+
+    def built(self):
+        return os.path.exists(self.package_path())
 
     def installed(self):
         return buzzy.utils.if_run(["pacman", "-T", self.full_package_spec()])
@@ -493,7 +495,7 @@ class BuiltPackage(buzzy.recipe.MapForeach):
                              self.arch_license)
 
     def make_pkgbuild(self):
-        log(0, "Creating PKGBUILD file")
+        log(0, "  Creating PKGBUILD file")
         self.pkgbuild.write()
 
     def clean_build_path(self):
@@ -504,18 +506,18 @@ class BuiltPackage(buzzy.recipe.MapForeach):
                 os.remove(os.path.join(self.build_path, path))
             except OSError:
                 pass
-        log(0, "Cleaning build directory")
+        log(0, "  Cleaning build directory")
         rmdir("src")
         rm(self.package_filename())
 
     def build(self):
-        if not self.built:
+        if not self.built():
             install_deps(self.recipe, "build_depends")
-            log(0, "Building package %s" % self.name)
+            log(0, "Building %s" % self.name)
             self.clean_build_path()
             self.make_pkgbuild()
+            log(0, "  Building package")
             buzzy.utils.run(["makepkg", "-s"], cwd=self.build_path)
-            self.built = True
 
     def install(self):
         install_deps(self.recipe, "depends")
@@ -536,7 +538,13 @@ class ArchLinux(object):
     arch = arch
 
     def __init__(self):
-        self.installed = set()
+        global pkgdest
+        pkgdest = os.path.abspath(buzzy.config.env.package_dir)
+        buzzy.utils.makedirs(pkgdest)
+        os.environ["PKGDEST"] = pkgdest
 
     def install(self, recipe):
         install_recipe(recipe)
+
+    def configure(self):
+        pass
