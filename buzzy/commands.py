@@ -32,11 +32,6 @@ global_options.add_option(
     dest="verbosity", action="count", default=0,
     help="output more detailed progres information",
 )
-global_options.add_option(
-    "-d", "--recipe-database",
-    dest="db", default=None,
-    help="location of the recipe database", metavar="DIR",
-)
 
 
 def main(args):
@@ -48,8 +43,8 @@ def main(args):
     (options, cmd_args) = global_options.parse_args(args)
     buzzy.config.verbosity = options.verbosity
 
-    if options.db is not None:
-        buzzy.config.db = os.path.abspath(options.db)
+    # Load in the environment
+    buzzy.config.load_env()
 
     # Detect the current OS
     buzzy.detect.detect_os()
@@ -61,9 +56,11 @@ def main(args):
         run_command(cmd_args[0], cmd_args[1:])
 
 
+import buzzy.command.configure
 import buzzy.command.info
 import buzzy.command.install
 commands = {
+    "configure": buzzy.command.configure.run,
     "info": buzzy.command.info.run,
     "install": buzzy.command.install.run,
 }

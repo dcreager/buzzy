@@ -111,7 +111,7 @@ class NativePackage(buzzy.recipe.SchemaVisitor):
 
 # The directory that we build a package in.
 def build_path(package_name):
-    return os.path.join(buzzy.config.build_dir, package_name, "build")
+    return os.path.join(buzzy.config.env.build_dir, package_name, "build")
 
 # Some standard priorities for the various code blocks.
 BUILD_CD           =  0
