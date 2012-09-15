@@ -40,6 +40,7 @@ def call_git_describe(abbrev=4):
                   stdout=PIPE, stderr=PIPE)
         p.stderr.close()
         line = p.stdout.readlines()[0]
+        line = str(line, "ascii")
         return line.strip()
 
     except:
