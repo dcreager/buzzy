@@ -9,10 +9,16 @@
 import collections
 import os
 import os.path
-import re
 
+import buzzy.build
+import buzzy.build.autotools
+import buzzy.build.cmake
+import buzzy.build.none
 import buzzy.config
 import buzzy.recipe
+import buzzy.source
+import buzzy.source.download
+import buzzy.source.git
 import buzzy.utils
 from buzzy.errors import BuzzyError
 from buzzy.log import log
@@ -27,82 +33,76 @@ arch = buzzy.utils.get_arch_from_uname()
 def is_native_package(package_name):
     return buzzy.utils.if_run(["pacman", "-Si", package_name])
 
-# Returns a list of packages for a recipe.
-def recipe_packages(recipe):
-    if not hasattr(recipe, "packages"):
+
+#-----------------------------------------------------------------------
+# Arch packages
+
+class Arch(buzzy.yaml.Fields):
+    def fields(self):
+        yield "native", {"default": None}
+
+class Recipe(buzzy.recipe.Recipe):
+    def fields(self):
+        yield "arch", {"custom": Arch, "default": {}}
+
+    def validate(self):
         native = False
 
-        if "arch.native" in recipe:
-            native = isinstance(recipe["arch.native"], str)
-        elif is_native_package(recipe.package_name):
-            native = True
-
-        if native:
-            package = NativePackage(recipe)
-            package.visit(recipe.yaml_content)
-            recipe.packages = [package]
+        if isinstance(self.arch.native, str):
+            package = NativePackage(self.arch.native, self)
+        elif is_native_package(self.recipe_name):
+            package = NativePackage(self.recipe_name, self)
         else:
             # For now, we only allow one built package per recipe.  That will
             # probably change.
-            package = BuiltPackage(recipe)
-            package.visit(recipe.yaml_content)
-            recipe.packages = [package]
+            package = BuiltPackage(self.recipe_name, self)
 
-    return recipe.packages
+        self.packages = [package]
 
-# Get the list of package names for a recipe.
-def recipe_package_names(recipe_name):
-    recipe = buzzy.recipe.load(recipe_name)
-    packages = recipe_packages(recipe)
-    return map(lambda x: x.name, packages)
+    def package_names(self):
+        return map(lambda x: x.package_name, self.packages)
 
-def install_recipe(recipe):
-    for package in recipe_packages(recipe):
-        package.install()
+    def install(self):
+        for package in self.packages:
+            package.install()
 
-def install_deps(recipe, attr):
-    if attr in recipe.yaml_content:
-        for dep_recipe_name in recipe.yaml_content[attr]:
+    def install_depends(self):
+        for dep_recipe_name in self.depends:
             dep_recipe = buzzy.recipe.load(dep_recipe_name)
-            install_recipe(dep_recipe)
+            dep_recipe.install()
+
+    def install_build_depends(self):
+        for dep_recipe_name in self.build_depends:
+            dep_recipe = buzzy.recipe.load(dep_recipe_name)
+            dep_recipe.install()
 
 
 #-----------------------------------------------------------------------
 # Native packages are easy
 
-class NativePackage(buzzy.recipe.SchemaVisitor):
-    kind = "Arch native package"
-    required = []
-    optional = [("arch.native", "name")]
-
-    def __init__(self, recipe):
+class NativePackage(object):
+    def __init__(self, package_name, recipe):
+        self.package_name = package_name
         self.recipe = recipe
-        super(NativePackage, self).__init__()
 
-    def full_package_spec(self):
-        return "%s=%s-%s" % \
-            (self.name, self.recipe.version, self.recipe.revision)
+    def package_spec(self):
+        return "%s=%s" % (self.package_name, self.recipe.version)
 
     def installed(self):
-        return buzzy.utils.if_run(["pacman", "-T", self.full_package_spec()])
-
-    def initialize(self):
-        super(NativePackage, self).initialize()
-        # This will be overridden by an arch.native argument, if present.
-        self.name = self.recipe.package_name
+        return buzzy.utils.if_run(["pacman", "-T", self.package_spec()])
 
     def build(self):
         # Nothing to build for a native package
         pass
 
     def install(self):
-        install_deps(self.recipe, "depends")
+        self.recipe.install_depends()
         if self.installed():
-            log(0, "Native package %s already installed" % self.name)
+            log(0, "Native package %s already installed" % self.package_name)
         else:
-            log(0, "Installing native package %s" % self.name)
+            log(0, "Installing native package %s" % self.package_name)
             buzzy.utils.sudo(["pacman", "-S", "--noconfirm",
-                              self.full_package_spec()])
+                              self.package_spec()])
             self.installed = True
 
 
@@ -171,15 +171,23 @@ class Pkgbuild(object):
                 lines.extend(map(lambda x: "  %s" % x, self.content[priority]))
             return "\n".join(lines)
 
-        def append(self, priority, value):
+        def append(self, priority, value, *subs):
             if value is not None:
-                self.extend(priority, [value])
+                self.extend(priority, [value], *subs)
 
-        def extend(self, priority, value):
+        def extend(self, priority, value, *subs):
             if value is not None:
                 if self.content is None:
                     self.content = collections.defaultdict(list)
+                attrs = {}
+                if subs:
+                    for sub in subs:
+                        if isinstance(sub, dict):
+                            attrs.update(sub)
+                        else:
+                            attrs.update(buzzy.utils.extract_attrs(sub))
                 for element in value:
+                    element = element % attrs
                     lines = buzzy.utils.trim(element).splitlines()
                     self.content[priority].extend(lines)
 
@@ -188,8 +196,11 @@ class Pkgbuild(object):
                 out.write("%s () {\n%s\n}\n" % (self.name, self))
 
 
-    def __init__(self, path):
-        self.path = path
+    def __init__(self, package):
+        self.package = package
+        self.recipe = package.recipe
+        self.build_path = package.build_path
+        self.path = os.path.join(self.build_path, "PKGBUILD")
         self.content = {}
 
     def scalar(self, name):
@@ -218,289 +229,191 @@ class Pkgbuild(object):
 #-----------------------------------------------------------------------
 # Sources
 
-class DownloadSource(buzzy.recipe.SchemaVisitor):
-    kind = "download source"
-    required = ["url", "md5"]
-    optional = ["extracted"]
+class Download(buzzy.source.download.Download):
+    def make_pkgbuild(self, package, pkgbuild):
+        pkgbuild.list("source").append(self.url)
+        pkgbuild.list("md5sums").append(self.md5)
 
-    def __init__(self, package):
-        self.package = package
-        self.recipe = package.recipe
-        self.pkgbuild = package.pkgbuild
-        super(DownloadSource, self).__init__()
-
-    def process(self):
-        self.url = self.recipe.subst(self.url)
-        if self.extracted is None:
-            self.extracted = buzzy.utils.tarball_basename(self.url)
-
-        self.pkgbuild.list("source").append(self.url)
-        self.pkgbuild.list("md5sums").append(self.md5)
-
-        build = self.pkgbuild.code("build")
+        build = pkgbuild.code("build")
         build.append(BUILD_CD, 'cd "$srcdir/%s"' % self.extracted)
 
-        package = self.pkgbuild.code("package")
+        package = pkgbuild.code("package")
         package.append(INSTALL_CD, 'cd "$srcdir/%s"' % self.extracted)
 
 
-class GitSource(buzzy.recipe.SchemaVisitor):
-    kind = "git source"
-    required = ["url"]
-    optional = ["tag", "branch"]
+class Git(buzzy.source.git.Git):
+    def validate(self):
+        super(Git, self).validate()
+        if self.dev_build:
+            self.package_name = "%s-git" % self.package_name
 
-    def __init__(self, package):
-        self.package = package
-        self.recipe = package.recipe
-        self.pkgbuild = package.pkgbuild
-        super(GitSource, self).__init__()
-
-    def process(self):
-        if self.branch is not None and self.tag is not None:
-            raise BuzzyError("Cannot specify both branch and tag")
-        if self.branch is not None:
-            self.commit = self.branch
-            self.dev_build = True
-        else:
-            self.commit = self.tag
-            self.dev_build = False
-
-        self.url = self.recipe.subst(self.url)
-        self.commit = self.recipe.subst(self.commit)
-        self.repo_name = re.sub("\.git$", "", os.path.basename(self.url))
-
-        self.pkgbuild.list("makedepends").append("git")
+    def make_pkgbuild(self, package, pkgbuild):
+        pkgbuild.list("makedepends").append("git")
 
         if self.dev_build:
-            self.package.name = "%s-git" % self.package.name
-            self.pkgbuild.scalar("_gitroot").set(self.url)
+            pkgbuild.scalar("_gitroot").set(self.url)
             self.pkgbuild.scalar("_gitname").set(self.commit)
 
-        build = self.pkgbuild.code("build")
+        build = pkgbuild.code("build")
         build.append(BUILD_UNPACK, """
         rm -rf "${srcdir}/%(repo_name)s"
         cd "${srcdir}"
         git clone --depth 1 --branch "%(commit)s" "%(url)s"
         cd "${srcdir}/%(repo_name)s"
         git checkout -b buzzy-build "%(commit)s"
-        """ % buzzy.utils.extract_attrs(self))
+        """, self)
 
-        package = self.pkgbuild.code("package")
+        package = pkgbuild.code("package")
         package.append(INSTALL_CD, 'cd "$srcdir/%s"' % self.repo_name)
-
-
-class Source(buzzy.recipe.TableVisitor):
-    kind = "source"
-
-    def __init__(self, package):
-        self.types = {
-            "download": DownloadSource(package),
-            "git": GitSource(package),
-        }
-        super(Source, self).__init__()
 
 
 #-----------------------------------------------------------------------
 # Builders
 
-class AutotoolsBuild(buzzy.recipe.Visitor):
-    kind = "autotools build"
+class Autotools(buzzy.build.autotools.Autotools):
+    def make_pkgbuild(self, package, pkgbuild):
+        pkgbuild.list("options").append("!libtool")
 
-    def __init__(self, package):
-        self.package = package
-        self.recipe = package.recipe
-        self.pkgbuild = package.pkgbuild
-        super(AutotoolsBuild, self).__init__()
-
-    def scalar(self, value):
-        self.process()
-
-    seq = scalar
-    map = scalar
-
-    def process(self):
-        self.pkgbuild.list("options").append("!libtool")
-
-        build = self.pkgbuild.code("build")
+        build = pkgbuild.code("build")
         build.append(BUILD_CONFIGURE, './configure --prefix=/usr')
         build.append(BUILD_MAKE, 'make')
 
-        package = self.pkgbuild.code("package")
+        package = pkgbuild.code("package")
         package.append(INSTALL_STAGE, 'make DESTDIR="$pkgdir" install')
 
 
-class CmakeBuild(buzzy.recipe.Visitor):
-    kind = "cmake build"
+class Cmake(buzzy.build.cmake.Cmake):
+    def make_pkgbuild(self, package, pkgbuild):
+        pkgbuild.list("makedepends").append("cmake")
 
-    def __init__(self, package):
-        self.package = package
-        self.recipe = package.recipe
-        self.pkgbuild = package.pkgbuild
-        super(CmakeBuild, self).__init__()
-
-    def scalar(self, value):
-        self.process()
-
-    seq = scalar
-    map = scalar
-
-    def process(self):
-        self.pkgbuild.list("makedepends").append("cmake")
-
-        build = self.pkgbuild.code("build")
+        build = pkgbuild.code("build")
         build.append(BUILD_CONFIGURE, """
         cmake_src=$(pwd)
         mkdir -p "${startdir}/cmake-build"
         pushd "${startdir}/cmake-build"
         cmake -DCMAKE_INSTALL_PREFIX=/usr "${cmake_src}"
         popd
-        """ % buzzy.utils.extract_attrs(self))
+        """)
 
         build.append(BUILD_MAKE, """
         pushd "${startdir}/cmake-build"
         make
         popd
-        """ % buzzy.utils.extract_attrs(self))
+        """)
 
-        package = self.pkgbuild.code("package")
+        package = pkgbuild.code("package")
         package.append(INSTALL_STAGE, """
         pushd "${startdir}/cmake-build"
         make DESTDIR="$pkgdir" install
         popd
-        """ % buzzy.utils.extract_attrs(self))
+        """)
 
 
-class Build(buzzy.recipe.TableVisitor):
-    kind = "build"
-
-    def __init__(self, package):
-        self.types = {
-            "autotools": AutotoolsBuild(package),
-            "cmake": CmakeBuild(package),
-        }
-        super(Build, self).__init__()
+class NoBuild(buzzy.build.none.NoBuild):
+    def make_pkgbuild(self, package, pkgbuild):
+        raise BuzzyError("Cannot build %s" % package.package_name)
 
 
 #-----------------------------------------------------------------------
 # Built packages are hard
 
-class BuiltPackage(buzzy.recipe.MapForeach):
-    kind = "Arch built package"
+arch_licenses = collections.defaultdict(lambda: "custom", {
+    "AGPL": "AGPL",
+    "AGPL3": "AGPL3",
+    "Apache": "Apache",
+    "BSD": "BSD",
+    "BSD3": "BSD",
+    "GPL": "GPL",
+    "GPL2": "GPL2",
+    "GPL3": "GPL3",
+    "LGPL": "LGPL",
+    "LGPL2.1": "LGPL2.1",
+    "LGPL3": "LGPL3",
+    "MIT": "MIT",
+    "Perl": "PerlArtistic",
+    "PHP": "PHP",
+    "Python": "Python",
+    "Ruby": "RUBY",
+    "zlib": "ZLIB",
+})
 
-    def __init__(self, recipe):
-        self.name = recipe.package_name
+arch_license_file_needed = [
+    "custom",
+    "BSD",
+    "MIT",
+    "Python",
+    "ZLIB",
+]
+
+
+class BuiltPackage(object):
+    def __init__(self, package_name, recipe):
+        self.package_name = package_name
         self.recipe = recipe
-        self.build_path = build_path(self.name)
-        pkgbuild_path = os.path.join(self.build_path, "PKGBUILD")
-        self.pkgbuild = Pkgbuild(pkgbuild_path)
-
-        # Nested visitors
-        self.visitors = {}
-        source = Source(self)
-        self.visitors["sources"] = buzzy.recipe.SeqForeach("sources", source)
-        self.visitors["build"] = Build(self)
-
-        super(BuiltPackage, self).__init__()
+        self.build_path = build_path(package_name)
+        self.pkgbuild = Pkgbuild(self)
 
     def package_filename(self):
         return "%s-%s-%s-%s.pkg.tar.xz" % \
-            (self.name, self.recipe.version, self.recipe.revision, arch)
+            (self.package_name, self.recipe.version, self.recipe.revision, arch)
 
     def package_path(self):
         return os.path.join(pkgdest, self.package_filename())
 
-    def full_package_spec(self):
+    def package_spec(self):
         return "%s=%s-%s" % \
-            (self.name, self.recipe.version, self.recipe.revision)
+            (self.package_name, self.recipe.version, self.recipe.revision)
 
     def built(self):
         return os.path.exists(self.package_path())
 
     def installed(self):
-        return buzzy.utils.if_run(["pacman", "-T", self.full_package_spec()])
-
-    def start_map(self):
-        self.pkgbuild.list("arch").append(arch)
-        self.need_license_file = False
-        self.have_license_file = False
-
-    def map_package_name(self, value):
-        self.pkgbuild.scalar("pkgname").set(value)
-
-    def map_version(self, value):
-        self.pkgbuild.scalar("pkgver").set(value)
-
-    def map_revision(self, value):
-        self.pkgbuild.scalar("pkgrel").set(value)
-
-    def map_description(self, value):
-        self.pkgbuild.scalar("pkgdesc").set(value.strip())
-
-    def map_license(self, value):
-        arch_licenses = collections.defaultdict(lambda: "custom", {
-            "AGPL": "AGPL",
-            "AGPL3": "AGPL3",
-            "Apache": "Apache",
-            "BSD": "BSD",
-            "BSD3": "BSD",
-            "GPL": "GPL",
-            "GPL2": "GPL2",
-            "GPL3": "GPL3",
-            "LGPL": "LGPL",
-            "LGPL2.1": "LGPL2.1",
-            "LGPL3": "LGPL3",
-            "MIT": "MIT",
-            "Perl": "PerlArtistic",
-            "PHP": "PHP",
-            "Python": "Python",
-            "Ruby": "RUBY",
-            "zlib": "ZLIB",
-        })
-
-        arch_license_file_needed = [
-            "custom",
-            "BSD",
-            "MIT",
-            "Python",
-            "ZLIB",
-        ]
-
-        self.arch_license = arch_licenses[value]
-        self.pkgbuild.list("license").append(self.arch_license)
-        if self.arch_license in arch_license_file_needed:
-            self.need_license_file = True
-
-    def map_url(self, value):
-        self.pkgbuild.scalar("url").set(value)
-
-    def map_depends(self, value):
-        for recipe_name in value:
-            packages = recipe_package_names(recipe_name)
-            self.pkgbuild.list("depends").extend(packages)
-
-    def map_build_depends(self, value):
-        for recipe_name in value:
-            packages = [x for x in recipe_package_names(recipe_name)]
-            self.pkgbuild.list("makedepends").extend(packages)
-
-    def map_license_file(self, value):
-        self.have_license_file = True
-        package = self.pkgbuild.code("package")
-        package.append(INSTALL_POST, 'install -Dm644 %s %s' %
-                       (value, '"$pkgdir/usr/share/licenses/$pkgname/LICENSE"'))
-
-    def finish_map(self):
-        if self.need_license_file and not self.have_license_file:
-            raise BuzzyError("Need a license_file for %s license" %
-                             self.arch_license)
+        return buzzy.utils.if_run(["pacman", "-T", self.package_spec()])
 
     def make_pkgbuild(self):
         log(0, "  Creating PKGBUILD file")
+
+        self.pkgbuild.list("arch").append(arch)
+        self.pkgbuild.scalar("pkgname").set(self.package_name)
+        self.pkgbuild.scalar("pkgver").set(self.recipe.version)
+        self.pkgbuild.scalar("pkgrel").set(self.recipe.revision)
+        self.pkgbuild.scalar("pkgdesc").set(self.recipe.description.strip())
+        self.pkgbuild.scalar("url").set(self.recipe.url)
+
+        for dep_recipe_name in self.recipe.depends:
+            dep_recipe = buzzy.recipe.load(dep_recipe_name)
+            package_names = dep_recipe.package_names()
+            self.pkgbuild.list("depends").extend(package_names)
+
+        for dep_recipe_name in self.recipe.build_depends:
+            dep_recipe = buzzy.recipe.load(dep_recipe_name)
+            package_names = dep_recipe.package_names()
+            self.pkgbuild.list("makedepends").extend(package_names)
+
+        arch_license = arch_licenses[self.recipe.license]
+        self.pkgbuild.list("license").append(arch_license)
+        if self.recipe.license_file:
+            package = self.pkgbuild.code("package")
+            package.append(INSTALL_POST, """
+            install -Dm644 "%(license_file)s" \\
+                "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+            """, self.recipe)
+        else:
+            if arch_license in arch_license_file_needed:
+                raise BuzzyError("Need a license_file for %s license" %
+                                 self.arch_license)
+
+        for source in self.recipe.sources:
+            source.make_pkgbuild(self, self.pkgbuild)
+
+        self.recipe.build.make_pkgbuild(self, self.pkgbuild)
+
         self.pkgbuild.write()
 
     def clean_build_path(self):
         def rmdir(path):
-            buzzy.utils.run(["rm", "-rf", os.path.join(self.build_path, path)])
+            buzzy.utils.run(["rm", "-rf",
+                             os.path.join(self.build_path, path)])
         def rm(path):
             try:
                 os.remove(os.path.join(self.build_path, path))
@@ -512,20 +425,20 @@ class BuiltPackage(buzzy.recipe.MapForeach):
 
     def build(self):
         if not self.built():
-            install_deps(self.recipe, "build_depends")
-            log(0, "Building %s" % self.name)
+            self.recipe.install_build_depends()
+            log(0, "Building %s" % self.package_name)
             self.clean_build_path()
             self.make_pkgbuild()
             log(0, "  Building package")
             buzzy.utils.run(["makepkg", "-s"], cwd=self.build_path)
 
     def install(self):
-        install_deps(self.recipe, "depends")
+        self.recipe.install_depends()
         if self.installed():
-            log(0, "Built package %s already installed" % self.name)
+            log(0, "Built package %s already installed" % self.package_name)
         else:
             self.build()
-            log(0, "Installing built package %s" % self.name)
+            log(0, "Installing built package %s" % self.package_name)
             buzzy.utils.sudo(["pacman", "-U", "--noconfirm",
                               self.package_path()])
 
@@ -538,13 +451,22 @@ class ArchLinux(object):
     arch = arch
 
     def __init__(self):
+        # Set a PKGDEST environment variable for our makepkg calls.
         global pkgdest
         pkgdest = os.path.abspath(buzzy.config.env.package_dir)
         buzzy.utils.makedirs(pkgdest)
         os.environ["PKGDEST"] = pkgdest
 
+        # Register a bunch of crap.
+        buzzy.recipe.recipe_class = Recipe
+        buzzy.build.add(Autotools)
+        buzzy.build.add(Cmake)
+        buzzy.build.add(NoBuild)
+        buzzy.source.add(Download)
+        buzzy.source.add(Git)
+
     def install(self, recipe):
-        install_recipe(recipe)
+        recipe.install()
 
     def configure(self):
         pass

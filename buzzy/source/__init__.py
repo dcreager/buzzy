@@ -6,12 +6,14 @@
 # Please see the COPYING file in this distribution for license details.
 # ----------------------------------------------------------------------
 
-import sys
 
-class BuzzyError(Exception):
-    def __init__(self, msg, detail=None):
-        self.msg = msg
-        self.detail = detail
+import buzzy.yaml
 
-    def __str__(self):
-        return self.msg
+class Source(buzzy.yaml.Types):
+    types = {}
+
+class SourceList(buzzy.yaml.Sequence):
+    element_class = Source
+
+def add(cls):
+    Source.types[cls.type_name()] = cls

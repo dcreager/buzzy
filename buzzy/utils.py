@@ -68,9 +68,32 @@ def sudo(cmd, **kw):
     return _run(cmd[1], cmd, **kw)
 
 
+def any_of(kind, **choices):
+    choice_names = []
+    given = []
+    for k, v in choices.items():
+        choice_names.append(k)
+        if v is not None:
+            given.append(k)
+
+    if not given:
+        choice_names.sort()
+        raise BuzzyError("Must give one of (%s) for %s" %
+                         (", ".join(choice_names), kind))
+    elif len(given) == 1:
+        return choices[given[0]]
+    else:
+        given.sort()
+        raise BuzzyError("Cannot give (%s) together for %s" %
+                         (", ".join(choice_names), kind))
+
+
 def extract_attrs(obj, names=None):
     if names is None:
-        names = [ name for name in dir(obj) if not name.startswith("_") ]
+        names = []
+        for name in dir(obj):
+            if not name.startswith("_") and not callable(getattr(obj, name)):
+                names.append(name)
     return { name: getattr(obj, name) for name in names }
 
 
