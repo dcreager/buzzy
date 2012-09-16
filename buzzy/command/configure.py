@@ -7,6 +7,9 @@
 # ----------------------------------------------------------------------
 
 import buzzy.config
+import buzzy.distro
 
 def run(args):
-    buzzy.config.new_env()
+    buzzy.config.configure_env()
+    # Allow the OS-specific code to configure things, too.
+    buzzy.distro.this.configure()

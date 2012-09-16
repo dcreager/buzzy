@@ -14,12 +14,14 @@ import buzzy.config
 import buzzy.recipe
 
 def run(args):
+    buzzy.config.load_env()
+
     if len(args) == 0:
         print("buzzy %s" % buzzy.config.version)
         print()
         print("Recipe DB:  %s" % buzzy.config.env.recipe_database)
-        print("OS:         %s" % buzzy.config.os.name)
-        print("Arch:       %s" % buzzy.config.os.arch)
+        print("OS distro:  %s" % buzzy.distro.this.name)
+        print("Arch:       %s" % buzzy.distro.this.arch)
         return
 
     first = True

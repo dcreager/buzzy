@@ -450,13 +450,14 @@ class ArchLinux(object):
     name = "linux (arch)"
     arch = arch
 
-    def __init__(self):
-        # Set a PKGDEST environment variable for our makepkg calls.
-        global pkgdest
-        pkgdest = os.path.abspath(buzzy.config.env.package_dir)
-        buzzy.utils.makedirs(pkgdest)
-        os.environ["PKGDEST"] = pkgdest
+    @classmethod
+    def detect(cls):
+        if os.path.exists("/etc/arch-release"):
+            return cls()
+        else:
+            return None
 
+    def __init__(self):
         # Register a bunch of crap.
         buzzy.recipe.recipe_class = Recipe
         buzzy.build.add(Autotools)
@@ -466,6 +467,12 @@ class ArchLinux(object):
         buzzy.source.add(Git)
 
     def install(self, recipe):
+        # Set a PKGDEST environment variable for our makepkg calls.
+        global pkgdest
+        pkgdest = os.path.abspath(buzzy.config.env.package_dir)
+        buzzy.utils.makedirs(pkgdest)
+        os.environ["PKGDEST"] = pkgdest
+
         recipe.install()
 
     def configure(self):
