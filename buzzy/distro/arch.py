@@ -54,24 +54,31 @@ class Recipe(buzzy.recipe.Recipe):
         if isinstance(self.arch.native, str):
             package = NativePackage(self.arch.native, self)
         elif is_native_package(self.recipe_name):
-            package = NativePackage(self.recipe_name, self)
+            package_name = os.path.basename(self.recipe_name)
+            package = NativePackage(package_name, self)
         else:
             # For now, we only allow one built package per recipe.  That will
             # probably change.
-            package = BuiltPackage(self.recipe_name, self)
+            package_name = os.path.basename(self.recipe_name)
+            package = BuiltPackage(package_name, self)
 
         self.packages = [package]
+        self.visited = False
 
     def package_names(self):
         return map(lambda x: x.package_name, self.packages)
 
     def build_recipe(self, force):
-        for package in self.packages:
-            package.build_package(force)
+        if not self.visited:
+            self.visited = True
+            for package in self.packages:
+                package.build_package(force)
 
     def install_recipe(self, force):
-        for package in self.packages:
-            package.install_package(force)
+        if not self.visited:
+            self.visited = True
+            for package in self.packages:
+                package.install_package(force)
 
     def install_depends(self):
         for dep_recipe_name in self.depends:

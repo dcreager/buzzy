@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------
 
 import itertools
+import os
 import os.path
 import yaml
 
@@ -62,6 +63,16 @@ def load(recipe_name):
         recipes[recipe_name] = recipe
 
     return recipes[recipe_name]
+
+def all_recipe_names():
+    db_path = buzzy.config.env.recipe_database
+    prefix = "%s%s" % (db_path, os.path.sep)
+    for dirpath, _, filenames in os.walk(db_path):
+        for filename in filenames:
+            if filename.endswith(".yaml"):
+                recipe_name = "%s/%s" % (dirpath, filename[:-5])
+                recipe_name = recipe_name.replace(prefix, "", 1)
+                yield recipe_name
 
 
 #-----------------------------------------------------------------------
