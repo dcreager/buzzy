@@ -30,7 +30,7 @@ global_options.disable_interspersed_args()
 global_options.add_option(
     "-v", "--verbose",
     dest="verbosity", action="count", default=0,
-    help="output more detailed progres information",
+    help="output more detailed progress information",
 )
 
 
@@ -57,10 +57,12 @@ def main(args):
     run_command(cmd_name, cmd_args)
 
 
+import buzzy.command.build
 import buzzy.command.configure
 import buzzy.command.info
 import buzzy.command.install
 commands = {
+    "build": buzzy.command.build.run,
     "configure": buzzy.command.configure.run,
     "info": buzzy.command.info.run,
     "install": buzzy.command.install.run,

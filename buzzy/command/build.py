@@ -36,9 +36,9 @@ def run(args):
 
     buzzy.config.load_env()
     (options, args) = cmd_options.parse_args(args)
-    buzzy.config.force = options.force
+    buzzy.config.force = options.force or options.force_all
     buzzy.config.force_all = options.force_all
 
     for recipe_name in args:
         recipe = buzzy.recipe.load(recipe_name)
-        buzzy.distro.this.install(recipe)
+        buzzy.distro.this.build(recipe)

@@ -65,19 +65,23 @@ class Recipe(buzzy.recipe.Recipe):
     def package_names(self):
         return map(lambda x: x.package_name, self.packages)
 
-    def install(self):
+    def build_recipe(self, force):
         for package in self.packages:
-            package.install()
+            package.build_package(force)
+
+    def install_recipe(self, force):
+        for package in self.packages:
+            package.install_package(force)
 
     def install_depends(self):
         for dep_recipe_name in self.depends:
             dep_recipe = buzzy.recipe.load(dep_recipe_name)
-            dep_recipe.install()
+            dep_recipe.install_recipe(buzzy.config.force_all)
 
     def install_build_depends(self):
         for dep_recipe_name in self.build_depends:
             dep_recipe = buzzy.recipe.load(dep_recipe_name)
-            dep_recipe.install()
+            dep_recipe.install_recipe(buzzy.config.force_all)
 
 
 #-----------------------------------------------------------------------
@@ -94,13 +98,13 @@ class NativePackage(object):
     def installed(self):
         return buzzy.utils.if_run(["pacman", "-T", self.package_spec()])
 
-    def build(self):
+    def build_package(self, force):
         # Nothing to build for a native package
-        pass
+        log(0, "Don't need to build native package %s" % self.package_name)
 
-    def install(self):
+    def install_package(self, force):
         self.recipe.install_depends()
-        if self.installed():
+        if self.installed() and not force:
             log(0, "Native package %s already installed" % self.package_name)
         else:
             log(0, "Installing native package %s" % self.package_name)
@@ -426,26 +430,28 @@ class BuiltPackage(object):
         rmdir("src")
         rm(self.package_filename())
 
-    def build(self):
-        if not self.built():
+    def build_package(self, force):
+        if self.built() and not force:
+            log(0, "Package %s already built" % self.package_name)
+        else:
             self.recipe.install_build_depends()
             log(0, "Building %s" % self.package_name)
             self.clean_build_path()
             self.make_pkgbuild()
             log(0, "  Building package")
-            buzzy.utils.run(["makepkg", "-s"], cwd=self.build_path)
+            buzzy.utils.run(["makepkg", "-s", "-f"], cwd=self.build_path)
             log(0, "  Updating repository database")
             buzzy.utils.run(["repo-add", "-d", repo_db,
                              self.package_path()])
             buzzy.utils.run(["repo-add", "-d", "-f", repo_files_db,
                              self.package_path()])
 
-    def install(self):
+    def install_package(self, force):
         self.recipe.install_depends()
-        if self.installed():
+        if self.installed() and not force:
             log(0, "Built package %s already installed" % self.package_name)
         else:
-            self.build()
+            self.build_package(force)
             log(0, "Installing built package %s" % self.package_name)
             buzzy.utils.sudo(["pacman", "-U", "--noconfirm",
                               self.package_path()])
@@ -474,7 +480,7 @@ class ArchLinux(object):
         buzzy.source.add(Download)
         buzzy.source.add(Git)
 
-    def install(self, recipe):
+    def setup(self):
         # Set a PKGDEST environment variable for our makepkg calls.
         global pkgdest
         pkgdest = os.path.abspath(buzzy.config.env.repo_dir)
@@ -493,7 +499,13 @@ class ArchLinux(object):
         repo_files_db = os.path.join(pkgdest, "%s.files.tar.xz" %
                                      buzzy.config.env.repo_name)
 
-        recipe.install()
+    def build(self, recipe):
+        self.setup()
+        recipe.build_recipe(buzzy.config.force)
+
+    def install(self, recipe):
+        self.setup()
+        recipe.install_recipe(buzzy.config.force)
 
     def configure(self):
         pass

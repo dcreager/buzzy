@@ -20,6 +20,8 @@ from buzzy.errors import BuzzyError
 #-----------------------------------------------------------------------
 # Command-line options
 
+force = False
+force_all = False
 verbosity = 0
 version = buzzy.version.version
 
