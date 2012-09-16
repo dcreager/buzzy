@@ -10,7 +10,7 @@
 from buzzy.errors import BuzzyError
 
 
-class FromYaml(object):
+class Yaml(object):
     def __init__(self, *args, **kw):
         pass
 
@@ -22,35 +22,43 @@ class FromYaml(object):
     def from_yaml(cls, yaml, root, *args, **kw):
         self = cls(*args, **kw)
         self.load_yaml(yaml, root)
+        self.validate()
         return self
 
     def load_yaml(self, yaml, root):
         pass
 
-
-class Fields(FromYaml):
-    def all_fields(self):
-        while hasattr(self, "from_yaml"):
-            if hasattr(self, "fields"):
-                for x in self.fields():
-                    yield x
-            self = super(self.__class__, self)
-
     def validate(self):
         pass
 
-    def set_fields_from_yaml(self, yaml, root):
+    @classmethod
+    def to_yaml(cls, self):
+        raise NotImplementedError
+
+
+class Fields(Yaml):
+    def all_fields(self):
+        while hasattr(self, "from_yaml"):
+            if hasattr(self, "fields"):
+                for tup in self.fields():
+                    if isinstance(tup, tuple):
+                        yield tup
+                    else:
+                        yield tup, {}
+            self = super(self.__class__, self)
+
+    def __init__(self, *args, **kw):
+        super(Fields, self).__init__(*args, **kw)
+        for field, _ in self.all_fields():
+            if not hasattr(self, field):
+                setattr(self, field, None)
+
+    def load_yaml(self, yaml, root):
         # Use an empty set of YAML content if none was given.
         yaml = yaml or {}
 
         # Extract fields from the YAML content.
-        for tup in self.all_fields():
-            if isinstance(tup, tuple):
-                field, options = tup
-            else:
-                field = tup
-                options = {}
-
+        for field, options in self.all_fields():
             # Extract the value from the YAML, if present.
             value = None
             if field in yaml:
@@ -71,15 +79,30 @@ class Fields(FromYaml):
 
             setattr(self, field, value)
 
-        # Let the class perform any additional validation.
-        self.validate()
+    @classmethod
+    def to_yaml(cls, self):
+        yaml = {}
 
-    def load_yaml(self, yaml, root):
-        super(Fields, self).load_yaml(yaml, root)
-        self.set_fields_from_yaml(yaml, root)
+        # Append fields into the YAML content.
+        for field, options in self.all_fields():
+            skip = False
+            value = getattr(self, field)
+
+            if "custom" in options:
+                value = options["custom"].to_yaml(value)
+
+            if "default" in options:
+                if value == options["default"]:
+                    # Skip this field if it has the default value.
+                    skip = True
+
+            if not skip:
+                yaml[field] = value
+
+        return yaml
 
 
-class Types(FromYaml):
+class Types(Yaml):
     @classmethod
     def from_yaml(cls, yaml, root):
         if isinstance(yaml, dict):
@@ -91,7 +114,7 @@ class Types(FromYaml):
 
         elif isinstance(yaml, str):
             type_name = yaml
-            kw = {}
+            kw = {"type": type_name}
 
         else:
             print(yaml)
@@ -105,11 +128,29 @@ class Types(FromYaml):
 
         return type_class.from_yaml(yaml, root)
 
+    @classmethod
+    def to_yaml(cls, self):
+        type_class = cls.types[self.type]
+        yaml = type_class.to_yaml(self)
+        if "type" not in yaml:
+            raise BuzzyError("Missing \"type\" in %s" % cls.type_name())
 
-class Sequence(FromYaml):
+        if len(yaml) == 1:
+            # If there's only a "type" field, render the object as a string
+            # instead of a map.
+            return yaml["type"]
+        else:
+            return yaml
+
+
+class Sequence(Yaml):
     @classmethod
     def from_yaml(cls, yaml, root):
         if isinstance(yaml, list):
             return map(lambda x: cls.element_class.from_yaml(x, root), yaml)
         else:
             raise BuzzyError("Expected a list for %s" % cls.type_name())
+
+    @classmethod
+    def to_yaml(cls, self):
+        return map(lambda x: cls.element_class.to_yaml(x), self);

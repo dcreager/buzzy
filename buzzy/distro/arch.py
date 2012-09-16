@@ -25,6 +25,9 @@ from buzzy.log import log
 
 
 arch = buzzy.utils.get_arch_from_uname()
+pkgdest = None
+repo_db = None
+repo_files_db = None
 
 
 #-----------------------------------------------------------------------
@@ -431,6 +434,11 @@ class BuiltPackage(object):
             self.make_pkgbuild()
             log(0, "  Building package")
             buzzy.utils.run(["makepkg", "-s"], cwd=self.build_path)
+            log(0, "  Updating repository database")
+            buzzy.utils.run(["repo-add", "-d", repo_db,
+                             self.package_path()])
+            buzzy.utils.run(["repo-add", "-d", "-f", repo_files_db,
+                             self.package_path()])
 
     def install(self):
         self.recipe.install_depends()
@@ -450,13 +458,14 @@ class ArchLinux(object):
     name = "linux (arch)"
     arch = arch
 
-    def __init__(self):
-        # Set a PKGDEST environment variable for our makepkg calls.
-        global pkgdest
-        pkgdest = os.path.abspath(buzzy.config.env.package_dir)
-        buzzy.utils.makedirs(pkgdest)
-        os.environ["PKGDEST"] = pkgdest
+    @classmethod
+    def detect(cls):
+        if os.path.exists("/etc/arch-release"):
+            return cls()
+        else:
+            return None
 
+    def __init__(self):
         # Register a bunch of crap.
         buzzy.recipe.recipe_class = Recipe
         buzzy.build.add(Autotools)
@@ -466,6 +475,24 @@ class ArchLinux(object):
         buzzy.source.add(Git)
 
     def install(self, recipe):
+        # Set a PKGDEST environment variable for our makepkg calls.
+        global pkgdest
+        pkgdest = os.path.abspath(buzzy.config.env.repo_dir)
+        buzzy.utils.makedirs(pkgdest)
+        os.environ["PKGDEST"] = pkgdest
+
+        # And also one for the name of the packager.
+        os.environ["PACKAGER"] = "%s <%s>" % \
+            (buzzy.config.env.name, buzzy.config.env.email)
+
+        # And construct the path to the repository database.
+        global repo_db
+        global repo_files_db
+        repo_db = os.path.join(pkgdest, "%s.db.tar.xz" %
+                               buzzy.config.env.repo_name)
+        repo_files_db = os.path.join(pkgdest, "%s.files.tar.xz" %
+                                     buzzy.config.env.repo_name)
+
         recipe.install()
 
     def configure(self):

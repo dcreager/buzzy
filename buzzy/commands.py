@@ -18,7 +18,7 @@ import os.path
 import sys
 
 import buzzy.config
-import buzzy.detect
+import buzzy.distro
 from buzzy.errors import BuzzyError
 
 
@@ -43,17 +43,18 @@ def main(args):
     (options, cmd_args) = global_options.parse_args(args)
     buzzy.config.verbosity = options.verbosity
 
-    # Load in the environment
-    buzzy.config.load_env()
-
-    # Detect the current OS
-    buzzy.detect.detect_os()
-
+    # If no command was given, default to the "info" command.
     if len(cmd_args) == 0:
-        # If no command was given, default to the "info" command.
-        run_command("info", [])
+        cmd_name = "info"
     else:
-        run_command(cmd_args[0], cmd_args[1:])
+        cmd_name = cmd_args[0]
+        cmd_args = cmd_args[1:]
+
+    # Detect the current OS distribution
+    buzzy.distro.detect()
+
+    # Run the command
+    run_command(cmd_name, cmd_args)
 
 
 import buzzy.command.configure
@@ -77,8 +78,8 @@ def run_command(command_name, args):
         commands[command_name](args)
         found = True
 
-    if hasattr(buzzy.config.os, "cmd_%s" % command_name):
-        cmd = getattr(buzzy.config.os, "cmd_%s" % command_name)
+    if hasattr(buzzy.distro.this, "cmd_%s" % command_name):
+        cmd = getattr(buzzy.distro.this, "cmd_%s" % command_name)
         cmd(args)
         found = True
 

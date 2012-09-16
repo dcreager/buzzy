@@ -6,21 +6,20 @@
 # Please see the COPYING file in this distribution for license details.
 # ----------------------------------------------------------------------
 
-import sys
-
-import buzzy.config
-import buzzy.distro
-import buzzy.recipe
+from buzzy.distro.arch import ArchLinux
 from buzzy.errors import BuzzyError
 
+distros = [
+    ArchLinux,
+]
 
-def run(args):
-    if not args:
-        raise BuzzyError("Must provide at least one recipe name")
-        sys.exit(1)
+this = None
 
-    buzzy.config.load_env()
+def detect():
+    global this
+    for distro in distros:
+        this = distro.detect()
+        if this is not None:
+            return
 
-    for recipe_name in args:
-        recipe = buzzy.recipe.load(recipe_name)
-        buzzy.distro.this.install(recipe)
+    raise BuzzyError("Cannot determine which OS distribution this is!")
