@@ -61,11 +61,13 @@ import buzzy.command.build
 import buzzy.command.configure
 import buzzy.command.info
 import buzzy.command.install
+import buzzy.command.list
 commands = {
     "build": buzzy.command.build.run,
     "configure": buzzy.command.configure.run,
     "info": buzzy.command.info.run,
     "install": buzzy.command.install.run,
+    "list": buzzy.command.list.run,
 }
 
 def run_command(command_name, args):
