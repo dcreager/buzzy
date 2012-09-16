@@ -6,6 +6,7 @@
 # Please see the COPYING file in this distribution for license details.
 # ----------------------------------------------------------------------
 
+import os
 import os.path
 import sys
 import yaml
@@ -163,11 +164,43 @@ class Environment_2(EnvironmentVersion):
                  "What is the name of the package repository that I produce?")
 
 
+class Environment_3(EnvironmentVersion):
+    def fields(self):
+        yield "version"
+        yield "build_dir"
+        yield "email"
+        yield "name"
+        yield "repo_name"
+        yield "repo_dir"
+        yield "recipe_database"
+
+    def upgrade_new_fields(self, env, prev):
+        try:
+            import pwd
+            import socket
+            pwd_entry = pwd.getpwuid(os.getuid())
+            default_email = "%s@%s" % (pwd_entry[0], socket.getfqdn())
+            default_name = pwd_entry[4].split(",")[0]
+        except ImportError:
+            default_email = None
+            default_name = None
+
+        self.ask("name",
+                 "What is the name of the person or organization "
+                 "responsible for these packages?",
+                 default=default_name)
+        self.ask("email",
+                 "What is the email address of the person or organization "
+                 "responsible for these packages?",
+                 default=default_email)
+
+
 class DefaultEnvironment(Environment):
     versions = [
         Environment_0,
         Environment_1,
         Environment_2,
+        Environment_3,
     ]
 
     env_filename = "config.yaml"

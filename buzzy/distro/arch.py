@@ -481,6 +481,10 @@ class ArchLinux(object):
         buzzy.utils.makedirs(pkgdest)
         os.environ["PKGDEST"] = pkgdest
 
+        # And also one for the name of the packager.
+        os.environ["PACKAGER"] = "%s <%s>" % \
+            (buzzy.config.env.name, buzzy.config.env.email)
+
         # And construct the path to the repository database.
         global repo_db
         global repo_files_db
