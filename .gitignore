@@ -1,6 +1,6 @@
-build
-dist
+/build/
+/dist/
 *.py[co]
 MANIFEST
 RELEASE-VERSION
-.buzzy
+/.buzzy/
