@@ -64,7 +64,7 @@ def load(recipe_name):
 
     return recipes[recipe_name]
 
-def all_recipes():
+def all_recipe_names():
     db_path = buzzy.config.env.recipe_database
     prefix = "%s%s" % (db_path, os.path.sep)
     for dirpath, _, filenames in os.walk(db_path):

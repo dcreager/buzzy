@@ -63,17 +63,22 @@ class Recipe(buzzy.recipe.Recipe):
             package = BuiltPackage(package_name, self)
 
         self.packages = [package]
+        self.visited = False
 
     def package_names(self):
         return map(lambda x: x.package_name, self.packages)
 
     def build_recipe(self, force):
-        for package in self.packages:
-            package.build_package(force)
+        if not self.visited:
+            self.visited = True
+            for package in self.packages:
+                package.build_package(force)
 
     def install_recipe(self, force):
-        for package in self.packages:
-            package.install_package(force)
+        if not self.visited:
+            self.visited = True
+            for package in self.packages:
+                package.install_package(force)
 
     def install_depends(self):
         for dep_recipe_name in self.depends:
