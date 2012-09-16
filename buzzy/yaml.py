@@ -47,6 +47,12 @@ class Fields(Yaml):
                         yield tup, {}
             self = super(self.__class__, self)
 
+    def __init__(self, *args, **kw):
+        super(Fields, self).__init__(*args, **kw)
+        for field, _ in self.all_fields():
+            if not hasattr(self, field):
+                setattr(self, field, None)
+
     def load_yaml(self, yaml, root):
         # Use an empty set of YAML content if none was given.
         yaml = yaml or {}

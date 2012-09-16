@@ -27,8 +27,8 @@ version = buzzy.version.version
 # Environment files
 
 class EnvironmentVersion(buzzy.yaml.Fields):
-    def ask(self, name, prompt, default=None):
-        if not hasattr(self, name):
+    def ask(self, name, prompt, default=None, validate=None):
+        if not hasattr(self, name) or getattr(self, name) is None:
             while True:
                 if default is None:
                     sys.stdout.write("%s " % prompt)
@@ -38,19 +38,26 @@ class EnvironmentVersion(buzzy.yaml.Fields):
                 sys.stdout.flush()
                 result = sys.stdin.readline().rstrip()
                 if result == "":
-                    if default is not None:
-                        setattr(self, name, default)
-                        return
-                else:
-                    setattr(self, name, result)
-                    return
+                    if default is None:
+                        continue
+                    else:
+                        result = default
+
+                if validate is not None:
+                    if not validate(result):
+                        continue
+
+                setattr(self, name, result)
+                return
 
     @classmethod
-    def copy(cls, prev):
+    def upgrade_from(cls, env, prev):
         self = cls()
-        for field_name, _ in prev.all_fields():
-            setattr(self, field_name, getattr(prev, field_name))
+        for field_name, _ in self.all_fields():
+            if hasattr(prev, field_name):
+                setattr(self, field_name, getattr(prev, field_name))
         self.version = prev.version + 1
+        self.upgrade_new_fields(env, prev)
         return self
 
 
@@ -84,7 +91,7 @@ class Environment(object):
             raise BuzzyError("Please run \"buzzy configure\" first.")
 
         version = content["version"]
-        if not self.is_current_version(version):
+        if check_version and not self.is_current_version(version):
             raise BuzzyError \
                 ("Outdated configuration, please rerun \"buzzy configure\".")
 
@@ -110,6 +117,14 @@ class Environment(object):
 #-----------------------------------------------------------------------
 # Default environment schema
 
+def validate_path(path):
+    if not os.path.exists(path):
+        print("%s does not exist." % path)
+        return False
+    else:
+        return True
+
+
 class Environment_0(EnvironmentVersion):
     def __init__(self):
         self.version = 0
@@ -122,21 +137,37 @@ class Environment_1(EnvironmentVersion):
         yield "package_dir"
         yield "recipe_database"
 
-    @classmethod
-    def upgrade_from(cls, env, prev):
-        self = cls.copy(prev)
-        self.ask("recipe_database", "Where is your recipe database?")
+    def upgrade_new_fields(self, env, prev):
+        self.ask("recipe_database", "Where is your recipe database?",
+                 validate=validate_path)
         self.ask("build_dir", "Where should I build packages?",
-                 os.path.join(env.env_path, "build"))
-        self.ask("package_dir", "Where should I put the packages that I build?",
-                 os.path.join(env.env_path, "packages"))
-        return self
+                 default=os.path.join(env.env_path, "build"))
+
+
+class Environment_2(EnvironmentVersion):
+    def fields(self):
+        yield "version"
+        yield "build_dir"
+        yield "repo_name"
+        yield "repo_dir"
+        yield "recipe_database"
+
+    def upgrade_new_fields(self, env, prev):
+        if prev.package_dir is None:
+            self.ask("repo_dir", "Where should I put the packages that I build?",
+                     default=os.path.join(env.env_path, "packages"))
+        else:
+            self.repo_dir = prev.package_dir
+
+        self.ask("repo_name",
+                 "What is the name of the package repository that I produce?")
 
 
 class DefaultEnvironment(Environment):
     versions = [
         Environment_0,
         Environment_1,
+        Environment_2,
     ]
 
     env_filename = "config.yaml"
