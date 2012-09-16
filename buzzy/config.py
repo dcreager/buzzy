@@ -6,6 +6,8 @@
 # Please see the COPYING file in this distribution for license details.
 # ----------------------------------------------------------------------
 
+from __future__ import absolute_import
+
 import os
 import os.path
 import sys

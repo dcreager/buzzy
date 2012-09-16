@@ -6,6 +6,8 @@
 # Please see the COPYING file in this distribution for license details.
 # ----------------------------------------------------------------------
 
+from __future__ import absolute_import
+
 import os
 import os.path
 import re
@@ -68,6 +70,18 @@ def sudo(cmd, **kw):
     return _run(cmd[1], cmd, **kw)
 
 
+# A version of subprocess.check_output that always returns a str instance on
+# both Python 2 and Python 3.
+def check_output(*args, **kw):
+    result = subprocess.check_output(*args, **kw)
+    if bytes == str:
+        # Python 2
+        return str(result)
+    else:
+        # Python 3
+        return str(result, "ascii")
+
+
 def any_of(kind, **choices):
     choice_names = []
     given = []
@@ -98,7 +112,7 @@ def extract_attrs(obj, names=None):
 
 
 def get_arch_from_uname():
-    return subprocess.check_output(["uname", "-m"]).decode("ascii").rstrip()
+    return check_output(["uname", "-m"]).rstrip()
 
 
 def makedirs(path):

@@ -6,9 +6,7 @@
 # Please see the COPYING file in this distribution for license details.
 # ----------------------------------------------------------------------
 
-__all__ = (
-    "log",
-)
+from __future__ import absolute_import
 
 import sys
 import traceback
@@ -16,14 +14,23 @@ import traceback
 import buzzy.config
 from buzzy.errors import BuzzyError
 
-def log(verbosity, *args):
-    if verbosity <= buzzy.config.verbosity:
-        for arg in args:
-            if isinstance(arg, bytes):
-                sys.stderr.buffer.write(arg)
-            else:
+if bytes == str:
+    # Python 2
+    def log(verbosity, *args):
+        if verbosity <= buzzy.config.verbosity:
+            for arg in args:
                 sys.stderr.write(str(arg))
-        sys.stderr.write("\n")
+            sys.stderr.write("\n")
+else:
+    # Python 3
+    def log(verbosity, *args):
+        if verbosity <= buzzy.config.verbosity:
+            for arg in args:
+                if isinstance(arg, bytes):
+                    sys.stderr.buffer.write(arg)
+                else:
+                    sys.stderr.write(str(arg))
+            sys.stderr.write("\n")
 
 def log_error(error):
     if isinstance(error, BuzzyError):

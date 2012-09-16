@@ -7,6 +7,8 @@
 # ----------------------------------------------------------------------
 
 
+from __future__ import absolute_import
+
 import buzzy.yaml
 
 class NoBuild(buzzy.yaml.Fields):

@@ -7,6 +7,8 @@
 # ----------------------------------------------------------------------
 
 
+from __future__ import absolute_import
+
 import buzzy.yaml
 
 class Cmake(buzzy.yaml.Fields):

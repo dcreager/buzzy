@@ -6,9 +6,7 @@
 # Please see the COPYING file in this distribution for license details.
 # ----------------------------------------------------------------------
 
-__all__ = (
-    "run",
-)
+from __future__ import absolute_import
 
 import buzzy.config
 import buzzy.recipe
