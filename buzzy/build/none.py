@@ -15,3 +15,9 @@ class NoBuild(buzzy.yaml.Fields):
     @classmethod
     def type_name(cls):
         return "none"
+
+    def fields(self):
+        yield "type"
+
+    def create_packages(self, recipe):
+        raise NotImplementedError

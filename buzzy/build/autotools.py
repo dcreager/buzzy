@@ -12,4 +12,8 @@ from __future__ import absolute_import
 import buzzy.yaml
 
 class Autotools(buzzy.yaml.Fields):
-    pass
+    def fields(self):
+        yield "type"
+
+    def create_packages(self, recipe):
+        raise NotImplementedError

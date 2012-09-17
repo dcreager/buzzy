@@ -18,9 +18,14 @@ import buzzy.yaml
 
 class Git(buzzy.yaml.Fields):
     def fields(self):
+        yield "type"
         yield "url", {"templated": True}
         yield "branch", {"default": None, "templated": True}
         yield "tag", {"default": None, "templated": True}
+        yield "deep", {"default": True}
+
+    def update_packages(self, recipe, packages):
+        pass
 
     def validate(self):
         self.commit = buzzy.utils.any_of("git source",

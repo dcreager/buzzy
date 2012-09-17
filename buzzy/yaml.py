@@ -110,16 +110,14 @@ class Types(Yaml):
         if isinstance(yaml, dict):
             try:
                 type_name = yaml["type"]
-                kw = yaml
             except KeyError:
                 raise BuzzyError("Missing \"type\" in %s" % cls.type_name())
 
         elif isinstance(yaml, str):
             type_name = yaml
-            kw = {"type": type_name}
+            yaml = {"type": type_name}
 
         else:
-            print(yaml)
             raise BuzzyError("Expected a string or map for %s" % cls.type_name())
 
         try:
@@ -149,7 +147,7 @@ class Sequence(Yaml):
     @classmethod
     def from_yaml(cls, yaml, root):
         if isinstance(yaml, list):
-            return map(lambda x: cls.element_class.from_yaml(x, root), yaml)
+            return list(map(lambda x: cls.element_class.from_yaml(x, root), yaml))
         else:
             raise BuzzyError("Expected a list for %s" % cls.type_name())
 

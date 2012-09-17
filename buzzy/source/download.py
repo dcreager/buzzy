@@ -14,10 +14,14 @@ import buzzy.yaml
 
 class Download(buzzy.yaml.Fields):
     def fields(self):
+        yield "type"
         yield "url", {"templated": True}
         yield "md5"
         yield "sha1"
         yield "extracted", {"default": None}
+
+    def update_packages(self, recipe, packages):
+        pass
 
     def validate(self):
         if self.extracted is None:

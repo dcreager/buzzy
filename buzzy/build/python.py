@@ -11,9 +11,10 @@ from __future__ import absolute_import
 
 import buzzy.yaml
 
-class Cmake(buzzy.yaml.Fields):
+class Python(buzzy.yaml.Fields):
     def fields(self):
         yield "type"
+        yield "installer", {"default": "distutils"}
 
     def create_packages(self, recipe):
         raise NotImplementedError

@@ -8,6 +8,7 @@
 
 from __future__ import absolute_import
 
+import collections
 import itertools
 import os
 import os.path
@@ -18,6 +19,7 @@ import buzzy.config
 import buzzy.source
 import buzzy.yaml
 from buzzy.errors import BuzzyError
+from buzzy.log import log
 
 
 #-----------------------------------------------------------------------
@@ -38,7 +40,111 @@ class Recipe(buzzy.yaml.Fields):
 
     def __init__(self, recipe_name):
         self.recipe_name = recipe_name
+        self._packages = None
         super(Recipe, self).__init__()
+
+    def create_packages(self):
+        # The builder contains most of the logic for deciding what kind of
+        # package this is.  We also let the source objects modify the package
+        # that was built.
+        packages = self.build.create_packages(self)
+        for source in self.sources:
+            source.update_packages(self, packages)
+        return packages
+
+    def packages(self):
+        if self._packages is None:
+            self._packages = self.create_packages()
+        return self._packages
+
+    def packages_with_tag(self, tag=None):
+        result = []
+        found_package = False
+
+        # If a specific tag was requested, look for any packages with that tag
+        # first.
+        if tag is not None:
+            for package in self.packages():
+                if tag in package.tags:
+                    result.append(package)
+                    found_package = True
+
+        # If we couldn't find any packages with the requested tag, fall back on
+        # looking for a "default" package.
+        if not found_package:
+            for package in self.packages():
+                if "default" in package.tags:
+                    result.append(package)
+                    found_package = True
+
+        # If we still haven't found a package, that's an error.
+        if found_package:
+            return result
+        else:
+            raise BuzzyError("Can't find %s package for %s" %
+                             (tag or "default", self.recipe_name))
+
+    def build_recipe(self, force):
+        for package in self.packages():
+            package.build_package(force)
+
+    def install_recipe(self, force):
+        for package in self.packages():
+            package.install_package(force)
+
+
+#-----------------------------------------------------------------------
+# Packages
+
+class Package(object):
+    def __init__(self, package_name, recipe, tags, dep_tag=None):
+        log(2, "Creating package %s %s" % (package_name, tags))
+        self.package_name = package_name
+        self.recipe = recipe
+        self.full_name = "%s: %s" % (self.recipe.recipe_name, package_name)
+        self.tags = tags
+        self.depends = self.calculate_deps(recipe.depends, dep_tag)
+        self.build_depends = self.calculate_deps(recipe.build_depends, dep_tag)
+
+    def calculate_deps(self, dep_recipes, dep_tag=None):
+        result = []
+        for dep_recipe_name in dep_recipes:
+            dep_recipe = load(dep_recipe_name)
+            result.extend(dep_recipe.packages_with_tag(dep_tag))
+        return result
+
+    def built(self):
+        raise NotImplementedError
+
+    def installed(self):
+        raise NotImplementedError
+
+    def perform_build(self):
+        raise NotImplementedError
+
+    def perform_install(self):
+        raise NotImplementedError
+
+    def build_package(self, force):
+        if not force and self.built():
+            return
+        else:
+            log(0, "[%s] Installing build dependencies" % self.full_name)
+            for package in self.build_depends:
+                package.install_package(buzzy.config.force_all)
+            log(0, "[%s] Building" % self.full_name)
+            self.perform_build()
+
+    def install_package(self, force):
+        if not force and self.installed():
+            return
+        else:
+            log(0, "[%s] Installing run-time dependencies" % self.full_name)
+            for package in self.depends:
+                package.install_package(buzzy.config.force_all)
+            self.build_package(force)
+            log(0, "[%s] Installing" % self.full_name)
+            self.perform_install()
 
 
 #-----------------------------------------------------------------------
