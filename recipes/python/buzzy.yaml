@@ -1,0 +1,18 @@
+version: 0.1
+revision: 1
+description: >
+    OS-agnostic package builder
+url: https://github.com/redjack/buzzy/
+license: BSD
+depends:
+    - python/yaml
+
+sources:
+    - type: git
+      url: git://github.com/redjack/buzzy.git
+      tag: 0.1
+
+build:
+    type: python
+    installer: distutils
+license_file: setup.py
