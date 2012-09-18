@@ -1,4 +1,4 @@
-version: 0.1
+version: !!str 0.1.1
 revision: 1
 description: >
     OS-agnostic package builder
@@ -10,7 +10,7 @@ depends:
 sources:
     - type: git
       url: git://github.com/redjack/buzzy.git
-      tag: 0.1
+      tag: "%(version)s"
 
 build:
     type: python

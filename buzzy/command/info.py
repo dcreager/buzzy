@@ -16,7 +16,7 @@ def run(args):
 
     if len(args) == 0:
         print("buzzy %s" % buzzy.config.version)
-        print()
+        print("")
         print("Recipe DB:  %s" % buzzy.config.env.recipe_database)
         print("OS distro:  %s" % buzzy.distro.this.name)
         print("Arch:       %s" % buzzy.distro.this.arch)

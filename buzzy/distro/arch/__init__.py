@@ -333,13 +333,18 @@ class Git(buzzy.source.git.Git):
         else:
             git_args = '--depth 1 --branch "%s"' % self.commit
 
+        if self.branch is None:
+            self.full_commit = self.tag
+        else:
+            self.full_commit = "origin/\"%s\"" % self.branch
+
         build = pkgbuild.code("build")
         build.append(BUILD_UNPACK, """
         rm -rf "${srcdir}/%(repo_name)s"
         cd "${srcdir}"
         git clone """+git_args+""" "%(url)s"
         cd "${srcdir}/%(repo_name)s"
-        git checkout -b buzzy-build origin/"%(commit)s"
+        git checkout -b buzzy-build %(full_commit)s
         """, self)
 
         package = pkgbuild.code("package")
