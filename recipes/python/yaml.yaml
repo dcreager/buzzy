@@ -1,0 +1,8 @@
+version: !!str 3.10
+revision: 1
+description: >
+    Python bindings for YAML
+url: http://pyyaml.org/
+license: MIT
+
+build: python
