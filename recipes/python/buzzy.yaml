@@ -10,7 +10,7 @@ depends:
 sources:
     - type: git
       url: git://github.com/redjack/buzzy.git
-      tag: 0.1
+      tag: "%(version)s"
 
 build:
     type: python
