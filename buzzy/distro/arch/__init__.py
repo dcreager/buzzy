@@ -119,16 +119,8 @@ class BuiltPackage(buzzy.recipe.Package):
         return result
 
     def clean_build_path(self):
-        def rmdir(path):
-            buzzy.utils.run(["rm", "-rf",
-                             os.path.join(self.build_path, path)])
-        def rm(path):
-            try:
-                os.remove(os.path.join(self.build_path, path))
-            except OSError:
-                pass
-        rmdir("src")
-        rm(self.package_filename())
+        buzzy.utils.rmtree(os.path.join(self.build_path, "src"))
+        buzzy.utils.rm(os.path.join(self.build_path, self.package_filename()))
 
     def make_pkgbuild(self):
         self.pkgbuild.make(self)

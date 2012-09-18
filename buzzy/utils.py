@@ -11,6 +11,7 @@ from __future__ import absolute_import
 import os
 import os.path
 import re
+import shutil
 import subprocess
 import sys
 
@@ -118,6 +119,15 @@ def get_arch_from_uname():
 def makedirs(path):
     if not os.path.isdir(path):
         os.makedirs(path)
+
+def rmtree(path):
+    shutil.rmtree(path, ignore_errors=True)
+
+def rm(path):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
 
 
 TARBALL_EXTS = re.compile(r"""
