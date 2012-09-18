@@ -29,6 +29,7 @@ setup(
         'buzzy.build',
         'buzzy.command',
         'buzzy.distro',
+        'buzzy.distro.arch',
         'buzzy.source',
     ],
     scripts=['scripts/buzzy'],
