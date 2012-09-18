@@ -1,0 +1,6 @@
+version: 2.3.1
+revision: 1
+description: >
+    C library for encoding, decoding and manipulating JSON data
+url: http://www.digip.org/jansson/
+license: MIT

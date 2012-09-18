@@ -1,0 +1,18 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# ----------------------------------------------------------------------
+# Copyright © 2012, RedJack, LLC.
+# All rights reserved.
+#
+# Please see the COPYING file in this distribution for license details.
+# ----------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import buzzy.commands
+    from buzzy.log import log_error
+    import sys
+    try:
+        buzzy.commands.main(sys.argv[1:])
+    except Exception as e:
+        log_error(e)
+        sys.exit(1)
