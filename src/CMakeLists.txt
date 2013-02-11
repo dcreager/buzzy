@@ -7,7 +7,10 @@
 # details.
 # ----------------------------------------------------------------------
 
-include_directories(../include)
+include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/lib/libcork/include)
+
+add_subdirectory(libcork)
 
 #-----------------------------------------------------------------------
 # buzzy
@@ -17,4 +20,8 @@ set(BUZZY_SRC
 )
 
 add_executable(buzzy ${BUZZY_SRC})
+set_target_properties(buzzy PROPERTIES
+    COMPILE_DEFINITIONS CORK_API=CORK_LOCAL
+)
+target_link_libraries(buzzy libcork)
 install(TARGETS buzzy DESTINATION bin)
