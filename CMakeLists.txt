@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------
-# Copyright © 2011-2012, RedJack, LLC.
+# Copyright © 2011-2013, RedJack, LLC.
 # All rights reserved.
 #
 # Please see the LICENSE.txt file in this distribution for license
@@ -8,7 +8,7 @@
 # ----------------------------------------------------------------------
 
 cmake_minimum_required(VERSION 2.6)
-set(PROJECT_NAME APPNAME)
+set(PROJECT_NAME buzzy)
 project(${PROJECT_NAME})
 enable_testing()
 
@@ -27,15 +27,6 @@ endif(VERSION_RESULT)
 # message("Current version: " ${VERSION})
 
 string(REGEX REPLACE "-dev.*" "-dev" BASE_VERSION "${VERSION}")
-
-#-----------------------------------------------------------------------
-# Check for prerequisite libraries
-
-find_package(PkgConfig)
-
-pkg_check_modules(CORK REQUIRED libcork)
-include_directories(${CORK_INCLUDE_DIRS})
-link_directories(${CORK_LIBRARY_DIRS})
 
 #-----------------------------------------------------------------------
 # Set some options
@@ -59,8 +50,8 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 #-----------------------------------------------------------------------
 # Include our subdirectories
 
-add_subdirectory(docs)
 add_subdirectory(include)
 add_subdirectory(share)
 add_subdirectory(src)
 add_subdirectory(tests)
+add_subdirectory(docs)

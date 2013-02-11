@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------
-# Copyright © 2011, RedJack, LLC.
+# Copyright © 2011-2013, RedJack, LLC.
 # All rights reserved.
 #
 # Please see the LICENSE.txt file in this distribution for license
@@ -45,12 +45,6 @@ if (GENERATE_DOC)
   set(SPHINX_CONF_FILE "${CMAKE_CURRENT_BINARY_DIR}/conf.py")
   set(SPHINX_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_doctrees")
   set(SPHINX_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/html")
-
-  # If your Sphinx documentation references the Sphinx documentation of
-  # any of your prerequisite libraries, add some calls to
-  # find_prereq_doc here:
-  #
-  # find_prereq_doc(libcork)
 
   set(
     VERSION_FOR_CONF_PY
