@@ -24,12 +24,16 @@ link_directories(${CHECK_LIBRARY_DIRS})
 
 macro(make_test test_name)
     add_executable(${test_name} ${test_name}.c)
-    target_link_libraries(${test_name} ${CHECK_LIBRARIES})
+    target_link_libraries(${test_name}
+        ${CHECK_LIBRARIES}
+        libbuzzy
+        libcork
+        libyaml
+    )
     add_test(${test_name} ${test_name})
 endmacro(make_test)
 
-# Add calls to make_test for each .c test case in the tests/ directory.
-# make_test(test-foo)
+make_test(test-versions)
 
 #-----------------------------------------------------------------------
 # Command-line tests
