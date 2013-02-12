@@ -30,7 +30,9 @@ set_target_properties(libbuzzy PROPERTIES
 # buzzy
 
 set(BUZZY_SRC
-    buzzy/foo.c
+    buzzy/buzzy.c
+    buzzy/root.c
+    buzzy/vercmp.c
 )
 
 add_executable(buzzy ${BUZZY_SRC})
