@@ -16,6 +16,7 @@ add_subdirectory(libyaml)
 # libbuzzy
 
 set(LIBBUZZY_RAGEL
+    libbuzzy/dependency.c.rl
     libbuzzy/version.c.rl
 )
 
@@ -47,6 +48,7 @@ foreach(RAGEL_INPUT ${LIBBUZZY_RAGEL})
 endforeach(RAGEL_INPUT)
 
 set(LIBBUZZY_SRC
+    libbuzzy/dependency.c
     libbuzzy/run.c
     libbuzzy/version.c
 )

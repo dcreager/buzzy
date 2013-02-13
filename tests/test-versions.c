@@ -106,6 +106,50 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * Dependencies
+ */
+
+static void
+test_dependency_string(const char *in, const char *expected)
+{
+    struct bz_dependency  *dependency;
+    fail_if_error(dependency = bz_dependency_from_string(in));
+    fail_unless_streq("dependencies", expected,
+                      bz_dependency_to_string(dependency));
+    bz_dependency_free(dependency);
+}
+
+START_TEST(test_dependencies)
+{
+    /* A slew of versions */
+    test_dependency_string("foo >= 2.0",       "foo >= 2.0");
+    test_dependency_string("foo >= 2.0.0",     "foo >= 2.0.0");
+    test_dependency_string("foo >= 2.0~alpha", "foo >= 2.0~alpha");
+    test_dependency_string("foo >= 2.0+dev",   "foo >= 2.0+dev");
+    test_dependency_string("foo >= 2.0.1",     "foo >= 2.0.1");
+    test_dependency_string("foo >= 2.1",       "foo >= 2.1");
+
+    /* A slew of whitespace */
+    test_dependency_string("foo>=2.0",     "foo >= 2.0");
+    test_dependency_string("foo >=2.0",    "foo >= 2.0");
+    test_dependency_string("foo  >=2.0",   "foo >= 2.0");
+    test_dependency_string("foo>= 2.0",    "foo >= 2.0");
+    test_dependency_string("foo>=  2.0",   "foo >= 2.0");
+    test_dependency_string("foo  >= 2.0",  "foo >= 2.0");
+    test_dependency_string("foo  >=  2.0", "foo >= 2.0");
+
+    /* A slew of package names */
+    test_dependency_string("foo >= 2.0",         "foo >= 2.0");
+    test_dependency_string("foo-bar >= 2.0",     "foo-bar >= 2.0");
+    test_dependency_string("foo-bar-baz >= 2.0", "foo-bar-baz >= 2.0");
+
+    /* Oh wait what about no version at all */
+    test_dependency_string("foo", "foo");
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Testing harness
  */
 
@@ -116,6 +160,7 @@ test_suite()
 
     TCase  *tc_versions = tcase_create("versions");
     tcase_add_test(tc_versions, test_versions);
+    tcase_add_test(tc_versions, test_dependencies);
     suite_add_tcase(s, tc_versions);
 
     return s;

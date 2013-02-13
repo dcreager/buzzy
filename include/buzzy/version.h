@@ -14,6 +14,10 @@
 #include <libcork/ds.h>
 
 
+/*-----------------------------------------------------------------------
+ * Version parts
+ */
+
 enum bz_version_part_kind {
     BZ_VERSION_PRERELEASE  = 0,
     BZ_VERSION_FINAL       = 1,
@@ -56,6 +60,31 @@ bz_version_to_compare_string(const struct bz_version *version);
 
 int
 bz_version_cmp(const struct bz_version *v1, const struct bz_version *v2);
+
+
+/*-----------------------------------------------------------------------
+ * Dependencies
+ */
+
+struct bz_dependency {
+    const char  *package_name;
+    /* NULL if any version works */
+    struct bz_version  *min_version;
+    struct cork_buffer  string;
+};
+
+/* Takes control of min_version */
+struct bz_dependency *
+bz_dependency_new(const char *package_name, struct bz_version *min_version);
+
+struct bz_dependency *
+bz_dependency_from_string(const char *string);
+
+void
+bz_dependency_free(struct bz_dependency *dep);
+
+const char *
+bz_dependency_to_string(const struct bz_dependency *dep);
 
 
 #endif /* BUZZY_VERSION_H */
