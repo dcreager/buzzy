@@ -6,7 +6,8 @@
 # Please see the COPYING file in this distribution for license details.
 # ----------------------------------------------------------------------
 
-include_directories(../include)
+include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/lib/libcork/include)
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/../src)
 
 #-----------------------------------------------------------------------
@@ -32,6 +33,7 @@ macro(make_test test_name)
     add_test(${test_name} ${test_name})
 endmacro(make_test)
 
+make_test(test-run)
 make_test(test-versions)
 
 #-----------------------------------------------------------------------
