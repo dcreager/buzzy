@@ -63,6 +63,8 @@ test_version_cmp(const char *in1, const char *in2, int expected)
 
 START_TEST(test_versions)
 {
+    DESCRIBE_TEST;
+
     test_version_string("2.0",       "2.0");
     test_version_string("2.0.0",     "2.0.0");
     test_version_string("2.0~alpha", "2.0~alpha");

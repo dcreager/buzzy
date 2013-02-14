@@ -16,6 +16,7 @@ add_subdirectory(libyaml)
 # libbuzzy
 
 set(LIBBUZZY_SRC
+    libbuzzy/run.c
     libbuzzy/version.c
 )
 
