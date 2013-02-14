@@ -7,6 +7,7 @@
  * ----------------------------------------------------------------------
  */
 
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,21 +23,25 @@
  * Running subprocesses
  */
 
-static char  *echo_01_params[] = { "echo", "hello", "world", NULL };
-
 static void
-test_run(const char *program, char * const *params)
+test_run(int dummy, ...)
 {
-    fail_if_error(bz_subprocess_run(program, params, false, NULL));
+    va_list  args;
+    va_start(args, dummy);
+    fail_if_error(bz_subprocess_v_run(false, NULL, args));
+    va_end(args);
 }
 
 static void
-test_output(const char *program, char * const *params,
-            const char *expected_out, const char *expected_err)
+test_output(const char *expected_out, const char *expected_err, ...)
 {
+    va_list  args;
     struct cork_buffer  out = CORK_BUFFER_INIT();
     struct cork_buffer  err = CORK_BUFFER_INIT();
-    fail_if_error(bz_subprocess_get_output(program, params, &out, &err));
+
+    va_start(args, expected_err);
+    fail_if_error(bz_subprocess_v_get_output(&out, &err, args));
+    va_end(args);
     if (expected_out != NULL) {
         fail_unless_streq("stdout", expected_out, out.buf);
     }
@@ -53,8 +58,9 @@ START_TEST(test_run_mocked_01)
 
     bz_subprocess_start_mocks();
     bz_subprocess_mock("echo hello world", "hello world\n", NULL, 0);
-    test_run("echo", echo_01_params);
-    test_output("echo", echo_01_params, "hello world\n", NULL);
+    test_run(0, "echo", "hello", "world", NULL);
+    test_output("hello world\n", NULL,
+                "echo", "hello", "world", NULL);
 }
 END_TEST
 
@@ -64,8 +70,9 @@ START_TEST(test_run_01)
 
     bz_subprocess_start_mocks();
     bz_subprocess_mock_allow_execute("echo hello world");
-    test_run("echo", echo_01_params);
-    test_output("echo", echo_01_params, "hello world\n", NULL);
+    test_run(0, "echo", "hello", "world", NULL);
+    test_output("hello world\n", NULL,
+                "echo", "hello", "world", NULL);
 }
 END_TEST
 

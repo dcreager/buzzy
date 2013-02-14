@@ -8,6 +8,7 @@
  */
 
 #include <assert.h>
+#include <stdarg.h>
 #include <string.h>
 
 #include <libcork/core.h>
@@ -20,7 +21,7 @@
 
 
 typedef int
-(*subprocess_executor)(const char *program, char * const *params,
+(*subprocess_executor)(bz_subprocess_cmd *cmd,
                        struct cork_stream_consumer *out,
                        struct cork_stream_consumer *err,
                        int *exit_code);
@@ -121,7 +122,7 @@ bz_subprocess_mock_allow_execute(const char *cmd)
 }
 
 static int
-bz_subprocess_execute(const char *program, char * const *params,
+bz_subprocess_execute(bz_subprocess_cmd *cmd,
                       struct cork_stream_consumer *out,
                       struct cork_stream_consumer *err,
                       int *exit_code)
@@ -129,8 +130,13 @@ bz_subprocess_execute(const char *program, char * const *params,
     struct cork_subprocess  *subprocess;
     struct cork_subprocess_group  *group;
 
+    /* Make sure that the subprocess command's parameter list is
+     * NULL-terminated. */
+    cork_array_append(cmd, NULL);
+
     subprocess = cork_subprocess_new_exec
-        (program, params, out, err, exit_code);
+        (cork_array_at(cmd, 0), (char **) &cork_array_at(cmd, 0),
+         out, err, exit_code);
     group = cork_subprocess_group_new();
     cork_subprocess_group_add(group, subprocess);
     rii_check(cork_subprocess_group_start(group));
@@ -140,40 +146,39 @@ bz_subprocess_execute(const char *program, char * const *params,
 }
 
 static int
-bz_subprocess_mock_execute(const char *program, char * const *params,
+bz_subprocess_mock_execute(bz_subprocess_cmd *cmd,
                            struct cork_stream_consumer *out,
                            struct cork_stream_consumer *err,
                            int *exit_code)
 {
+    size_t  i;
     struct bz_subprocess_mock  *mock;
-    struct cork_buffer  cmd = CORK_BUFFER_INIT();
-    char * const  *param;
-    bool  first = true;
+    struct cork_buffer  mock_key = CORK_BUFFER_INIT();
 
     assert(mocks_enabled);
 
-    /* Construct the cmd key for this subprocess. */
-    for (param = params; *param != NULL; param++) {
-        if (first) {
-            first = false;
-        } else {
-            cork_buffer_append(&cmd, " ", 1);
+    /* Construct the mock key for this subprocess. */
+    for (i = 0; i < cork_array_size(cmd); i++) {
+        const char  *param = cork_array_at(cmd, i);
+        if (i > 0) {
+            cork_buffer_append(&mock_key, " ", 1);
         }
-        cork_buffer_append_string(&cmd, *param);
+        cork_buffer_append_string(&mock_key, param);
     }
 
     /* Look for a mock entry for this command. */
-    mock = cork_hash_table_get(&mocks, cmd.buf);
+    mock = cork_hash_table_get(&mocks, mock_key.buf);
     if (CORK_UNLIKELY(mock == NULL)) {
-        bz_subprocess_error("No mock for command \"%s\"", (char *) cmd.buf);
-        cork_buffer_done(&cmd);
+        bz_subprocess_error
+            ("No mock for command \"%s\"", (char *) mock_key.buf);
+        cork_buffer_done(&mock_key);
         return -1;
     }
-    cork_buffer_done(&cmd);
+    cork_buffer_done(&mock_key);
 
     /* "Run" the mocked command. */
     if (mock->allow_execute) {
-        return bz_subprocess_execute(program, params, out, err, exit_code);
+        return bz_subprocess_execute(cmd, out, err, exit_code);
     }
 
     if (out != NULL) {
@@ -248,18 +253,20 @@ static struct cork_stream_consumer  drop_consumer = {
 };
 
 int
-bz_subprocess_get_output(const char *program, char * const *params,
-                         struct cork_buffer *out_buf,
-                         struct cork_buffer *err_buf)
+bz_subprocess_a_get_output(struct cork_buffer *out_buf,
+                           struct cork_buffer *err_buf,
+                           bz_subprocess_cmd *cmd)
 {
     int  rc;
     int  exit_code;
     struct cork_stream_consumer  *out;
     struct cork_stream_consumer  *err;
 
+    assert(cork_array_size(cmd) > 0);
+
     out = (out_buf == NULL)? NULL: cork_buffer_to_stream_consumer(out_buf);
     err = (err_buf == NULL)? NULL: cork_buffer_to_stream_consumer(err_buf);
-    rc = executor(program, params, out, err, &exit_code);
+    rc = executor(cmd, out, err, &exit_code);
     if (out != NULL) {
         cork_stream_consumer_free(out);
     }
@@ -269,7 +276,7 @@ bz_subprocess_get_output(const char *program, char * const *params,
     rii_check(rc);
 
     if (CORK_UNLIKELY(exit_code != 0)) {
-        bz_subprocess_error("%s failed", program);
+        bz_subprocess_error("%s failed", cork_array_at(cmd, 0));
         return -1;
     }
 
@@ -277,17 +284,50 @@ bz_subprocess_get_output(const char *program, char * const *params,
 }
 
 int
-bz_subprocess_run(const char *program, char * const *params, bool verbose,
-                  bool *successful)
+bz_subprocess_v_get_output(struct cork_buffer *out_buf,
+                           struct cork_buffer *err_buf,
+                           va_list args)
+{
+    int  rc;
+    const char  *param;
+    bz_subprocess_cmd  cmd;
+
+    cork_array_init(&cmd);
+    while ((param = va_arg(args, const char *)) != NULL) {
+        cork_array_append(&cmd, param);
+    }
+    rc = bz_subprocess_a_get_output(out_buf, err_buf, &cmd);
+    cork_array_done(&cmd);
+    return rc;
+}
+
+int
+bz_subprocess_get_output(struct cork_buffer *out_buf,
+                         struct cork_buffer *err_buf,
+                         ...)
+{
+    int  rc;
+    va_list  args;
+    va_start(args, err_buf);
+    rc = bz_subprocess_v_get_output(out_buf, err_buf, args);
+    va_end(args);
+    return rc;
+
+}
+
+int
+bz_subprocess_a_run(bool verbose, bool *successful, bz_subprocess_cmd *cmd)
 {
     int  rc;
     int  exit_code;
     struct cork_stream_consumer  *out;
     struct cork_stream_consumer  *err;
 
+    assert(cork_array_size(cmd) > 0);
+
     out = verbose? NULL: &drop_consumer;
     err = verbose? NULL: &drop_consumer;
-    rc = executor(program, params, out, err, &exit_code);
+    rc = executor(cmd, out, err, &exit_code);
     if (out != NULL) {
         cork_stream_consumer_free(out);
     }
@@ -298,7 +338,7 @@ bz_subprocess_run(const char *program, char * const *params, bool verbose,
 
     if (successful == NULL) {
         if (CORK_UNLIKELY(exit_code != 0)) {
-            bz_subprocess_error("%s failed", program);
+            bz_subprocess_error("%s failed", cork_array_at(cmd, 0));
             return -1;
         }
     } else {
@@ -306,4 +346,32 @@ bz_subprocess_run(const char *program, char * const *params, bool verbose,
     }
 
     return 0;
+}
+
+int
+bz_subprocess_v_run(bool verbose, bool *successful, va_list args)
+{
+    int  rc;
+    const char  *param;
+    bz_subprocess_cmd  cmd;
+
+    cork_array_init(&cmd);
+    while ((param = va_arg(args, const char *)) != NULL) {
+        cork_array_append(&cmd, param);
+    }
+    rc = bz_subprocess_a_run(verbose, successful, &cmd);
+    cork_array_done(&cmd);
+    return rc;
+}
+
+int
+bz_subprocess_run(bool verbose, bool *successful, ...)
+{
+    int  rc;
+    va_list  args;
+    va_start(args, successful);
+    rc = bz_subprocess_v_run(verbose, successful, args);
+    va_end(args);
+    return rc;
+
 }

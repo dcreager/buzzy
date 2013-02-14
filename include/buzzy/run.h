@@ -10,6 +10,8 @@
 #ifndef BUZZY_RUN_H
 #define BUZZY_RUN_H
 
+#include <stdarg.h>
+
 #include <libcork/core.h>
 #include <libcork/ds.h>
 
@@ -18,12 +20,25 @@
  * Executing subprocesses
  */
 
+typedef cork_array(const char *)  bz_subprocess_cmd;
+
+
 /* Execute the subprocess, wait for it to finish, and capture its stdout and
  * stderr streams into the given buffers.  (The buffers can be NULL, in which
  * case that output stream is ignored.) */
+
 int
-bz_subprocess_get_output(const char *program, char * const *params,
-                         struct cork_buffer *out, struct cork_buffer *err);
+bz_subprocess_a_get_output(struct cork_buffer *out, struct cork_buffer *err,
+                           bz_subprocess_cmd *cmd);
+
+int
+bz_subprocess_v_get_output(struct cork_buffer *out, struct cork_buffer *err,
+                           va_list args);
+
+CORK_ATTR_SENTINEL
+int
+bz_subprocess_get_output(struct cork_buffer *out, struct cork_buffer *err, ...);
+
 
 /* Execute the subprocess and wait for it to finish.
  *
@@ -33,9 +48,16 @@ bz_subprocess_get_output(const char *program, char * const *params,
  *
  * If successful is non-NULL, we'll fill it in with whether the subprocess's
  * exit code was 0 (indicating success). */
+
 int
-bz_subprocess_run(const char *program, char * const *params, bool verbose,
-                  bool *successful);
+bz_subprocess_v_run(bool verbose, bool *successful, va_list args);
+
+int
+bz_subprocess_a_run(bool verbose, bool *successful, bz_subprocess_cmd *cmd);
+
+CORK_ATTR_SENTINEL
+int
+bz_subprocess_run(bool verbose, bool *successful, ...);
 
 
 /*-----------------------------------------------------------------------
