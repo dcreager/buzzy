@@ -37,6 +37,52 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * Arch version strings
+ */
+
+static void
+test_version_to_arch(const char *buzzy, const char *arch)
+{
+    struct bz_version  *version;
+    struct cork_buffer  arch_version = CORK_BUFFER_INIT();
+    fail_if_error(version = bz_version_from_string(buzzy));
+    bz_version_to_arch(version, &arch_version);
+    fail_unless_streq("Versions", arch, arch_version.buf);
+    cork_buffer_done(&arch_version);
+    bz_version_free(version);
+}
+
+static void
+test_version_from_arch(const char *buzzy, const char *arch)
+{
+    struct bz_version  *version;
+    fail_if_error(version = bz_version_from_arch(arch));
+    fail_unless_streq("Versions", buzzy, bz_version_to_string(version));
+    bz_version_free(version);
+}
+
+static void
+test_arch_version(const char *buzzy, const char *arch)
+{
+    test_version_to_arch(buzzy, arch);
+    test_version_from_arch(buzzy, arch);
+}
+
+START_TEST(test_arch_versions)
+{
+    DESCRIBE_TEST;
+
+    test_arch_version("2.0", "2.0");
+    test_arch_version("2.0~alpha", "2.0alpha");
+    test_arch_version("2.0~1", "2.0pre1");
+    test_arch_version("2.0+hotfix1", "2.0.hotfix1");
+    test_arch_version("2.0+1", "2.0.post1");
+    test_arch_version("2.0+git123abc456", "2.0.git123abc456");
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Testing harness
  */
 
@@ -47,6 +93,7 @@ test_suite()
 
     TCase  *tc_arch = tcase_create("arch");
     tcase_add_test(tc_arch, test_arch_detect);
+    tcase_add_test(tc_arch, test_arch_versions);
     suite_add_tcase(s, tc_arch);
 
     return s;
