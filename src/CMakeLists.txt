@@ -51,6 +51,7 @@ set(LIBBUZZY_SRC
     libbuzzy/dependency.c
     libbuzzy/run.c
     libbuzzy/version.c
+    libbuzzy/distro/arch.c
 )
 
 add_library(libbuzzy STATIC ${LIBBUZZY_SRC})

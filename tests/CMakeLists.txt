@@ -33,6 +33,7 @@ macro(make_test test_name)
     add_test(${test_name} ${test_name})
 endmacro(make_test)
 
+make_test(test-arch)
 make_test(test-run)
 make_test(test-versions)
 
