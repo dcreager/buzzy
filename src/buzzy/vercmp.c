@@ -79,8 +79,8 @@ buzzy_vercmp__execute(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    rp_check_error(v1 = bz_version_new_from_string(argv[0]));
-    rp_check_error(v2 = bz_version_new_from_string(argv[1]));
+    rp_check_error(v1 = bz_version_from_string(argv[0]));
+    rp_check_error(v2 = bz_version_from_string(argv[1]));
     cmp = bz_version_cmp(v1, v2);
     bz_version_free(v1);
     bz_version_free(v2);

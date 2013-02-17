@@ -31,6 +31,7 @@ string(REGEX REPLACE "-dev.*" "-dev" BASE_VERSION "${VERSION}")
 # Check for prerequisite libraries
 
 find_package(Threads)
+find_program(RAGEL ragel)
 
 #-----------------------------------------------------------------------
 # Set some options

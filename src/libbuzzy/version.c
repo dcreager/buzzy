@@ -1,3 +1,5 @@
+
+#line 1 "libbuzzy/version.c.rl"
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
  * Copyright © 2013, RedJack, LLC.
@@ -10,6 +12,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
@@ -57,32 +60,9 @@ bz_version_part_kind_name(enum bz_version_part_kind kind)
 }
 
 static void
-bz_version_part_init(struct bz_version_part *part,
-                     enum bz_version_part_kind kind)
-{
-    part->kind = kind;
-    part->int_value = 0;
-    cork_buffer_init(&part->string_value);
-}
-
-static void
 bz_version_part_done(struct bz_version_part *part)
 {
     cork_buffer_done(&part->string_value);
-}
-
-static int
-bz_version_part_set_string_value(struct bz_version_part *part,
-                                 const char *version, const char *part_start,
-                                 const char *part_end)
-{
-    if (CORK_UNLIKELY(part_start == part_end)) {
-        bz_invalid_version("Invalid version %s", version);
-        return -1;
-    } else {
-        cork_buffer_set(&part->string_value, part_start, part_end - part_start);
-        return 0;
-    }
 }
 
 static void
@@ -115,8 +95,19 @@ bz_version_part_to_string(const struct bz_version_part *part,
 
 
 /*-----------------------------------------------------------------------
- * Error handling
+ * Versions
  */
+
+static struct bz_version *
+bz_version_new(void)
+{
+    struct bz_version  *version = cork_new(struct bz_version);
+    cork_array_init(&version->parts);
+    cork_array_init(&version->compare_parts);
+    cork_buffer_init(&version->string);
+    cork_buffer_init(&version->compare_string);
+    return version;
+}
 
 void
 bz_version_free(struct bz_version *version)
@@ -134,6 +125,35 @@ bz_version_free(struct bz_version *version)
 }
 
 static void
+bz_version_add_integral_part(struct bz_version *version,
+                             enum bz_version_part_kind kind,
+                             unsigned int int_value,
+                             const char *string_value, size_t size)
+{
+    struct bz_version_part  *part = cork_array_append_get(&version->parts);
+    part->kind = kind;
+    part->int_value = int_value;
+    cork_buffer_init(&part->string_value);
+    cork_buffer_set(&part->string_value, string_value, size);
+}
+
+static void
+bz_version_add_string_part(struct bz_version *version,
+                           enum bz_version_part_kind kind,
+                           const char *string_value, size_t size)
+{
+    bz_version_add_integral_part
+        (version, kind, BZ_VERSION_PART_USE_STRING, string_value, size);
+}
+
+static void
+bz_version_add_final_part(struct bz_version *version)
+{
+    bz_version_add_integral_part
+        (version, BZ_VERSION_FINAL, BZ_VERSION_PART_USE_STRING, NULL, 0);
+}
+
+static void
 bz_version_set_compare_parts(struct bz_version *version)
 {
     size_t  i;
@@ -146,12 +166,17 @@ bz_version_set_compare_parts(struct bz_version *version)
     do { \
         cork_array_append(&version->compare_parts, p); \
         bz_version_part_to_string(p, &version->compare_string); \
+        DEBUG("    %s\n", (char *) version->compare_string.buf); \
     } while (0)
+
+    DEBUG("  Finding comparison parts\n");
 
     cork_array_init(&temp_parts);
     cork_buffer_append(&version->compare_string, "[", 1);
     for (i = 0; i < cork_array_size(&version->parts); i++) {
         struct bz_version_part  *part = &cork_array_at(&version->parts, i);
+        DEBUG("    %s part %s\n", bz_version_part_kind_name(part->kind),
+              (char *) part->string_value.buf);
         if (part->kind == BZ_VERSION_RELEASE) {
             if (part->int_value == 0) {
                 /* This is a "0" release part.  It may or may not end up in the
@@ -181,92 +206,332 @@ bz_version_set_compare_parts(struct bz_version *version)
 }
 
 struct bz_version *
-bz_version_new_from_string(const char *string)
+bz_version_from_string(const char *string)
 {
+    int  cs;
+    const char  *p = string;
+    const char  *pe = strchr(string, '\0');
+    const char  *eof = pe;
     struct bz_version  *version;
-    struct bz_version_part  *part;
-    const char  *part_start = string;
-    const char  *ch;
-    bool  int_value;
+    enum bz_version_part_kind  kind;
+    unsigned int  int_value;
+    const char  *part_start;
 
     /* Parse the contents of the version string. */
-
     DEBUG("---\nParse version \"%s\"\n", string);
+    version = bz_version_new();
+    cork_buffer_set_string(&version->string, string);
 
-    if (CORK_UNLIKELY(*string == '\0')) {
-        bz_invalid_version("Invalid version \"\"");
+    
+#line 227 "libbuzzy/version.c"
+static const int buzzy_version_start = 1;
+
+static const int buzzy_version_en_main = 1;
+
+
+#line 233 "libbuzzy/version.c"
+	{
+	cs = buzzy_version_start;
+	}
+
+#line 238 "libbuzzy/version.c"
+	{
+	if ( p == pe )
+		goto _test_eof;
+	switch ( cs )
+	{
+tr8:
+#line 252 "libbuzzy/version.c.rl"
+	{
+            size_t  size = p - part_start;
+            DEBUG("    Integral value: %u\n", int_value);
+            DEBUG("    String value: %.*s\n", (int) size, part_start);
+            bz_version_add_integral_part
+                (version, kind, int_value, part_start, size);
+        }
+	goto st1;
+tr13:
+#line 260 "libbuzzy/version.c.rl"
+	{
+            size_t  size = p - part_start;
+            DEBUG("    String value: %.*s\n", (int) size, part_start);
+            bz_version_add_string_part(version, kind, part_start, size);
+        }
+	goto st1;
+st1:
+	if ( ++p == pe )
+		goto _test_eof1;
+case 1:
+#line 266 "libbuzzy/version.c"
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr0;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto tr2;
+	} else
+		goto tr2;
+	goto st0;
+st0:
+cs = 0;
+	goto _out;
+tr0:
+#line 237 "libbuzzy/version.c.rl"
+	{
+            kind = BZ_VERSION_RELEASE;
+            DEBUG("  Create new release version part\n");
+        }
+#line 226 "libbuzzy/version.c.rl"
+	{
+            part_start = p;
+            int_value = 0;
+        }
+#line 231 "libbuzzy/version.c.rl"
+	{
+            unsigned char  digit = ((*p) - '0');
+            int_value *= 10;
+            int_value += digit;
+        }
+	goto st4;
+tr3:
+#line 247 "libbuzzy/version.c.rl"
+	{
+            kind = BZ_VERSION_POSTRELEASE;
+            DEBUG("  Create new prerelease version part\n");
+        }
+#line 226 "libbuzzy/version.c.rl"
+	{
+            part_start = p;
+            int_value = 0;
+        }
+#line 231 "libbuzzy/version.c.rl"
+	{
+            unsigned char  digit = ((*p) - '0');
+            int_value *= 10;
+            int_value += digit;
+        }
+	goto st4;
+tr5:
+#line 242 "libbuzzy/version.c.rl"
+	{
+            kind = BZ_VERSION_PRERELEASE;
+            DEBUG("  Create new prerelease version part\n");
+        }
+#line 226 "libbuzzy/version.c.rl"
+	{
+            part_start = p;
+            int_value = 0;
+        }
+#line 231 "libbuzzy/version.c.rl"
+	{
+            unsigned char  digit = ((*p) - '0');
+            int_value *= 10;
+            int_value += digit;
+        }
+	goto st4;
+tr9:
+#line 231 "libbuzzy/version.c.rl"
+	{
+            unsigned char  digit = ((*p) - '0');
+            int_value *= 10;
+            int_value += digit;
+        }
+	goto st4;
+st4:
+	if ( ++p == pe )
+		goto _test_eof4;
+case 4:
+#line 345 "libbuzzy/version.c"
+	switch( (*p) ) {
+		case 43: goto tr7;
+		case 46: goto tr8;
+		case 126: goto tr11;
+	}
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr9;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto st5;
+	} else
+		goto st5;
+	goto st0;
+tr7:
+#line 252 "libbuzzy/version.c.rl"
+	{
+            size_t  size = p - part_start;
+            DEBUG("    Integral value: %u\n", int_value);
+            DEBUG("    String value: %.*s\n", (int) size, part_start);
+            bz_version_add_integral_part
+                (version, kind, int_value, part_start, size);
+        }
+	goto st2;
+tr12:
+#line 260 "libbuzzy/version.c.rl"
+	{
+            size_t  size = p - part_start;
+            DEBUG("    String value: %.*s\n", (int) size, part_start);
+            bz_version_add_string_part(version, kind, part_start, size);
+        }
+	goto st2;
+st2:
+	if ( ++p == pe )
+		goto _test_eof2;
+case 2:
+#line 382 "libbuzzy/version.c"
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr3;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto tr4;
+	} else
+		goto tr4;
+	goto st0;
+tr2:
+#line 237 "libbuzzy/version.c.rl"
+	{
+            kind = BZ_VERSION_RELEASE;
+            DEBUG("  Create new release version part\n");
+        }
+#line 226 "libbuzzy/version.c.rl"
+	{
+            part_start = p;
+            int_value = 0;
+        }
+	goto st5;
+tr4:
+#line 247 "libbuzzy/version.c.rl"
+	{
+            kind = BZ_VERSION_POSTRELEASE;
+            DEBUG("  Create new prerelease version part\n");
+        }
+#line 226 "libbuzzy/version.c.rl"
+	{
+            part_start = p;
+            int_value = 0;
+        }
+	goto st5;
+tr6:
+#line 242 "libbuzzy/version.c.rl"
+	{
+            kind = BZ_VERSION_PRERELEASE;
+            DEBUG("  Create new prerelease version part\n");
+        }
+#line 226 "libbuzzy/version.c.rl"
+	{
+            part_start = p;
+            int_value = 0;
+        }
+	goto st5;
+st5:
+	if ( ++p == pe )
+		goto _test_eof5;
+case 5:
+#line 432 "libbuzzy/version.c"
+	switch( (*p) ) {
+		case 43: goto tr12;
+		case 46: goto tr13;
+		case 126: goto tr14;
+	}
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto st5;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto st5;
+	} else
+		goto st5;
+	goto st0;
+tr11:
+#line 252 "libbuzzy/version.c.rl"
+	{
+            size_t  size = p - part_start;
+            DEBUG("    Integral value: %u\n", int_value);
+            DEBUG("    String value: %.*s\n", (int) size, part_start);
+            bz_version_add_integral_part
+                (version, kind, int_value, part_start, size);
+        }
+	goto st3;
+tr14:
+#line 260 "libbuzzy/version.c.rl"
+	{
+            size_t  size = p - part_start;
+            DEBUG("    String value: %.*s\n", (int) size, part_start);
+            bz_version_add_string_part(version, kind, part_start, size);
+        }
+	goto st3;
+st3:
+	if ( ++p == pe )
+		goto _test_eof3;
+case 3:
+#line 469 "libbuzzy/version.c"
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr5;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto tr6;
+	} else
+		goto tr6;
+	goto st0;
+	}
+	_test_eof1: cs = 1; goto _test_eof; 
+	_test_eof4: cs = 4; goto _test_eof; 
+	_test_eof2: cs = 2; goto _test_eof; 
+	_test_eof5: cs = 5; goto _test_eof; 
+	_test_eof3: cs = 3; goto _test_eof; 
+
+	_test_eof: {}
+	if ( p == eof )
+	{
+	switch ( cs ) {
+	case 4: 
+#line 252 "libbuzzy/version.c.rl"
+	{
+            size_t  size = p - part_start;
+            DEBUG("    Integral value: %u\n", int_value);
+            DEBUG("    String value: %.*s\n", (int) size, part_start);
+            bz_version_add_integral_part
+                (version, kind, int_value, part_start, size);
+        }
+	break;
+	case 5: 
+#line 260 "libbuzzy/version.c.rl"
+	{
+            size_t  size = p - part_start;
+            DEBUG("    String value: %.*s\n", (int) size, part_start);
+            bz_version_add_string_part(version, kind, part_start, size);
+        }
+	break;
+#line 508 "libbuzzy/version.c"
+	}
+	}
+
+	_out: {}
+	}
+
+#line 282 "libbuzzy/version.c.rl"
+
+
+    /* A hack to suppress some unused variable warnings */
+    (void) buzzy_version_en_main;
+
+    if (CORK_UNLIKELY(cs < 
+#line 522 "libbuzzy/version.c"
+4
+#line 287 "libbuzzy/version.c.rl"
+)) {
+        bz_invalid_version("Invalid version \"%s\"", string);
+        bz_version_free(version);
         return NULL;
     }
 
-#define start_part(kind, start) \
-    do { \
-        DEBUG("  Create new %s version part\n", \
-              bz_version_part_kind_name(kind)); \
-        part = cork_array_append_get(&version->parts); \
-        bz_version_part_init(part, kind); \
-        int_value = true; \
-        part_start = start; \
-    } while (0)
-
-#define finish_part() \
-    do { \
-        if (BZ_VERSION_PART_IS_INTEGRAL(part)) { \
-            DEBUG("    Integral value: %u\n", part->int_value); \
-        } \
-        ei_check(bz_version_part_set_string_value \
-                 (part, string, part_start, ch)); \
-        DEBUG("    String value: %s\n", (char *) part->string_value.buf); \
-    } while (0)
-
-    version = cork_new(struct bz_version);
-    cork_array_init(&version->parts);
-    cork_array_init(&version->compare_parts);
-    cork_buffer_init(&version->string);
-    cork_buffer_set_string(&version->string, string);
-    cork_buffer_init(&version->compare_string);
-    start_part(BZ_VERSION_RELEASE, string);
-
-    for (ch = string; *ch != '\0'; ch++) {
-        if (*ch == '.') {
-            finish_part();
-            start_part(BZ_VERSION_RELEASE, ch + 1);
-            continue;
-        }
-
-        if (*ch == '~') {
-            finish_part();
-            start_part(BZ_VERSION_PRERELEASE, ch + 1);
-            continue;
-        }
-
-        if (*ch == '+') {
-            finish_part();
-            start_part(BZ_VERSION_POSTRELEASE, ch + 1);
-            continue;
-        }
-
-        if (int_value) {
-            if (isdigit(*ch)) {
-                part->int_value *= 10;
-                part->int_value += (*ch - '0');
-            } else {
-                int_value = false;
-                part->int_value = BZ_VERSION_PART_USE_STRING;
-            }
-        }
-    }
-
-    finish_part();
-    start_part(BZ_VERSION_FINAL, ch);
-
     /* Once we've parsed all of the parts in the version string, determine which
      * of those parts should be used when comparing versions. */
+    bz_version_add_final_part(version);
     bz_version_set_compare_parts(version);
     return version;
-
-error:
-    bz_version_free(version);
-    return NULL;
 }
 
 const char *

@@ -15,7 +15,40 @@ add_subdirectory(libyaml)
 #-----------------------------------------------------------------------
 # libbuzzy
 
+set(LIBBUZZY_RAGEL
+    libbuzzy/dependency.c.rl
+    libbuzzy/version.c.rl
+)
+
+set_property(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    PROPERTY CLEAN_NO_CUSTOM true
+)
+
+foreach(RAGEL_INPUT ${LIBBUZZY_RAGEL})
+    string(REGEX REPLACE "\\.rl$" "" RAGEL_OUTPUT "${RAGEL_INPUT}")
+    if (RAGEL)
+        add_custom_command(
+            OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/${RAGEL_OUTPUT}"
+            COMMAND ragel -G2 -o "${RAGEL_OUTPUT}" "${RAGEL_INPUT}"
+            MAIN_DEPENDENCY "${RAGEL_INPUT}"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            COMMENT "Ragel ${RAGEL_INPUT}"
+        )
+    else (RAGEL)
+        # Ragel is not present; if the Ragel source files get out of date,
+        # that's an error.
+        add_custom_command(
+            OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/${RAGEL_OUTPUT}"
+            COMMAND false
+            MAIN_DEPENDENCY "${RAGEL_INPUT}"
+            COMMENT "Ragel not found; cannot update ${RAGEL_OUTPUT}"
+        )
+    endif (RAGEL)
+endforeach(RAGEL_INPUT)
+
 set(LIBBUZZY_SRC
+    libbuzzy/dependency.c
     libbuzzy/run.c
     libbuzzy/version.c
 )
