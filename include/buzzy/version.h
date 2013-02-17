@@ -43,7 +43,7 @@ struct bz_version {
 
 
 struct bz_version *
-bz_version_new_from_string(const char *string);
+bz_version_from_string(const char *string);
 
 void
 bz_version_free(struct bz_version *version);

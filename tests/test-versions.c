@@ -26,7 +26,7 @@ static void
 test_version_string(const char *in, const char *expected)
 {
     struct bz_version  *version;
-    fail_if_error(version = bz_version_new_from_string(in));
+    fail_if_error(version = bz_version_from_string(in));
     fail_unless_streq("Versions", expected, bz_version_to_string(version));
     bz_version_free(version);
 }
@@ -35,7 +35,7 @@ static void
 test_version_compare_string(const char *in, const char *expected)
 {
     struct bz_version  *version;
-    fail_if_error(version = bz_version_new_from_string(in));
+    fail_if_error(version = bz_version_from_string(in));
     fail_unless_streq("Versions", expected,
                       bz_version_to_compare_string(version));
     bz_version_free(version);
@@ -47,8 +47,8 @@ test_version_cmp(const char *in1, const char *in2, int expected)
     int  actual;
     struct bz_version  *v1;
     struct bz_version  *v2;
-    fail_if_error(v1 = bz_version_new_from_string(in1));
-    fail_if_error(v2 = bz_version_new_from_string(in2));
+    fail_if_error(v1 = bz_version_from_string(in1));
+    fail_if_error(v2 = bz_version_from_string(in2));
     fail_if_error(actual = bz_version_cmp(v1, v2));
     bz_version_free(v1);
     bz_version_free(v2);
