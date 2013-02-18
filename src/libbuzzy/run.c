@@ -255,7 +255,7 @@ static struct cork_stream_consumer  drop_consumer = {
 int
 bz_subprocess_a_get_output(struct cork_buffer *out_buf,
                            struct cork_buffer *err_buf,
-                           bz_subprocess_cmd *cmd)
+                           bool *successful, bz_subprocess_cmd *cmd)
 {
     int  rc;
     int  exit_code;
@@ -275,9 +275,13 @@ bz_subprocess_a_get_output(struct cork_buffer *out_buf,
     }
     rii_check(rc);
 
-    if (CORK_UNLIKELY(exit_code != 0)) {
-        bz_subprocess_error("%s failed", cork_array_at(cmd, 0));
-        return -1;
+    if (successful == NULL) {
+        if (CORK_UNLIKELY(exit_code != 0)) {
+            bz_subprocess_error("%s failed", cork_array_at(cmd, 0));
+            return -1;
+        }
+    } else {
+        *successful = (exit_code == 0);
     }
 
     return 0;
@@ -286,7 +290,7 @@ bz_subprocess_a_get_output(struct cork_buffer *out_buf,
 int
 bz_subprocess_v_get_output(struct cork_buffer *out_buf,
                            struct cork_buffer *err_buf,
-                           va_list args)
+                           bool *successful, va_list args)
 {
     int  rc;
     const char  *param;
@@ -296,7 +300,7 @@ bz_subprocess_v_get_output(struct cork_buffer *out_buf,
     while ((param = va_arg(args, const char *)) != NULL) {
         cork_array_append(&cmd, param);
     }
-    rc = bz_subprocess_a_get_output(out_buf, err_buf, &cmd);
+    rc = bz_subprocess_a_get_output(out_buf, err_buf, successful, &cmd);
     cork_array_done(&cmd);
     return rc;
 }
@@ -304,12 +308,12 @@ bz_subprocess_v_get_output(struct cork_buffer *out_buf,
 int
 bz_subprocess_get_output(struct cork_buffer *out_buf,
                          struct cork_buffer *err_buf,
-                         ...)
+                         bool *successful, ...)
 {
     int  rc;
     va_list  args;
-    va_start(args, err_buf);
-    rc = bz_subprocess_v_get_output(out_buf, err_buf, args);
+    va_start(args, successful);
+    rc = bz_subprocess_v_get_output(out_buf, err_buf, successful, args);
     va_end(args);
     return rc;
 
@@ -342,7 +346,7 @@ bz_subprocess_a_run(bool verbose, bool *successful, bz_subprocess_cmd *cmd)
             return -1;
         }
     } else {
-        *successful = (rc == 0);
+        *successful = (exit_code == 0);
     }
 
     return 0;

@@ -29,15 +29,16 @@ typedef cork_array(const char *)  bz_subprocess_cmd;
 
 int
 bz_subprocess_a_get_output(struct cork_buffer *out, struct cork_buffer *err,
-                           bz_subprocess_cmd *cmd);
+                           bool *successful, bz_subprocess_cmd *cmd);
 
 int
 bz_subprocess_v_get_output(struct cork_buffer *out, struct cork_buffer *err,
-                           va_list args);
+                           bool *successful, va_list args);
 
 CORK_ATTR_SENTINEL
 int
-bz_subprocess_get_output(struct cork_buffer *out, struct cork_buffer *err, ...);
+bz_subprocess_get_output(struct cork_buffer *out, struct cork_buffer *err,
+                         bool *successful, ...);
 
 
 /* Execute the subprocess and wait for it to finish.

@@ -14,6 +14,8 @@
 
 #include "libcork/core/error.h"
 
+#include "buzzy/version.h"
+
 #if !defined(PRINT_EXPECTED_FAILURES)
 #define PRINT_EXPECTED_FAILURES  1
 #endif
@@ -59,6 +61,15 @@
     (fail_unless(strcmp((expected), (actual)) == 0, \
                  "%s not equal (expected \"%s\", got \"%s\")", \
                  (char *) (what), (char *) (expected), (char *) (actual)))
+
+
+CORK_ATTR_UNUSED
+static void
+test_and_free_version(struct bz_version *version, const char *expected)
+{
+    fail_unless_streq("Versions", expected, bz_version_to_string(version));
+    bz_version_free(version);
+}
 
 
 #endif /* TESTS_HELPERS_H */

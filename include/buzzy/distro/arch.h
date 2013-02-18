@@ -35,4 +35,21 @@ struct bz_version *
 bz_version_from_arch(const char *arch_version);
 
 
+/*-----------------------------------------------------------------------
+ * Native package database
+ */
+
+/* Returns the version of the specified package that could be installed using
+ * the native pacman package repositories. */
+struct bz_version *
+bz_arch_native_version_available(const char *native_package_name);
+
+/* Returns the version of the specified package that has been installed on the
+ * current machine using pacman.  That package need not have come from the
+ * default Arch package database; it should return a result for packages that we
+ * build and install ourselves, too. */
+struct bz_version *
+bz_arch_native_version_installed(const char *native_package_name);
+
+
 #endif /* BUZZY_DISTRO_ARCH_H */
