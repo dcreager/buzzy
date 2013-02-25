@@ -27,8 +27,7 @@ test_version_string(const char *in, const char *expected)
 {
     struct bz_version  *version;
     fail_if_error(version = bz_version_from_string(in));
-    fail_unless_streq("Versions", expected, bz_version_to_string(version));
-    bz_version_free(version);
+    test_and_free_version(version, expected);
 }
 
 static void

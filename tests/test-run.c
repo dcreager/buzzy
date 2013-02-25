@@ -40,7 +40,7 @@ test_output(const char *expected_out, const char *expected_err, ...)
     struct cork_buffer  err = CORK_BUFFER_INIT();
 
     va_start(args, expected_err);
-    fail_if_error(bz_subprocess_v_get_output(&out, &err, args));
+    fail_if_error(bz_subprocess_v_get_output(&out, &err, NULL, args));
     va_end(args);
     if (expected_out != NULL) {
         fail_unless_streq("stdout", expected_out, out.buf);

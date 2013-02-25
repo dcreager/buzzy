@@ -8,7 +8,6 @@
  */
 
 #include <assert.h>
-#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -96,7 +95,7 @@ bz_version_part_to_string(const struct bz_version_part *part,
  * Versions
  */
 
-static struct bz_version *
+struct bz_version *
 bz_version_new(void)
 {
     struct bz_version  *version = cork_new(struct bz_version);
@@ -123,36 +122,69 @@ bz_version_free(struct bz_version *version)
 }
 
 static void
-bz_version_add_integral_part(struct bz_version *version,
-                             enum bz_version_part_kind kind,
-                             unsigned int int_value,
-                             const char *string_value, size_t size)
+bz_version_add_to_string(struct bz_version *version,
+                         struct bz_version_part *part)
 {
-    struct bz_version_part  *part = cork_array_append_get(&version->parts);
-    part->kind = kind;
-    part->int_value = int_value;
-    cork_buffer_init(&part->string_value);
-    cork_buffer_set(&part->string_value, string_value, size);
+    if (version->string.size > 0) {
+        switch (part->kind) {
+            case BZ_VERSION_RELEASE:
+                cork_buffer_append(&version->string, ".", 1);
+                break;
+
+            case BZ_VERSION_PRERELEASE:
+                cork_buffer_append(&version->string, "~", 1);
+                break;
+
+            case BZ_VERSION_POSTRELEASE:
+                cork_buffer_append(&version->string, "+", 1);
+                break;
+
+            default:
+                cork_unreachable();
+        }
+    }
+
+    cork_buffer_append
+        (&version->string, part->string_value.buf, part->string_value.size);
 }
 
-static void
-bz_version_add_string_part(struct bz_version *version,
-                           enum bz_version_part_kind kind,
-                           const char *string_value, size_t size)
+void
+bz_version_add_part(struct bz_version *version,
+                    enum bz_version_part_kind kind,
+                    const char *string_value, size_t size)
 {
-    bz_version_add_integral_part
-        (version, kind, BZ_VERSION_PART_USE_STRING, string_value, size);
+    char  *endptr = NULL;
+    struct bz_version_part  *part;
+
+    assert(string_value != NULL && *string_value != '\0');
+
+    part = cork_array_append_get(&version->parts);
+    part->kind = kind;
+    cork_buffer_init(&part->string_value);
+    cork_buffer_set(&part->string_value, string_value, size);
+
+    part->int_value = strtoul(part->string_value.buf, &endptr, 10);
+    if (*endptr != '\0') {
+        /* The string value contains some non-digit characters. */
+        part->int_value = BZ_VERSION_PART_USE_STRING;
+    }
+
+    bz_version_add_to_string(version, part);
 }
 
 static void
 bz_version_add_final_part(struct bz_version *version)
 {
-    bz_version_add_integral_part
-        (version, BZ_VERSION_FINAL, BZ_VERSION_PART_USE_STRING, NULL, 0);
+    struct bz_version_part  *part;
+    part = cork_array_append_get(&version->parts);
+    part->kind = BZ_VERSION_FINAL;
+    part->int_value = BZ_VERSION_PART_USE_STRING;
+    cork_buffer_init(&part->string_value);
+    cork_buffer_set(&part->string_value, "", 0);
 }
 
-static void
-bz_version_set_compare_parts(struct bz_version *version)
+void
+bz_version_finalize(struct bz_version *version)
 {
     size_t  i;
     cork_array(struct bz_version_part *)  temp_parts;
@@ -169,10 +201,11 @@ bz_version_set_compare_parts(struct bz_version *version)
 
     DEBUG("  Finding comparison parts\n");
 
+    bz_version_add_final_part(version);
     cork_array_init(&temp_parts);
     cork_buffer_append(&version->compare_string, "[", 1);
-    for (i = 0; i < cork_array_size(&version->parts); i++) {
-        struct bz_version_part  *part = &cork_array_at(&version->parts, i);
+    for (i = 0; i < bz_version_part_count(version); i++) {
+        struct bz_version_part  *part = bz_version_get_part(version, i);
         DEBUG("    %s part %s\n", bz_version_part_kind_name(part->kind),
               (char *) part->string_value.buf);
         if (part->kind == BZ_VERSION_RELEASE) {
@@ -212,26 +245,17 @@ bz_version_from_string(const char *string)
     const char  *eof = pe;
     struct bz_version  *version;
     enum bz_version_part_kind  kind;
-    unsigned int  int_value;
     const char  *part_start;
 
     /* Parse the contents of the version string. */
     DEBUG("---\nParse version \"%s\"\n", string);
     version = bz_version_new();
-    cork_buffer_set_string(&version->string, string);
 
     %%{
         machine buzzy_version;
 
         action initialize_part {
             part_start = fpc;
-            int_value = 0;
-        }
-
-        action add_digit {
-            unsigned char  digit = (fc - '0');
-            int_value *= 10;
-            int_value += digit;
         }
 
         action release_part {
@@ -249,25 +273,14 @@ bz_version_from_string(const char *string)
             DEBUG("  Create new prerelease version part\n");
         }
 
-        action add_integral_part {
-            size_t  size = fpc - part_start;
-            DEBUG("    Integral value: %u\n", int_value);
-            DEBUG("    String value: %.*s\n", (int) size, part_start);
-            bz_version_add_integral_part
-                (version, kind, int_value, part_start, size);
-        }
-
-        action add_string_part {
+        action add_part {
             size_t  size = fpc - part_start;
             DEBUG("    String value: %.*s\n", (int) size, part_start);
-            bz_version_add_string_part(version, kind, part_start, size);
+            bz_version_add_part(version, kind, part_start, size);
         }
 
-        integral_part    = (digit $add_digit)+
-                           >initialize_part %add_integral_part;
-        string_part      = (alnum+ - digit+)
-                           >initialize_part %add_string_part;
-        part             = integral_part | string_part;
+        part             = alnum+
+                           >initialize_part %add_part;
         release_part     = '.' %release_part part;
         prerelease_part  = '~' %prerelease_part part;
         postrelease_part = '+' %postrelease_part part;
@@ -290,10 +303,7 @@ bz_version_from_string(const char *string)
         return NULL;
     }
 
-    /* Once we've parsed all of the parts in the version string, determine which
-     * of those parts should be used when comparing versions. */
-    bz_version_add_final_part(version);
-    bz_version_set_compare_parts(version);
+    bz_version_finalize(version);
     return version;
 }
 

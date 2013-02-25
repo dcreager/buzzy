@@ -18,6 +18,7 @@ add_subdirectory(libyaml)
 set(LIBBUZZY_RAGEL
     libbuzzy/dependency.c.rl
     libbuzzy/version.c.rl
+    libbuzzy/distro/arch.c.rl
 )
 
 set_property(
@@ -51,6 +52,7 @@ set(LIBBUZZY_SRC
     libbuzzy/dependency.c
     libbuzzy/run.c
     libbuzzy/version.c
+    libbuzzy/distro/arch.c
 )
 
 add_library(libbuzzy STATIC ${LIBBUZZY_SRC})
