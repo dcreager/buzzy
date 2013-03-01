@@ -19,7 +19,10 @@
 #include <libcork/ds.h>
 #include <libcork/helpers/errors.h>
 
+#include "buzzy/action.h"
 #include "buzzy/error.h"
+#include "buzzy/native.h"
+#include "buzzy/package.h"
 #include "buzzy/run.h"
 #include "buzzy/version.h"
 #include "buzzy/distro/arch.h"
@@ -264,6 +267,7 @@ bz_version_from_arch(const char *arch_version)
     }
 
     bz_version_finalize(version);
+    cork_buffer_done(&buf);
     return version;
 }
 
@@ -289,6 +293,7 @@ bz_arch_native_version_available(const char *native_package_name)
                "pacman", "-Sdp", "--print-format", "%v",
                native_package_name, NULL));
     if (!successful) {
+        cork_buffer_done(&out);
         return NULL;
     }
 
@@ -337,6 +342,7 @@ bz_arch_native_version_installed(const char *native_package_name)
               (&out, NULL, &successful,
                "pacman", "-Q", native_package_name, NULL));
     if (!successful) {
+        cork_buffer_done(&out);
         return NULL;
     }
 
@@ -370,4 +376,29 @@ bz_arch_native_version_installed(const char *native_package_name)
     result = bz_version_from_arch(start);
     cork_buffer_done(&out);
     return result;
+}
+
+
+static int
+bz_arch_native_install(const char *native_package_name,
+                       struct bz_version *version)
+{
+    /* We don't pass the --needed flag to pacman since our is_needed method
+     * should have already verified that the desired version isn't installed
+     * yet. */
+    return bz_subprocess_run
+        (false, NULL,
+         "sudo", "pacman", "-S", "--noconfirm", native_package_name,
+         NULL);
+}
+
+struct bz_pdb *
+bz_arch_native_pdb(void)
+{
+    return bz_native_pdb_new
+        ("Arch",
+         bz_arch_native_version_available,
+         bz_arch_native_version_installed,
+         bz_arch_native_install,
+         "%s", "lib%s", NULL);
 }

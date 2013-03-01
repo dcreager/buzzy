@@ -86,11 +86,6 @@ free_mocks(void)
     }
 }
 
-CORK_INITIALIZER(init_mocks)
-{
-    cork_cleanup_at_exit(0, free_mocks);
-}
-
 static void
 bz_subprocess_add_mock(const char *cmd, const char *out, const char *err,
                        int exit_code, bool allow_execute)
@@ -214,6 +209,10 @@ static subprocess_executor  executor = bz_subprocess_execute;
 void
 bz_subprocess_start_mocks(void)
 {
+    if (!mocks_enabled) {
+        cork_cleanup_at_exit(0, free_mocks);
+    }
+
     /* Free any existing mocks first. */
     free_mocks();
 
