@@ -69,16 +69,6 @@ test_action_new(const char *message, bool needed)
 }
 
 
-static void
-test_action_phase(struct bz_action_phase *phase, const char *expected_actions)
-{
-    bz_action_start_mocks();
-    fail_if_error(bz_action_phase_perform(phase));
-    fail_unless_streq("Action list", expected_actions,
-                      bz_action_mock_results());
-}
-
-
 /*-----------------------------------------------------------------------
  * Performing actions
  */

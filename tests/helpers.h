@@ -14,6 +14,7 @@
 
 #include "libcork/core/error.h"
 
+#include "buzzy/action.h"
 #include "buzzy/version.h"
 
 #if !defined(PRINT_EXPECTED_FAILURES)
@@ -69,6 +70,30 @@ test_and_free_version(struct bz_version *version, const char *expected)
 {
     fail_unless_streq("Versions", expected, bz_version_to_string(version));
     bz_version_free(version);
+}
+
+
+CORK_ATTR_UNUSED
+static void
+test_action_phase(struct bz_action_phase *phase, const char *expected_actions)
+{
+    bz_action_start_mocks();
+    fail_if_error(bz_action_phase_perform(phase));
+    fail_unless_streq("Action list", expected_actions,
+                      bz_action_mock_results());
+}
+
+
+CORK_ATTR_UNUSED
+static void
+test_action(struct bz_action *action, const char *expected_actions)
+{
+    struct bz_action_phase  *phase;
+    bz_action_start_mocks();
+    phase = bz_action_phase_new("Test actions");
+    bz_action_phase_add(phase, action);
+    test_action_phase(phase, expected_actions);
+    bz_action_phase_free(phase);
 }
 
 

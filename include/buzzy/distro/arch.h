@@ -13,6 +13,8 @@
 #include <libcork/core.h>
 #include <libcork/ds.h>
 
+#include "buzzy/action.h"
+#include "buzzy/package.h"
 #include "buzzy/version.h"
 
 
@@ -50,6 +52,10 @@ bz_arch_native_version_available(const char *native_package_name);
  * build and install ourselves, too. */
 struct bz_version *
 bz_arch_native_version_installed(const char *native_package_name);
+
+
+struct bz_pdb *
+bz_arch_native_pdb(void);
 
 
 #endif /* BUZZY_DISTRO_ARCH_H */

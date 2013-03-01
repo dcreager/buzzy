@@ -51,6 +51,8 @@ endforeach(RAGEL_INPUT)
 set(LIBBUZZY_SRC
     libbuzzy/action.c
     libbuzzy/dependency.c
+    libbuzzy/native.c
+    libbuzzy/package.c
     libbuzzy/run.c
     libbuzzy/version.c
     libbuzzy/distro/arch.c

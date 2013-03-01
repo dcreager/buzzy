@@ -13,13 +13,12 @@
 #include <libcork/core.h>
 #include <libcork/ds.h>
 
+#include "buzzy/callbacks.h"
+
 
 /*-----------------------------------------------------------------------
  * Actions
  */
-
-typedef void
-(*bz_user_data_free_f)(void *user_data);
 
 typedef void
 (*bz_action_message_f)(void *user_data, struct cork_buffer *dest);

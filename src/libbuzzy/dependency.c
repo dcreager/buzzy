@@ -44,6 +44,7 @@ bz_dependency_free(struct bz_dependency *dep)
         bz_version_free(dep->min_version);
     }
     cork_buffer_done(&dep->string);
+    free(dep);
 }
 
 struct bz_dependency *
@@ -115,18 +116,18 @@ bz_dependency_from_string(const char *string)
     const char  *min_version_end = NULL;
 
     
-#line 119 "libbuzzy/dependency.c"
+#line 120 "libbuzzy/dependency.c"
 static const int buzzy_dependency_start = 1;
 
 static const int buzzy_dependency_en_main = 1;
 
 
-#line 125 "libbuzzy/dependency.c"
+#line 126 "libbuzzy/dependency.c"
 	{
 	cs = buzzy_dependency_start;
 	}
 
-#line 130 "libbuzzy/dependency.c"
+#line 131 "libbuzzy/dependency.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
@@ -150,14 +151,14 @@ st0:
 cs = 0;
 	goto _out;
 tr0:
-#line 120 "libbuzzy/dependency.c.rl"
+#line 121 "libbuzzy/dependency.c.rl"
 	{ package_name_start = p; }
 	goto st5;
 st5:
 	if ( ++p == pe )
 		goto _test_eof5;
 case 5:
-#line 161 "libbuzzy/dependency.c"
+#line 162 "libbuzzy/dependency.c"
 	switch( (*p) ) {
 		case 32: goto tr6;
 		case 45: goto st5;
@@ -177,14 +178,14 @@ case 5:
 		goto st5;
 	goto st0;
 tr6:
-#line 121 "libbuzzy/dependency.c.rl"
+#line 122 "libbuzzy/dependency.c.rl"
 	{ package_name_end = p; }
 	goto st2;
 st2:
 	if ( ++p == pe )
 		goto _test_eof2;
 case 2:
-#line 188 "libbuzzy/dependency.c"
+#line 189 "libbuzzy/dependency.c"
 	switch( (*p) ) {
 		case 32: goto st2;
 		case 62: goto st3;
@@ -193,14 +194,14 @@ case 2:
 		goto st2;
 	goto st0;
 tr8:
-#line 121 "libbuzzy/dependency.c.rl"
+#line 122 "libbuzzy/dependency.c.rl"
 	{ package_name_end = p; }
 	goto st3;
 st3:
 	if ( ++p == pe )
 		goto _test_eof3;
 case 3:
-#line 204 "libbuzzy/dependency.c"
+#line 205 "libbuzzy/dependency.c"
 	if ( (*p) == 61 )
 		goto st4;
 	goto st0;
@@ -227,14 +228,14 @@ case 4:
 		goto tr5;
 	goto st0;
 tr5:
-#line 125 "libbuzzy/dependency.c.rl"
+#line 126 "libbuzzy/dependency.c.rl"
 	{ min_version_start = p; }
 	goto st6;
 st6:
 	if ( ++p == pe )
 		goto _test_eof6;
 case 6:
-#line 238 "libbuzzy/dependency.c"
+#line 239 "libbuzzy/dependency.c"
 	switch( (*p) ) {
 		case 43: goto st6;
 		case 46: goto st6;
@@ -261,30 +262,30 @@ case 6:
 	{
 	switch ( cs ) {
 	case 5: 
-#line 121 "libbuzzy/dependency.c.rl"
+#line 122 "libbuzzy/dependency.c.rl"
 	{ package_name_end = p; }
 	break;
 	case 6: 
-#line 126 "libbuzzy/dependency.c.rl"
+#line 127 "libbuzzy/dependency.c.rl"
 	{ min_version_end = p; }
 	break;
-#line 272 "libbuzzy/dependency.c"
+#line 273 "libbuzzy/dependency.c"
 	}
 	}
 
 	_out: {}
 	}
 
-#line 134 "libbuzzy/dependency.c.rl"
+#line 135 "libbuzzy/dependency.c.rl"
 
 
     /* A hack to suppress some unused variable warnings */
     (void) buzzy_dependency_en_main;
 
     if (CORK_UNLIKELY(cs < 
-#line 286 "libbuzzy/dependency.c"
+#line 287 "libbuzzy/dependency.c"
 5
-#line 139 "libbuzzy/dependency.c.rl"
+#line 140 "libbuzzy/dependency.c.rl"
 )) {
         bz_invalid_dependency("Invalid dependency \"%s\"", string);
         return NULL;
