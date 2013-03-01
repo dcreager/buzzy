@@ -209,6 +209,10 @@ static subprocess_executor  executor = bz_subprocess_execute;
 void
 bz_subprocess_start_mocks(void)
 {
+    if (!mocks_enabled) {
+        cork_cleanup_at_exit(0, free_mocks);
+    }
+
     /* Free any existing mocks first. */
     free_mocks();
 

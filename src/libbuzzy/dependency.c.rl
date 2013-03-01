@@ -42,6 +42,7 @@ bz_dependency_free(struct bz_dependency *dep)
         bz_version_free(dep->min_version);
     }
     cork_buffer_done(&dep->string);
+    free(dep);
 }
 
 struct bz_dependency *

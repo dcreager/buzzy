@@ -264,6 +264,7 @@ bz_version_from_arch(const char *arch_version)
     }
 
     bz_version_finalize(version);
+    cork_buffer_done(&buf);
     return version;
 }
 
@@ -289,6 +290,7 @@ bz_arch_native_version_available(const char *native_package_name)
                "pacman", "-Sdp", "--print-format", "%v",
                native_package_name, NULL));
     if (!successful) {
+        cork_buffer_done(&out);
         return NULL;
     }
 
@@ -337,6 +339,7 @@ bz_arch_native_version_installed(const char *native_package_name)
               (&out, NULL, &successful,
                "pacman", "-Q", native_package_name, NULL));
     if (!successful) {
+        cork_buffer_done(&out);
         return NULL;
     }
 

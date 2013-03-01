@@ -11,6 +11,7 @@
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
+#include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/action.h"
@@ -147,6 +148,10 @@ static action_printer  printer = bz_action_print;
 void
 bz_action_start_mocks(void)
 {
+    if (!mocks_enabled) {
+        cork_cleanup_at_exit(0, free_mock_results);
+    }
+
     /* Free any existing mocks first. */
     free_mock_results();
 
