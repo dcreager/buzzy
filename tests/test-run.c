@@ -61,6 +61,10 @@ START_TEST(test_run_mocked_01)
     test_run(0, "echo", "hello", "world", NULL);
     test_output("hello world\n", NULL,
                 "echo", "hello", "world", NULL);
+    verify_commands_run(
+        "$ echo hello world\n"
+        "$ echo hello world\n"
+    );
 }
 END_TEST
 
@@ -73,6 +77,10 @@ START_TEST(test_run_01)
     test_run(0, "echo", "hello", "world", NULL);
     test_output("hello world\n", NULL,
                 "echo", "hello", "world", NULL);
+    verify_commands_run(
+        "$ echo hello world\n"
+        "$ echo hello world\n"
+    );
 }
 END_TEST
 

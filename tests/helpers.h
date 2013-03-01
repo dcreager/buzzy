@@ -15,6 +15,7 @@
 #include "libcork/core/error.h"
 
 #include "buzzy/action.h"
+#include "buzzy/run.h"
 #include "buzzy/version.h"
 
 #if !defined(PRINT_EXPECTED_FAILURES)
@@ -70,6 +71,15 @@ test_and_free_version(struct bz_version *version, const char *expected)
 {
     fail_unless_streq("Versions", expected, bz_version_to_string(version));
     bz_version_free(version);
+}
+
+
+CORK_ATTR_UNUSED
+static void
+verify_commands_run(const char *expected_commands)
+{
+    fail_unless_streq("Executed commands", expected_commands,
+                      bz_subprocess_mocked_commands_run());
 }
 
 

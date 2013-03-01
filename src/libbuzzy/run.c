@@ -67,6 +67,7 @@ bz_subprocess_mock_free(struct bz_subprocess_mock *mock)
 
 static bool  mocks_enabled = false;
 static struct cork_hash_table  mocks;
+static struct cork_buffer  commands_run;
 
 static enum cork_hash_table_map_result
 free_mock(struct cork_hash_table_entry *entry, void *user_data)
@@ -82,6 +83,7 @@ free_mocks(void)
     if (mocks_enabled) {
         cork_hash_table_map(&mocks, free_mock, NULL);
         cork_hash_table_done(&mocks);
+        cork_buffer_done(&commands_run);
         mocks_enabled = false;
     }
 }
@@ -169,6 +171,9 @@ bz_subprocess_mock_execute(bz_subprocess_cmd *cmd,
         cork_buffer_done(&mock_key);
         return -1;
     }
+    cork_buffer_append(&commands_run, "$ ", 2);
+    cork_buffer_append(&commands_run, mock_key.buf, mock_key.size);
+    cork_buffer_append(&commands_run, "\n", 1);
     cork_buffer_done(&mock_key);
 
     /* "Run" the mocked command. */
@@ -217,8 +222,15 @@ bz_subprocess_start_mocks(void)
     free_mocks();
 
     cork_string_hash_table_init(&mocks, 0);
+    cork_buffer_init(&commands_run);
     mocks_enabled = true;
     executor = bz_subprocess_mock_execute;
+}
+
+const char *
+bz_subprocess_mocked_commands_run(void)
+{
+    return commands_run.buf;
 }
 
 

@@ -79,5 +79,8 @@ bz_subprocess_mock(const char *cmd, const char *out, const char *err,
 void
 bz_subprocess_mock_allow_execute(const char *cmd);
 
+const char *
+bz_subprocess_mocked_commands_run(void);
+
 
 #endif /* BUZZY_RUN_H */
