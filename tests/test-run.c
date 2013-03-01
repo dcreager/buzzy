@@ -52,6 +52,15 @@ test_output(const char *expected_out, const char *expected_err, ...)
     cork_buffer_done(&err);
 }
 
+static void
+test_file(const char *filename, const char *content)
+{
+    struct cork_buffer  buf = CORK_BUFFER_INIT();
+    cork_buffer_set_string(&buf, content);
+    fail_if_error(bz_create_file(filename, &buf));
+    cork_buffer_done(&buf);
+}
+
 START_TEST(test_run_mocked_01)
 {
     DESCRIBE_TEST;
@@ -84,6 +93,20 @@ START_TEST(test_run_01)
 }
 END_TEST
 
+START_TEST(test_create_file_01)
+{
+    DESCRIBE_TEST;
+
+    bz_subprocess_start_mocks();
+    test_file("test-file.txt", "hello world\n");
+    verify_commands_run(
+        "$ cat > test-file.txt <<EOF\n"
+        "hello world\n"
+        "EOF\n"
+    );
+}
+END_TEST
+
 
 /*-----------------------------------------------------------------------
  * Testing harness
@@ -97,6 +120,7 @@ test_suite()
     TCase  *tc_run = tcase_create("run");
     tcase_add_test(tc_run, test_run_mocked_01);
     tcase_add_test(tc_run, test_run_01);
+    tcase_add_test(tc_run, test_create_file_01);
     suite_add_tcase(s, tc_run);
 
     return s;

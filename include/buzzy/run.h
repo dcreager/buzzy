@@ -62,6 +62,14 @@ bz_subprocess_run(bool verbose, bool *successful, ...);
 
 
 /*-----------------------------------------------------------------------
+ * Creating files
+ */
+
+int
+bz_create_file(const char *filename, struct cork_buffer *src);
+
+
+/*-----------------------------------------------------------------------
  * Mocking subprocesses for test cases
  */
 

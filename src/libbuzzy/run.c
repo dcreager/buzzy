@@ -8,8 +8,11 @@
  */
 
 #include <assert.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
@@ -25,6 +28,9 @@ typedef int
                        struct cork_stream_consumer *out,
                        struct cork_stream_consumer *err,
                        int *exit_code);
+
+typedef int
+(*file_creator)(const char *filename, struct cork_buffer *src);
 
 
 /*-----------------------------------------------------------------------
@@ -118,6 +124,7 @@ bz_subprocess_mock_allow_execute(const char *cmd)
     bz_subprocess_add_mock(cmd, NULL, NULL, 0, true);
 }
 
+
 static int
 bz_subprocess_execute(bz_subprocess_cmd *cmd,
                       struct cork_stream_consumer *out,
@@ -141,6 +148,7 @@ bz_subprocess_execute(bz_subprocess_cmd *cmd,
     cork_subprocess_group_free(group);
     return 0;
 }
+
 
 static int
 bz_subprocess_mock_execute(bz_subprocess_cmd *cmd,
@@ -208,8 +216,56 @@ bz_subprocess_mock_execute(bz_subprocess_cmd *cmd,
     return 0;
 }
 
+
+static int
+bz_file_creator(const char *filename, struct cork_buffer *src)
+{
+    int  fd;
+    int  rc;
+    ssize_t  bytes_written;
+
+    fd = open(filename, O_WRONLY | O_CREAT);
+    if (CORK_UNLIKELY(fd == -1)) {
+        cork_system_error_set();
+        return -1;
+    }
+
+    bytes_written = write(fd, src->buf, src->size);
+    if (CORK_UNLIKELY(bytes_written == -1)) {
+        close(fd);
+        cork_system_error_set();
+        return -1;
+    } else if (CORK_UNLIKELY(bytes_written != src->size)) {
+        close(fd);
+        cork_error_set(CORK_BUILTIN_ERROR, CORK_SYSTEM_ERROR,
+                       "Cannot write %zu bytes to %s",
+                       src->size, filename);
+        return -1;
+    }
+
+    rc = close(fd);
+    if (rc == -1) {
+        cork_system_error_set();
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+bz_mocked_file_creator(const char *filename, struct cork_buffer *src)
+{
+    assert(mocks_enabled);
+    cork_buffer_append_printf(&commands_run, "$ cat > %s <<EOF\n", filename);
+    cork_buffer_append(&commands_run, src->buf, src->size);
+    cork_buffer_append(&commands_run, "EOF\n", 4);
+    return 0;
+}
+
+
 /* Start by using the "real" executor */
 static subprocess_executor  executor = bz_subprocess_execute;
+static file_creator  creator = bz_file_creator;
 
 void
 bz_subprocess_start_mocks(void)
@@ -225,6 +281,7 @@ bz_subprocess_start_mocks(void)
     cork_buffer_init(&commands_run);
     mocks_enabled = true;
     executor = bz_subprocess_mock_execute;
+    creator = bz_mocked_file_creator;
 }
 
 const char *
@@ -388,5 +445,15 @@ bz_subprocess_run(bool verbose, bool *successful, ...)
     rc = bz_subprocess_v_run(verbose, successful, args);
     va_end(args);
     return rc;
+}
 
+
+/*-----------------------------------------------------------------------
+ * Creating files
+ */
+
+int
+bz_create_file(const char *filename, struct cork_buffer *src)
+{
+    return creator(filename, src);
 }
