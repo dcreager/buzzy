@@ -142,7 +142,6 @@ struct bz_native_pdb {
     bz_native_install_f  install;
     cork_array(const char *)  patterns;
     struct cork_buffer  buf;
-    cork_array(struct bz_package *)  packages;
 };
 
 static void
@@ -156,12 +155,6 @@ bz_native_pdb__free(void *user_data)
         cork_strfree(pattern);
     }
     cork_array_done(&pdb->patterns);
-
-    for (i = 0; i < cork_array_size(&pdb->packages); i++) {
-        struct bz_package  *package = cork_array_at(&pdb->packages, i);
-        bz_package_free(package);
-    }
-    cork_array_done(&pdb->packages);
 
     cork_strfree(pdb->short_distro_name);
     cork_buffer_done(&pdb->buf);
@@ -195,7 +188,6 @@ bz_native_pdb__satisfy(void *user_data, struct bz_dependency *dep)
         struct bz_package  *package =
             bz_native_pdb_try_pattern(pdb, pattern, dep);
         if (package != NULL) {
-            cork_array_append(&pdb->packages, package);
             return package;
         }
     }
@@ -218,13 +210,12 @@ bz_native_pdb_new(const char *short_distro_name,
     pdb->short_distro_name = cork_strdup(short_distro_name);
     cork_buffer_init(&pdb->buf);
     cork_array_init(&pdb->patterns);
-    cork_array_init(&pdb->packages);
     va_start(args, install);
     while ((pattern = va_arg(args, const char *)) != NULL) {
         cork_array_append(&pdb->patterns, cork_strdup(pattern));
     }
     cork_buffer_printf(&pdb->buf, "Native %s packages", short_distro_name);
-    return bz_pdb_new
+    return bz_cached_pdb_new
         (pdb->buf.buf,
          pdb, bz_native_pdb__free,
          bz_native_pdb__satisfy);

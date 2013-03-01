@@ -66,6 +66,21 @@ bz_pdb_satisfy_dependency(struct bz_pdb *pdb, struct bz_dependency *dep);
 
 
 /*-----------------------------------------------------------------------
+ * Cached package databases
+ */
+
+/* A helper implementation that automatically caches packages for you.  You
+ * provide a satsify method that just blindly creates a package for a
+ * dependency.  The cache helper translates that into a satisfy method that will
+ * check if we've already created a package for a particular dependency, and if
+ * so, return it. */
+struct bz_pdb *
+bz_cached_pdb_new(const char *pdb_name,
+                  void *user_data, bz_user_data_free_f user_data_free,
+                  bz_pdb_satisfy_f satisfy);
+
+
+/*-----------------------------------------------------------------------
  * Package database registry
  */
 
