@@ -18,19 +18,23 @@
 #include <libcork/ds.h>
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
+#include <libcork/helpers/posix.h>
 
 #include "buzzy/error.h"
 #include "buzzy/run.h"
 
 
 typedef int
-(*subprocess_executor)(bz_subprocess_cmd *cmd,
-                       struct cork_stream_consumer *out,
-                       struct cork_stream_consumer *err,
-                       int *exit_code);
+(*subprocess_executor_f)(struct cork_exec *exec,
+                         struct cork_stream_consumer *out,
+                         struct cork_stream_consumer *err,
+                         int *exit_code);
 
-typedef int
-(*file_creator)(const char *filename, struct cork_buffer *src);
+typedef struct cork_file *
+(*file_creator_f)(struct cork_path *path, struct cork_buffer *src);
+
+typedef struct cork_file *
+(*dir_creator_f)(struct cork_path *path);
 
 
 /*-----------------------------------------------------------------------
@@ -126,32 +130,29 @@ bz_subprocess_mock_allow_execute(const char *cmd)
 
 
 static int
-bz_subprocess_execute(bz_subprocess_cmd *cmd,
+bz_subprocess_execute(struct cork_exec *exec,
                       struct cork_stream_consumer *out,
                       struct cork_stream_consumer *err,
                       int *exit_code)
 {
     struct cork_subprocess  *subprocess;
     struct cork_subprocess_group  *group;
-
-    /* Make sure that the subprocess command's parameter list is
-     * NULL-terminated. */
-    cork_array_append(cmd, NULL);
-
-    subprocess = cork_subprocess_new_exec
-        (cork_array_at(cmd, 0), (char **) &cork_array_at(cmd, 0),
-         out, err, exit_code);
+    subprocess = cork_subprocess_new_exec(exec, out, err, exit_code);
     group = cork_subprocess_group_new();
     cork_subprocess_group_add(group, subprocess);
-    rii_check(cork_subprocess_group_start(group));
-    rii_check(cork_subprocess_group_wait(group));
+    ei_check(cork_subprocess_group_start(group));
+    ei_check(cork_subprocess_group_wait(group));
     cork_subprocess_group_free(group);
     return 0;
+
+error:
+    cork_subprocess_group_free(group);
+    return -1;
 }
 
 
 static int
-bz_subprocess_mock_execute(bz_subprocess_cmd *cmd,
+bz_subprocess_mock_execute(struct cork_exec *exec,
                            struct cork_stream_consumer *out,
                            struct cork_stream_consumer *err,
                            int *exit_code)
@@ -163,8 +164,8 @@ bz_subprocess_mock_execute(bz_subprocess_cmd *cmd,
     assert(mocks_enabled);
 
     /* Construct the mock key for this subprocess. */
-    for (i = 0; i < cork_array_size(cmd); i++) {
-        const char  *param = cork_array_at(cmd, i);
+    for (i = 0; i < cork_exec_param_count(exec); i++) {
+        const char  *param = cork_exec_param(exec, i);
         if (i > 0) {
             cork_buffer_append(&mock_key, " ", 1);
         }
@@ -186,8 +187,10 @@ bz_subprocess_mock_execute(bz_subprocess_cmd *cmd,
 
     /* "Run" the mocked command. */
     if (mock->allow_execute) {
-        return bz_subprocess_execute(cmd, out, err, exit_code);
+        return bz_subprocess_execute(exec, out, err, exit_code);
     }
+
+    cork_exec_free(exec);
 
     if (out != NULL) {
         if (mock->out == NULL) {
@@ -217,55 +220,73 @@ bz_subprocess_mock_execute(bz_subprocess_cmd *cmd,
 }
 
 
-static int
-bz_file_creator(const char *filename, struct cork_buffer *src)
+static struct cork_file *
+bz_file_creator(struct cork_path *path, struct cork_buffer *src)
 {
     int  fd;
-    int  rc;
     ssize_t  bytes_written;
 
-    fd = open(filename, O_WRONLY | O_CREAT);
-    if (CORK_UNLIKELY(fd == -1)) {
-        cork_system_error_set();
-        return -1;
-    }
+    ei_check_posix(fd = open(cork_path_get(path), O_WRONLY | O_CREAT));
 
     bytes_written = write(fd, src->buf, src->size);
     if (CORK_UNLIKELY(bytes_written == -1)) {
         close(fd);
         cork_system_error_set();
-        return -1;
+        goto error;
     } else if (CORK_UNLIKELY(bytes_written != src->size)) {
         close(fd);
         cork_error_set(CORK_BUILTIN_ERROR, CORK_SYSTEM_ERROR,
                        "Cannot write %zu bytes to %s",
-                       src->size, filename);
-        return -1;
+                       src->size, cork_path_get(path));
+        goto error;
     }
 
-    rc = close(fd);
-    if (rc == -1) {
-        cork_system_error_set();
-        return -1;
-    }
+    ei_check_posix(close(fd));
+    return cork_file_new_from_path(path);
 
-    return 0;
+error:
+    cork_path_free(path);
+    return NULL;
 }
 
-static int
-bz_mocked_file_creator(const char *filename, struct cork_buffer *src)
+static struct cork_file *
+bz_mocked_file_creator(struct cork_path *path, struct cork_buffer *src)
 {
     assert(mocks_enabled);
-    cork_buffer_append_printf(&commands_run, "$ cat > %s <<EOF\n", filename);
+    cork_buffer_append_printf
+        (&commands_run, "$ cat > %s <<EOF\n", cork_path_get(path));
     cork_buffer_append(&commands_run, src->buf, src->size);
     cork_buffer_append(&commands_run, "EOF\n", 4);
-    return 0;
+    return cork_file_new_from_path(path);
+}
+
+
+static struct cork_file *
+bz_dir_creator(struct cork_path *path)
+{
+    struct cork_file  *file = cork_file_new_from_path(path);
+    ei_check(cork_file_mkdir
+             (file, 0755, CORK_FILE_RECURSIVE | CORK_FILE_PERMISSIVE));
+    return file;
+
+error:
+    cork_file_free(file);
+    return NULL;
+}
+
+static struct cork_file *
+bz_mocked_dir_creator(struct cork_path *path)
+{
+    cork_buffer_append_printf
+        (&commands_run, "$ mkdir -p %s\n", cork_path_get(path));
+    return cork_file_new_from_path(path);
 }
 
 
 /* Start by using the "real" executor */
-static subprocess_executor  executor = bz_subprocess_execute;
-static file_creator  creator = bz_file_creator;
+static subprocess_executor_f  executor = bz_subprocess_execute;
+static file_creator_f  file_creator = bz_file_creator;
+static dir_creator_f  dir_creator = bz_dir_creator;
 
 void
 bz_subprocess_start_mocks(void)
@@ -281,7 +302,8 @@ bz_subprocess_start_mocks(void)
     cork_buffer_init(&commands_run);
     mocks_enabled = true;
     executor = bz_subprocess_mock_execute;
-    creator = bz_mocked_file_creator;
+    file_creator = bz_mocked_file_creator;
+    dir_creator = bz_mocked_dir_creator;
 }
 
 const char *
@@ -321,20 +343,18 @@ static struct cork_stream_consumer  drop_consumer = {
 };
 
 int
-bz_subprocess_a_get_output(struct cork_buffer *out_buf,
-                           struct cork_buffer *err_buf,
-                           bool *successful, bz_subprocess_cmd *cmd)
+bz_subprocess_get_output_exec(struct cork_buffer *out_buf,
+                              struct cork_buffer *err_buf,
+                              bool *successful, struct cork_exec *exec)
 {
     int  rc;
     int  exit_code;
     struct cork_stream_consumer  *out;
     struct cork_stream_consumer  *err;
 
-    assert(cork_array_size(cmd) > 0);
-
     out = (out_buf == NULL)? NULL: cork_buffer_to_stream_consumer(out_buf);
     err = (err_buf == NULL)? NULL: cork_buffer_to_stream_consumer(err_buf);
-    rc = executor(cmd, out, err, &exit_code);
+    rc = executor(exec, out, err, &exit_code);
     if (out != NULL) {
         cork_stream_consumer_free(out);
     }
@@ -345,7 +365,7 @@ bz_subprocess_a_get_output(struct cork_buffer *out_buf,
 
     if (successful == NULL) {
         if (CORK_UNLIKELY(exit_code != 0)) {
-            bz_subprocess_error("%s failed", cork_array_at(cmd, 0));
+            bz_subprocess_error("%s failed", cork_exec_program(exec));
             return -1;
         }
     } else {
@@ -360,17 +380,18 @@ bz_subprocess_v_get_output(struct cork_buffer *out_buf,
                            struct cork_buffer *err_buf,
                            bool *successful, va_list args)
 {
-    int  rc;
+    struct cork_exec  *exec;
+    const char  *program;
     const char  *param;
-    bz_subprocess_cmd  cmd;
+    program = va_arg(args, const char *);
+    assert(program != NULL);
+    exec = cork_exec_new(program);
+    cork_exec_add_param(exec, program);
 
-    cork_array_init(&cmd);
     while ((param = va_arg(args, const char *)) != NULL) {
-        cork_array_append(&cmd, param);
+        cork_exec_add_param(exec, param);
     }
-    rc = bz_subprocess_a_get_output(out_buf, err_buf, successful, &cmd);
-    cork_array_done(&cmd);
-    return rc;
+    return bz_subprocess_get_output_exec(out_buf, err_buf, successful, exec);
 }
 
 int
@@ -388,18 +409,16 @@ bz_subprocess_get_output(struct cork_buffer *out_buf,
 }
 
 int
-bz_subprocess_a_run(bool verbose, bool *successful, bz_subprocess_cmd *cmd)
+bz_subprocess_run_exec(bool verbose, bool *successful, struct cork_exec *exec)
 {
     int  rc;
     int  exit_code;
     struct cork_stream_consumer  *out;
     struct cork_stream_consumer  *err;
 
-    assert(cork_array_size(cmd) > 0);
-
     out = verbose? NULL: &drop_consumer;
     err = verbose? NULL: &drop_consumer;
-    rc = executor(cmd, out, err, &exit_code);
+    rc = executor(exec, out, err, &exit_code);
     if (out != NULL) {
         cork_stream_consumer_free(out);
     }
@@ -410,7 +429,7 @@ bz_subprocess_a_run(bool verbose, bool *successful, bz_subprocess_cmd *cmd)
 
     if (successful == NULL) {
         if (CORK_UNLIKELY(exit_code != 0)) {
-            bz_subprocess_error("%s failed", cork_array_at(cmd, 0));
+            bz_subprocess_error("%s failed", cork_exec_program(exec));
             return -1;
         }
     } else {
@@ -423,17 +442,18 @@ bz_subprocess_a_run(bool verbose, bool *successful, bz_subprocess_cmd *cmd)
 int
 bz_subprocess_v_run(bool verbose, bool *successful, va_list args)
 {
-    int  rc;
+    struct cork_exec  *exec;
+    const char  *program;
     const char  *param;
-    bz_subprocess_cmd  cmd;
+    program = va_arg(args, const char *);
+    assert(program != NULL);
+    exec = cork_exec_new(program);
+    cork_exec_add_param(exec, program);
 
-    cork_array_init(&cmd);
     while ((param = va_arg(args, const char *)) != NULL) {
-        cork_array_append(&cmd, param);
+        cork_exec_add_param(exec, param);
     }
-    rc = bz_subprocess_a_run(verbose, successful, &cmd);
-    cork_array_done(&cmd);
-    return rc;
+    return bz_subprocess_run_exec(verbose, successful, exec);
 }
 
 int
@@ -449,11 +469,17 @@ bz_subprocess_run(bool verbose, bool *successful, ...)
 
 
 /*-----------------------------------------------------------------------
- * Creating files
+ * Creating files and directories
  */
 
-int
-bz_create_file(const char *filename, struct cork_buffer *src)
+struct cork_file *
+bz_create_file(struct cork_path *path, struct cork_buffer *src)
 {
-    return creator(filename, src);
+    return file_creator(path, src);
+}
+
+struct cork_file *
+bz_create_directory(struct cork_path *path)
+{
+    return dir_creator(path);
 }

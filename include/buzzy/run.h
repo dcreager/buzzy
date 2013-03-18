@@ -14,22 +14,17 @@
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
+#include <libcork/os.h>
 
 
 /*-----------------------------------------------------------------------
  * Executing subprocesses
  */
 
-typedef cork_array(const char *)  bz_subprocess_cmd;
-
 
 /* Execute the subprocess, wait for it to finish, and capture its stdout and
  * stderr streams into the given buffers.  (The buffers can be NULL, in which
  * case that output stream is ignored.) */
-
-int
-bz_subprocess_a_get_output(struct cork_buffer *out, struct cork_buffer *err,
-                           bool *successful, bz_subprocess_cmd *cmd);
 
 int
 bz_subprocess_v_get_output(struct cork_buffer *out, struct cork_buffer *err,
@@ -39,6 +34,10 @@ CORK_ATTR_SENTINEL
 int
 bz_subprocess_get_output(struct cork_buffer *out, struct cork_buffer *err,
                          bool *successful, ...);
+
+int
+bz_subprocess_get_output_exec(struct cork_buffer *out, struct cork_buffer *err,
+                              bool *successful, struct cork_exec *exec);
 
 
 /* Execute the subprocess and wait for it to finish.
@@ -53,20 +52,29 @@ bz_subprocess_get_output(struct cork_buffer *out, struct cork_buffer *err,
 int
 bz_subprocess_v_run(bool verbose, bool *successful, va_list args);
 
-int
-bz_subprocess_a_run(bool verbose, bool *successful, bz_subprocess_cmd *cmd);
-
 CORK_ATTR_SENTINEL
 int
 bz_subprocess_run(bool verbose, bool *successful, ...);
 
+int
+bz_subprocess_run_exec(bool verbose, bool *successful, struct cork_exec *exec);
+
 
 /*-----------------------------------------------------------------------
- * Creating files
+ * Creating files and directories
  */
 
+struct cork_file *
+bz_create_file(struct cork_path *path, struct cork_buffer *src);
+
+/* Takes control of path.  You must delete the directory with
+ * bz_delete_directory. */
+struct cork_file *
+bz_create_directory(struct cork_path *path);
+
+/* Takes control of file */
 int
-bz_create_file(const char *filename, struct cork_buffer *src);
+bz_delete_directory(struct cork_file *file);
 
 
 /*-----------------------------------------------------------------------

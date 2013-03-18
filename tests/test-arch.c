@@ -237,7 +237,6 @@ test_arch_pdb_unknown_dep(struct bz_pdb *pdb, const char *dep_str)
 {
     struct bz_dependency  *dep;
     struct bz_package  *package;
-    fail_if_error(pdb = bz_arch_native_pdb());
     fail_if_error(dep = bz_dependency_from_string(dep_str));
     fail_if_error(package = bz_pdb_satisfy_dependency(pdb, dep));
     fail_unless(package == NULL, "Should not be able to build %s", dep_str);
@@ -260,12 +259,12 @@ START_TEST(test_arch_pdb_uninstalled_native_package_01)
 
     test_arch_pdb_dep(pdb, "jansson",
         "Test actions\n"
-        "[1/1] (jansson) Install native Arch package jansson 2.4\n"
+        "[1/1] Install native Arch package jansson 2.4\n"
     );
 
     test_arch_pdb_dep(pdb, "jansson >= 2.4",
         "Test actions\n"
-        "[1/1] (jansson >= 2.4) Install native Arch package jansson 2.4\n"
+        "[1/1] Install native Arch package jansson 2.4\n"
     );
 
     bz_pdb_free(pdb);
@@ -288,7 +287,7 @@ START_TEST(test_arch_pdb_uninstalled_native_package_02)
 
     test_arch_pdb_dep(pdb, "jansson",
         "Test actions\n"
-        "[1/1] (jansson) Install native Arch package jansson 2.4\n"
+        "[1/1] Install native Arch package jansson 2.4\n"
     );
 
     test_arch_pdb_dep(pdb, "jansson",
@@ -347,6 +346,97 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * Building Arch packages
+ */
+
+/* Since we're mocking the subprocess commands for each of these test cases, the
+ * tests can run on any platform; we don't need the Arch Linux packaging tools
+ * to actually be installed. */
+
+static void
+test_create_package(struct bz_package_spec *spec, const char *expected_actions)
+{
+    struct cork_path  *package_path = cork_path_new(".");
+    struct cork_path  *staging_path = cork_path_new("/tmp/staging");
+    struct bz_action  *action =
+        bz_pacman_create_package(spec, package_path, staging_path, NULL);
+    test_action(action, expected_actions);
+    bz_action_free(action);
+}
+
+START_TEST(test_arch_create_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_package_spec  *spec;
+    bz_subprocess_start_mocks();
+    bz_subprocess_mock("uname -m", "x86_64\n", NULL, 0);
+    bz_subprocess_mock("makepkg -sf", NULL, NULL, 0);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(spec = bz_package_spec_new("jansson", version));
+    test_create_package(spec,
+        "Test actions\n"
+        "[1/1] Package jansson 2.4\n"
+    );
+    verify_commands_run(
+        "$ uname -m\n"
+        "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
+        "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
+            " <<EOF\n"
+        "pkgname='jansson'\n"
+        "pkgver='2.4'\n"
+        "pkgrel='1'\n"
+        "arch=('x86_64')\n"
+        "license=('unknown')\n"
+        "package () {\n"
+        "    rm -rf \"${pkgdir}\"\n"
+        "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
+        "}\n"
+        "EOF\n"
+        "$ makepkg -sf\n"
+    );
+    bz_package_spec_free(spec);
+}
+END_TEST
+
+START_TEST(test_arch_create_package_license_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_package_spec  *spec;
+    bz_subprocess_start_mocks();
+    bz_subprocess_mock("uname -m", "x86_64\n", NULL, 0);
+    bz_subprocess_mock("makepkg -sf", NULL, NULL, 0);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(spec = bz_package_spec_new("jansson", version));
+    fail_if_error(bz_package_spec_set_license(spec, "MIT"));
+    test_create_package(spec,
+        "Test actions\n"
+        "[1/1] Package jansson 2.4\n"
+    );
+    verify_commands_run(
+        "$ uname -m\n"
+        "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
+        "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
+            " <<EOF\n"
+        "pkgname='jansson'\n"
+        "pkgver='2.4'\n"
+        "pkgrel='1'\n"
+        "arch=('x86_64')\n"
+        "license=('MIT')\n"
+        "package () {\n"
+        "    rm -rf \"${pkgdir}\"\n"
+        "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
+        "}\n"
+        "EOF\n"
+        "$ makepkg -sf\n"
+    );
+    bz_package_spec_free(spec);
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Testing harness
  */
 
@@ -370,6 +460,11 @@ test_suite()
     tcase_add_test(tc_arch_pdb, test_arch_pdb_nonexistent_native_package_01);
     suite_add_tcase(s, tc_arch_pdb);
 
+    TCase  *tc_arch_package = tcase_create("arch-package");
+    tcase_add_test(tc_arch_package, test_arch_create_package_01);
+    tcase_add_test(tc_arch_package, test_arch_create_package_license_01);
+    suite_add_tcase(s, tc_arch_package);
+
     return s;
 }
 
@@ -381,6 +476,7 @@ main(int argc, const char **argv)
     Suite  *suite = test_suite();
     SRunner  *runner = srunner_create(suite);
 
+    initialize_tests();
     srunner_run_all(runner, CK_NORMAL);
     number_failed = srunner_ntests_failed(runner);
     srunner_free(runner);

@@ -18,12 +18,19 @@
 #include "buzzy/version.h"
 
 
+/* The Arch package release number to use for any packages we create. */
+#define BZ_ARCH_RELEASE  "1"
+
+
 /*-----------------------------------------------------------------------
  * Platform detection
  */
 
 int
 bz_arch_is_present(bool *dest);
+
+const char *
+bz_arch_current_architecture(void);
 
 
 /*-----------------------------------------------------------------------
@@ -56,6 +63,22 @@ bz_arch_native_version_installed(const char *native_package_name);
 
 struct bz_pdb *
 bz_arch_native_pdb(void);
+
+
+/*-----------------------------------------------------------------------
+ * Creating Arch packages
+ */
+
+/* Returns an action that builds a new pacman binary package from a staging
+ * directory that you've already set up.  If stage_action is non-NULL, we assume
+ * that's the action that fills in the staging directory; we'll make sure to
+ * mark that as a prereq of the packaging action.  The new binary package will
+ * be placed in package_path. */
+struct bz_action *
+bz_pacman_create_package(struct bz_package_spec *spec,
+                         struct cork_path *package_path,
+                         struct cork_path *staging_path,
+                         struct bz_action *stage_action);
 
 
 #endif /* BUZZY_DISTRO_ARCH_H */

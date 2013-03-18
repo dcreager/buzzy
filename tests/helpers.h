@@ -12,7 +12,8 @@
 
 #include <string.h>
 
-#include "libcork/core/error.h"
+#include "libcork/core.h"
+#include "libcork/os.h"
 
 #include "buzzy/action.h"
 #include "buzzy/run.h"
@@ -63,6 +64,20 @@
     (fail_unless(strcmp((expected), (actual)) == 0, \
                  "%s not equal (expected \"%s\", got \"%s\")", \
                  (char *) (what), (char *) (expected), (char *) (actual)))
+
+
+static void
+initialize_tests(void)
+{
+    /* Set the XDG directory variables so that we have reproducible filenames in
+     * our test cases. */
+    cork_env_add(NULL, "HOME", "/home/test");
+    cork_env_add(NULL, "XDG_RUNTIME_DIR", "/run/users/test");
+    cork_env_remove(NULL, "XDG_CACHE_HOME");
+    cork_env_remove(NULL, "XDG_CACHE_DIRS");
+    cork_env_remove(NULL, "XDG_DATA_HOME");
+    cork_env_remove(NULL, "XDG_DATA_DIRS");
+}
 
 
 CORK_ATTR_UNUSED
