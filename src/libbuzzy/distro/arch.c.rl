@@ -440,6 +440,7 @@ struct bz_pacman_packager {
     struct bz_package_spec  *spec;
     struct cork_path  *package_path;
     struct cork_path  *staging_path;
+    bool  force;
     bool  verbose;
 };
 
@@ -466,21 +467,27 @@ static int
 bz_pacman_packager__is_needed(void *user_data, bool *is_needed)
 {
     struct bz_pacman_packager  *packager = user_data;
-    const char  *package_name = bz_package_spec_name(packager->spec);
-    struct bz_version  *version = bz_package_spec_version(packager->spec);
-    const char  *architecture = bz_arch_current_architecture();
-    struct cork_buffer  package_file = CORK_BUFFER_INIT();
-    struct cork_path  *package_path;
 
-    cork_buffer_printf(&package_file, "%s-", package_name);
-    bz_version_to_arch(version, &package_file);
-    cork_buffer_append_printf
-        (&package_file, "-%s-%s.pkg.tar.xz", BZ_ARCH_RELEASE, architecture);
-    package_path = cork_path_join(packager->package_path, package_file.buf);
-    cork_buffer_done(&package_file);
-    rii_check(bz_file_exists(package_path, is_needed));
-    *is_needed = !*is_needed;
-    return 0;
+    if (packager->force) {
+        *is_needed = true;
+        return 0;
+    } else {
+        const char  *package_name = bz_package_spec_name(packager->spec);
+        struct bz_version  *version = bz_package_spec_version(packager->spec);
+        const char  *architecture = bz_arch_current_architecture();
+        struct cork_buffer  package_file = CORK_BUFFER_INIT();
+        struct cork_path  *package_path;
+
+        cork_buffer_printf(&package_file, "%s-", package_name);
+        bz_version_to_arch(version, &package_file);
+        cork_buffer_append_printf
+            (&package_file, "-%s-%s.pkg.tar.xz", BZ_ARCH_RELEASE, architecture);
+        package_path = cork_path_join(packager->package_path, package_file.buf);
+        cork_buffer_done(&package_file);
+        rii_check(bz_file_exists(package_path, is_needed));
+        *is_needed = !*is_needed;
+        return 0;
+    }
 }
 
 static int
@@ -569,7 +576,7 @@ bz_pacman_create_package(struct bz_package_spec *spec,
                          struct cork_path *package_path,
                          struct cork_path *staging_path,
                          struct bz_action *stage_action,
-                         bool verbose)
+                         bool force, bool verbose)
 {
     struct bz_action  *action;
     struct bz_action  *prereq;
@@ -579,6 +586,7 @@ bz_pacman_create_package(struct bz_package_spec *spec,
     packager->spec = spec;
     packager->package_path = package_path;
     packager->staging_path = staging_path;
+    packager->force = force;
     packager->verbose = verbose;
 
     action = bz_action_new

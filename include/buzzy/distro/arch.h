@@ -75,7 +75,7 @@ bz_pacman_create_package(struct bz_package_spec *spec,
                          struct cork_path *package_path,
                          struct cork_path *staging_path,
                          struct bz_action *stage_action,
-                         bool verbose);
+                         bool force, bool verbose);
 
 
 #endif /* BUZZY_DISTRO_ARCH_H */

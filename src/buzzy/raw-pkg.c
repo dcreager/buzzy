@@ -31,6 +31,10 @@
 "Creates a new binary package from an existing staging directory.  The\n" \
 "staging directory should contain the full installation prefix for the\n" \
 "package that you want to create.\n" \
+"\n" \
+"Options:\n" \
+"  -f, --force\n" \
+"    Rebuild the binary package even if it already exists.\n" \
 GENERAL_HELP_TEXT \
 PACKAGE_SPEC_HELP_TEXT \
 PACKAGER_HELP_TEXT \
@@ -45,17 +49,20 @@ CORK_LOCAL struct cork_command  buzzy_raw_pkg =
     cork_leaf_command("pkg", SHORT_DESC, USAGE_SUFFIX, HELP_TEXT,
                       parse_options, execute);
 
-#define SHORT_OPTS  "+" \
+#define SHORT_OPTS  "+f" \
     GENERAL_SHORT_OPTS \
     PACKAGE_SPEC_SHORT_OPTS \
     PACKAGER_SHORT_OPTS \
 
 static struct option  opts[] = {
+    { "force", no_argument, NULL, 'f' },
     GENERAL_LONG_OPTS,
     PACKAGE_SPEC_LONG_OPTS,
     PACKAGER_LONG_OPTS,
     { NULL, 0, NULL, 0 }
 };
+
+static bool  force = false;
 
 static int
 parse_options(int argc, char **argv)
@@ -76,6 +83,10 @@ parse_options(int argc, char **argv)
         }
 
         switch (ch) {
+            case 'f':
+                force = true;
+                break;
+
             default:
                 cork_command_show_help(&buzzy_raw_pkg, NULL);
                 exit(EXIT_FAILURE);
@@ -110,7 +121,8 @@ execute(int argc, char **argv)
     ri_check_error(cork_path_set_absolute(staging_path));
     rp_check_error(spec = package_spec_get(&buzzy_raw_pkg));
     rp_check_error(action = bz_create_package
-                   (spec, package_path, staging_path, NULL, verbosity > 0));
+                   (spec, package_path, staging_path, NULL,
+                    force, verbosity > 0));
 
     phase = bz_action_phase_new("Create package:");
     bz_action_phase_add(phase, action);

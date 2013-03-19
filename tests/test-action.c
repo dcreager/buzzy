@@ -143,6 +143,7 @@ START_TEST(test_actions_unneeded_01)
     bz_action_phase_add(phase, a1);
     test_action_phase(phase,
         "Running tests\n"
+        "  Nothing to do!\n"
     );
     bz_action_phase_free(phase);
     bz_action_free(a1);

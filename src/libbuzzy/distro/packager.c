@@ -55,7 +55,7 @@ bz_create_package(struct bz_package_spec *spec,
                   struct cork_path *package_path,
                   struct cork_path *staging_path,
                   struct bz_action *stage_action,
-                  bool verbose)
+                  bool force, bool verbose)
 {
     if (CORK_UNLIKELY(create_package == NULL)) {
         /* If we haven't chosen a packager yet, try to autodetect. */
@@ -64,5 +64,5 @@ bz_create_package(struct bz_package_spec *spec,
 
     assert(create_package != NULL);
     return create_package
-        (spec, package_path, staging_path, stage_action, verbose);
+        (spec, package_path, staging_path, stage_action, force, verbose);
 }

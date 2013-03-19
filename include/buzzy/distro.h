@@ -34,7 +34,7 @@ typedef struct bz_action *
                        struct cork_path *package_path,
                        struct cork_path *staging_path,
                        struct bz_action *stage_action,
-                       bool verbose);
+                       bool force, bool verbose);
 
 /* If name is NULL, we try to auto-detect. */
 int
@@ -52,7 +52,7 @@ bz_create_package(struct bz_package_spec *spec,
                   struct cork_path *package_path,
                   struct cork_path *staging_path,
                   struct bz_action *stage_action,
-                  bool verbose);
+                  bool force, bool verbose);
 
 
 #endif /* BUZZY_DISTRO_H */

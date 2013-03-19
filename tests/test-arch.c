@@ -292,6 +292,7 @@ START_TEST(test_arch_pdb_uninstalled_native_package_02)
 
     test_arch_pdb_dep(pdb, "jansson",
         "Test actions\n"
+        "  Nothing to do!\n"
     );
 
     bz_pdb_free(pdb);
@@ -313,10 +314,12 @@ START_TEST(test_arch_pdb_installed_native_package_01)
 
     test_arch_pdb_dep(pdb, "jansson",
         "Test actions\n"
+        "  Nothing to do!\n"
     );
 
     test_arch_pdb_dep(pdb, "jansson >= 2.4",
         "Test actions\n"
+        "  Nothing to do!\n"
     );
 
     bz_pdb_free(pdb);
@@ -354,7 +357,8 @@ END_TEST
  * to actually be installed. */
 
 static void
-test_create_package(struct bz_package_spec *spec, const char *expected_actions)
+test_create_package(struct bz_package_spec *spec, bool force,
+                    const char *expected_actions)
 {
     struct cork_path  *package_path = cork_path_new(".");
     struct cork_path  *staging_path = cork_path_new("/tmp/staging");
@@ -367,7 +371,7 @@ test_create_package(struct bz_package_spec *spec, const char *expected_actions)
     mock_installed_package("pacman", "4.0.3-7");
     bz_mock_file_exists(cork_path_get(staging_path), true);
     fail_if_error(action = bz_pacman_create_package
-                  (spec, package_path, staging_path, NULL, false));
+                  (spec, package_path, staging_path, NULL, force, false));
     test_action(action, expected_actions);
     bz_action_free(action);
 }
@@ -383,7 +387,7 @@ START_TEST(test_arch_create_package_01)
     bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", false);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(spec = bz_package_spec_new("jansson", version));
-    test_create_package(spec,
+    test_create_package(spec, false,
         "Test actions\n"
         "[1/1] Package jansson 2.4\n"
     );
@@ -424,7 +428,7 @@ START_TEST(test_arch_create_package_license_01)
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(spec = bz_package_spec_new("jansson", version));
     fail_if_error(bz_package_spec_set_license(spec, "MIT"));
-    test_create_package(spec,
+    test_create_package(spec, false,
         "Test actions\n"
         "[1/1] Package jansson 2.4\n"
     );
@@ -464,13 +468,53 @@ START_TEST(test_arch_create_existing_package_01)
     bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", true);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(spec = bz_package_spec_new("jansson", version));
-    test_create_package(spec,
+    test_create_package(spec, false,
         "Test actions\n"
+        "  Nothing to do!\n"
     );
     verify_commands_run(
         "$ pacman -Sdp --print-format %v pacman\n"
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
+    );
+    bz_package_spec_free(spec);
+}
+END_TEST
+
+START_TEST(test_arch_create_existing_package_02)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_package_spec  *spec;
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
+    bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", true);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(spec = bz_package_spec_new("jansson", version));
+    test_create_package(spec, true,
+        "Test actions\n"
+        "[1/1] Package jansson 2.4\n"
+    );
+    verify_commands_run(
+        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ pacman -Q pacman\n"
+        "$ uname -m\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
+        "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
+            " <<EOF\n"
+        "pkgname='jansson'\n"
+        "pkgver='2.4'\n"
+        "pkgrel='1'\n"
+        "arch=('x86_64')\n"
+        "license=('unknown')\n"
+        "package () {\n"
+        "    rm -rf \"${pkgdir}\"\n"
+        "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
+        "}\n"
+        "EOF\n"
+        "$ makepkg -sf\n"
     );
     bz_package_spec_free(spec);
 }
@@ -505,6 +549,7 @@ test_suite()
     tcase_add_test(tc_arch_package, test_arch_create_package_01);
     tcase_add_test(tc_arch_package, test_arch_create_package_license_01);
     tcase_add_test(tc_arch_package, test_arch_create_existing_package_01);
+    tcase_add_test(tc_arch_package, test_arch_create_existing_package_02);
     suite_add_tcase(s, tc_arch_package);
 
     return s;
