@@ -41,7 +41,6 @@ struct bz_native_package {
     const char  *package_name;
     const char  *native_package_name;
     struct bz_version  *version;
-    struct bz_dependency  *dep;
     bz_native_detect_f  version_installed;
     bz_native_install_f  install;
 };
@@ -54,7 +53,6 @@ bz_native_package__free(void *user_data)
     cork_strfree(native->package_name);
     cork_strfree(native->native_package_name);
     /* version will be freed by the package wrapper */
-    /* dep shouldn't be freed */
     free(native);
 }
 
@@ -63,8 +61,7 @@ bz_native_package__install__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_native_package  *native = user_data;
     cork_buffer_append_printf
-        (dest, "(%s) Install native %s package %s %s",
-         bz_dependency_to_string(native->dep),
+        (dest, "Install native %s package %s %s",
          native->short_distro_name,
          native->native_package_name,
          bz_version_to_string(native->version));
@@ -121,7 +118,6 @@ bz_native_package_new(const char *short_distro_name,
     native->package_name = cork_strdup(package_name);
     native->native_package_name = cork_strdup(native_package_name);
     native->version = version;
-    native->dep = dep;
     native->version_installed = version_installed;
     native->install = install;
     return bz_package_new

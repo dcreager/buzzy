@@ -30,6 +30,9 @@ set(LIBCORK_SRC
     ${CMAKE_SOURCE_DIR}/lib/libcork/src/libcork/ds/ring-buffer.c
     ${CMAKE_SOURCE_DIR}/lib/libcork/src/libcork/ds/slice.c
     ${CMAKE_SOURCE_DIR}/lib/libcork/src/libcork/posix/directory-walker.c
+    ${CMAKE_SOURCE_DIR}/lib/libcork/src/libcork/posix/env.c
+    ${CMAKE_SOURCE_DIR}/lib/libcork/src/libcork/posix/exec.c
+    ${CMAKE_SOURCE_DIR}/lib/libcork/src/libcork/posix/files.c
     ${CMAKE_SOURCE_DIR}/lib/libcork/src/libcork/posix/process.c
     ${CMAKE_SOURCE_DIR}/lib/libcork/src/libcork/posix/subprocess.c
     ${CMAKE_SOURCE_DIR}/lib/libcork/src/libcork/pthreads/thread.c

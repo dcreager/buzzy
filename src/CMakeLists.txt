@@ -51,11 +51,14 @@ endforeach(RAGEL_INPUT)
 set(LIBBUZZY_SRC
     libbuzzy/action.c
     libbuzzy/dependency.c
+    libbuzzy/mock.c
     libbuzzy/native.c
+    libbuzzy/os.c
     libbuzzy/package.c
-    libbuzzy/run.c
     libbuzzy/version.c
     libbuzzy/distro/arch.c
+    libbuzzy/distro/packager.c
+    libbuzzy/distro/pdb.c
 )
 
 add_library(libbuzzy STATIC ${LIBBUZZY_SRC})
@@ -69,6 +72,8 @@ set_target_properties(libbuzzy PROPERTIES
 
 set(BUZZY_SRC
     buzzy/buzzy.c
+    buzzy/raw.c
+    buzzy/raw-pkg.c
     buzzy/root.c
     buzzy/vercmp.c
 )

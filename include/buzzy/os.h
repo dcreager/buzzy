@@ -7,29 +7,24 @@
  * ----------------------------------------------------------------------
  */
 
-#ifndef BUZZY_RUN_H
-#define BUZZY_RUN_H
+#ifndef BUZZY_OS_H
+#define BUZZY_OS_H
 
 #include <stdarg.h>
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
+#include <libcork/os.h>
 
 
 /*-----------------------------------------------------------------------
  * Executing subprocesses
  */
 
-typedef cork_array(const char *)  bz_subprocess_cmd;
-
 
 /* Execute the subprocess, wait for it to finish, and capture its stdout and
  * stderr streams into the given buffers.  (The buffers can be NULL, in which
  * case that output stream is ignored.) */
-
-int
-bz_subprocess_a_get_output(struct cork_buffer *out, struct cork_buffer *err,
-                           bool *successful, bz_subprocess_cmd *cmd);
 
 int
 bz_subprocess_v_get_output(struct cork_buffer *out, struct cork_buffer *err,
@@ -39,6 +34,10 @@ CORK_ATTR_SENTINEL
 int
 bz_subprocess_get_output(struct cork_buffer *out, struct cork_buffer *err,
                          bool *successful, ...);
+
+int
+bz_subprocess_get_output_exec(struct cork_buffer *out, struct cork_buffer *err,
+                              bool *successful, struct cork_exec *exec);
 
 
 /* Execute the subprocess and wait for it to finish.
@@ -53,31 +52,28 @@ bz_subprocess_get_output(struct cork_buffer *out, struct cork_buffer *err,
 int
 bz_subprocess_v_run(bool verbose, bool *successful, va_list args);
 
-int
-bz_subprocess_a_run(bool verbose, bool *successful, bz_subprocess_cmd *cmd);
-
 CORK_ATTR_SENTINEL
 int
 bz_subprocess_run(bool verbose, bool *successful, ...);
 
+int
+bz_subprocess_run_exec(bool verbose, bool *successful, struct cork_exec *exec);
+
 
 /*-----------------------------------------------------------------------
- * Mocking subprocesses for test cases
+ * Creating files and directories
  */
 
-void
-bz_subprocess_start_mocks(void);
+struct cork_file *
+bz_create_file(struct cork_path *path, struct cork_buffer *src);
 
-/* To make it easier to specify the mocks, you provide a full command line,
- * which is the result of concatenating (separated by spaces) the program and
- * params parameters from one of the above subprocess-calling functions. */
-void
-bz_subprocess_mock(const char *cmd, const char *out, const char *err,
-                   int exit_code);
+/* Takes control of path.  You must delete the directory with
+ * bz_delete_directory. */
+struct cork_file *
+bz_create_directory(struct cork_path *path);
 
-/* Allow a particular command to actually be executed. */
-void
-bz_subprocess_mock_allow_execute(const char *cmd);
+int
+bz_file_exists(struct cork_path *path, bool *exists);
 
 
-#endif /* BUZZY_RUN_H */
+#endif /* BUZZY_OS_H */

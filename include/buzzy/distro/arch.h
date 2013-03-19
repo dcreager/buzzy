@@ -12,10 +12,15 @@
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
+#include <libcork/os.h>
 
 #include "buzzy/action.h"
 #include "buzzy/package.h"
 #include "buzzy/version.h"
+
+
+/* The Arch package release number to use for any packages we create. */
+#define BZ_ARCH_RELEASE  "1"
 
 
 /*-----------------------------------------------------------------------
@@ -24,6 +29,9 @@
 
 int
 bz_arch_is_present(bool *dest);
+
+const char *
+bz_arch_current_architecture(void);
 
 
 /*-----------------------------------------------------------------------
@@ -56,6 +64,18 @@ bz_arch_native_version_installed(const char *native_package_name);
 
 struct bz_pdb *
 bz_arch_native_pdb(void);
+
+
+/*-----------------------------------------------------------------------
+ * Creating Arch packages
+ */
+
+struct bz_action *
+bz_pacman_create_package(struct bz_package_spec *spec,
+                         struct cork_path *package_path,
+                         struct cork_path *staging_path,
+                         struct bz_action *stage_action,
+                         bool force, bool verbose);
 
 
 #endif /* BUZZY_DISTRO_ARCH_H */

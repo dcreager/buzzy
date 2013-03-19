@@ -18,6 +18,36 @@
 
 
 /*-----------------------------------------------------------------------
+ * Package specs
+ */
+
+struct bz_package_spec;
+
+/* Takes control of version */
+struct bz_package_spec *
+bz_package_spec_new(const char *package_name, struct bz_version *version);
+
+void
+bz_package_spec_free(struct bz_package_spec *spec);
+
+const char *
+bz_package_spec_name(struct bz_package_spec *spec);
+
+struct bz_version *
+bz_package_spec_version(struct bz_package_spec *spec);
+
+const char *
+bz_package_spec_version_string(struct bz_package_spec *spec);
+
+/* Can be NULL if no license was specified */
+const char *
+bz_package_spec_license(struct bz_package_spec *spec);
+
+void
+bz_package_spec_set_license(struct bz_package_spec *spec, const char *license);
+
+
+/*-----------------------------------------------------------------------
  * Packages
  */
 
@@ -90,6 +120,15 @@ bz_pdb_register(struct bz_pdb *pdb);
 
 struct bz_package *
 bz_satisfy_dependency(struct bz_dependency *dep);
+
+struct bz_action *
+bz_install_dependency(struct bz_dependency *dep);
+
+struct bz_package *
+bz_satisfy_dependency_string(const char *dep_string);
+
+struct bz_action *
+bz_install_dependency_string(const char *dep_string);
 
 
 #endif /* BUZZY_PACKAGE_H */

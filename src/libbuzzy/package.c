@@ -34,6 +34,71 @@
 
 
 /*-----------------------------------------------------------------------
+ * Package specs
+ */
+
+struct bz_package_spec {
+    const char  *package_name;
+    struct bz_version  *version;
+    const char  *license;
+};
+
+struct bz_package_spec *
+bz_package_spec_new(const char *package_name, struct bz_version *version)
+{
+    struct bz_package_spec  *spec = cork_new(struct bz_package_spec);
+    spec->package_name = cork_strdup(package_name);
+    spec->version = version;
+    spec->license = NULL;
+    return spec;
+}
+
+void
+bz_package_spec_free(struct bz_package_spec *spec)
+{
+    cork_strfree(spec->package_name);
+    bz_version_free(spec->version);
+    if (spec->license != NULL) {
+        cork_strfree(spec->license);
+    }
+    free(spec);
+}
+
+const char *
+bz_package_spec_name(struct bz_package_spec *spec)
+{
+    return spec->package_name;
+}
+
+struct bz_version *
+bz_package_spec_version(struct bz_package_spec *spec)
+{
+    return spec->version;
+}
+
+const char *
+bz_package_spec_version_string(struct bz_package_spec *spec)
+{
+    return bz_version_to_string(spec->version);
+}
+
+const char *
+bz_package_spec_license(struct bz_package_spec *spec)
+{
+    return spec->license;
+}
+
+void
+bz_package_spec_set_license(struct bz_package_spec *spec, const char *license)
+{
+    if (spec->license != NULL) {
+        cork_strfree(spec->license);
+    }
+    spec->license = cork_strdup(license);
+}
+
+
+/*-----------------------------------------------------------------------
  * Packages
  */
 
@@ -149,7 +214,9 @@ bz_cached_pdb__free_package(struct cork_hash_table_entry *entry, void *ud)
     const char  *dep_string = entry->key;
     struct bz_package  *package = entry->value;
     cork_strfree(dep_string);
-    bz_package_free(package);
+    if (package != NULL) {
+        bz_package_free(package);
+    }
     return CORK_HASH_TABLE_MAP_DELETE;
 }
 
@@ -250,4 +317,34 @@ bz_satisfy_dependency(struct bz_dependency *dep)
     bz_cannot_satisfy
         ("Cannot satisfy dependency %s", bz_dependency_to_string(dep));
     return NULL;
+}
+
+struct bz_action *
+bz_install_dependency(struct bz_dependency *dep)
+{
+    struct bz_package  *package;
+    rpp_check(package = bz_satisfy_dependency(dep));
+    return bz_package_install_action(package);
+}
+
+struct bz_package *
+bz_satisfy_dependency_string(const char *dep_string)
+{
+    struct bz_dependency  *dep;
+    struct bz_package  *package;
+    rpp_check(dep = bz_dependency_from_string(dep_string));
+    package = bz_satisfy_dependency(dep);
+    bz_dependency_free(dep);
+    return package;
+}
+
+struct bz_action *
+bz_install_dependency_string(const char *dep_string)
+{
+    struct bz_dependency  *dep;
+    struct bz_action  *action;
+    rpp_check(dep = bz_dependency_from_string(dep_string));
+    action = bz_install_dependency(dep);
+    bz_dependency_free(dep);
+    return action;
 }

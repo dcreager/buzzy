@@ -14,7 +14,7 @@
 
 #include <check.h>
 
-#include "buzzy/run.h"
+#include "buzzy/os.h"
 
 #include "helpers.h"
 
@@ -28,7 +28,7 @@ test_run(int dummy, ...)
 {
     va_list  args;
     va_start(args, dummy);
-    fail_if_error(bz_subprocess_v_run(false, NULL, args));
+    fail_if_error(bz_subprocess_v_run(true, NULL, args));
     va_end(args);
 }
 
@@ -52,15 +52,31 @@ test_output(const char *expected_out, const char *expected_err, ...)
     cork_buffer_done(&err);
 }
 
+static void
+test_file(const char *filename, const char *content)
+{
+    struct cork_path  *path = cork_path_new(filename);
+    struct cork_file  *file;
+    struct cork_buffer  buf = CORK_BUFFER_INIT();
+    cork_buffer_set_string(&buf, content);
+    fail_if_error(file = bz_create_file(path, &buf));
+    cork_file_free(file);
+    cork_buffer_done(&buf);
+}
+
 START_TEST(test_run_mocked_01)
 {
     DESCRIBE_TEST;
 
-    bz_subprocess_start_mocks();
-    bz_subprocess_mock("echo hello world", "hello world\n", NULL, 0);
+    bz_start_mocks();
+    bz_mock_subprocess("echo hello world", "hello world\n", NULL, 0);
     test_run(0, "echo", "hello", "world", NULL);
     test_output("hello world\n", NULL,
                 "echo", "hello", "world", NULL);
+    verify_commands_run(
+        "$ echo hello world\n"
+        "$ echo hello world\n"
+    );
 }
 END_TEST
 
@@ -68,11 +84,29 @@ START_TEST(test_run_01)
 {
     DESCRIBE_TEST;
 
-    bz_subprocess_start_mocks();
-    bz_subprocess_mock_allow_execute("echo hello world");
+    bz_start_mocks();
+    bz_mock_subprocess_allow_execute("echo hello world");
     test_run(0, "echo", "hello", "world", NULL);
     test_output("hello world\n", NULL,
                 "echo", "hello", "world", NULL);
+    verify_commands_run(
+        "$ echo hello world\n"
+        "$ echo hello world\n"
+    );
+}
+END_TEST
+
+START_TEST(test_create_file_01)
+{
+    DESCRIBE_TEST;
+
+    bz_start_mocks();
+    test_file("test-file.txt", "hello world\n");
+    verify_commands_run(
+        "$ cat > test-file.txt <<EOF\n"
+        "hello world\n"
+        "EOF\n"
+    );
 }
 END_TEST
 
@@ -89,6 +123,7 @@ test_suite()
     TCase  *tc_run = tcase_create("run");
     tcase_add_test(tc_run, test_run_mocked_01);
     tcase_add_test(tc_run, test_run_01);
+    tcase_add_test(tc_run, test_create_file_01);
     suite_add_tcase(s, tc_run);
 
     return s;
@@ -102,6 +137,7 @@ main(int argc, const char **argv)
     Suite  *suite = test_suite();
     SRunner  *runner = srunner_create(suite);
 
+    initialize_tests();
     srunner_run_all(runner, CK_NORMAL);
     number_failed = srunner_ntests_failed(runner);
     srunner_free(runner);

@@ -14,8 +14,8 @@
 #include <check.h>
 
 #include "buzzy/action.h"
+#include "buzzy/os.h"
 #include "buzzy/package.h"
-#include "buzzy/run.h"
 #include "buzzy/version.h"
 #include "buzzy/distro/arch.h"
 
@@ -33,7 +33,7 @@ mock_available_package(const char *package, const char *available_version)
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
     cork_buffer_printf(&buf1, "pacman -Sdp --print-format %%v %s", package);
     cork_buffer_printf(&buf2, "%s\n", available_version);
-    bz_subprocess_mock(buf1.buf, buf2.buf, NULL, 0);
+    bz_mock_subprocess(buf1.buf, buf2.buf, NULL, 0);
     cork_buffer_done(&buf1);
     cork_buffer_done(&buf2);
 }
@@ -45,7 +45,7 @@ mock_unavailable_package(const char *package)
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
     cork_buffer_printf(&buf1, "pacman -Sdp --print-format %%v %s", package);
     cork_buffer_printf(&buf2, "error: target not found: %s\n", package);
-    bz_subprocess_mock(buf1.buf, NULL, buf2.buf, 1);
+    bz_mock_subprocess(buf1.buf, NULL, buf2.buf, 1);
     cork_buffer_done(&buf1);
     cork_buffer_done(&buf2);
 }
@@ -57,7 +57,7 @@ mock_installed_package(const char *package, const char *installed_version)
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
     cork_buffer_printf(&buf1, "pacman -Q %s", package);
     cork_buffer_printf(&buf2, "%s %s\n", package, installed_version);
-    bz_subprocess_mock(buf1.buf, buf2.buf, NULL, 0);
+    bz_mock_subprocess(buf1.buf, buf2.buf, NULL, 0);
     cork_buffer_done(&buf1);
     cork_buffer_done(&buf2);
 }
@@ -69,7 +69,7 @@ mock_uninstalled_package(const char *package)
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
     cork_buffer_printf(&buf1, "pacman -Q %s", package);
     cork_buffer_printf(&buf2, "error: package '%s' was not found\n", package);
-    bz_subprocess_mock(buf1.buf, NULL, buf2.buf, 1);
+    bz_mock_subprocess(buf1.buf, NULL, buf2.buf, 1);
     cork_buffer_done(&buf1);
     cork_buffer_done(&buf2);
 }
@@ -79,7 +79,7 @@ mock_package_installation(const char *package, const char *version)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     cork_buffer_printf(&buf1, "sudo pacman -S --noconfirm %s", package);
-    bz_subprocess_mock(buf1.buf, NULL, NULL, 0);
+    bz_mock_subprocess(buf1.buf, NULL, NULL, 0);
     cork_buffer_done(&buf1);
 }
 
@@ -162,7 +162,7 @@ START_TEST(test_arch_uninstalled_native_package_01)
     struct bz_version  *version;
     /* A package that is available in the native package database, but has not
      * yet been installed. */
-    bz_subprocess_start_mocks();
+    bz_start_mocks();
     mock_available_package("jansson", "2.4-1");
     mock_uninstalled_package("jansson");
 
@@ -180,7 +180,7 @@ START_TEST(test_arch_installed_native_package_01)
     struct bz_version  *version;
     /* A package that is available in the native package database, and has been
      * installed. */
-    bz_subprocess_start_mocks();
+    bz_start_mocks();
     mock_available_package("jansson", "2.4-1");
     mock_installed_package("jansson", "2.4-1");
 
@@ -197,7 +197,7 @@ START_TEST(test_arch_nonexistent_native_package_01)
     DESCRIBE_TEST;
     struct bz_version  *version;
     /* A package that isn't available in the native package database. */
-    bz_subprocess_start_mocks();
+    bz_start_mocks();
     mock_unavailable_package("jansson");
     mock_uninstalled_package("jansson");
 
@@ -237,7 +237,6 @@ test_arch_pdb_unknown_dep(struct bz_pdb *pdb, const char *dep_str)
 {
     struct bz_dependency  *dep;
     struct bz_package  *package;
-    fail_if_error(pdb = bz_arch_native_pdb());
     fail_if_error(dep = bz_dependency_from_string(dep_str));
     fail_if_error(package = bz_pdb_satisfy_dependency(pdb, dep));
     fail_unless(package == NULL, "Should not be able to build %s", dep_str);
@@ -251,7 +250,7 @@ START_TEST(test_arch_pdb_uninstalled_native_package_01)
 
     /* A package that is available in the native package database, but has not
      * yet been installed. */
-    bz_subprocess_start_mocks();
+    bz_start_mocks();
     mock_available_package("jansson", "2.4-1");
     mock_uninstalled_package("jansson");
     mock_package_installation("jansson", "2.4-1");
@@ -260,12 +259,12 @@ START_TEST(test_arch_pdb_uninstalled_native_package_01)
 
     test_arch_pdb_dep(pdb, "jansson",
         "Test actions\n"
-        "[1/1] (jansson) Install native Arch package jansson 2.4\n"
+        "[1/1] Install native Arch package jansson 2.4\n"
     );
 
     test_arch_pdb_dep(pdb, "jansson >= 2.4",
         "Test actions\n"
-        "[1/1] (jansson >= 2.4) Install native Arch package jansson 2.4\n"
+        "[1/1] Install native Arch package jansson 2.4\n"
     );
 
     bz_pdb_free(pdb);
@@ -279,7 +278,7 @@ START_TEST(test_arch_pdb_uninstalled_native_package_02)
 
     /* Test that if we try to install the same dependency twice, the second
      * attempt is a no-op. */
-    bz_subprocess_start_mocks();
+    bz_start_mocks();
     mock_available_package("jansson", "2.4-1");
     mock_uninstalled_package("jansson");
     mock_package_installation("jansson", "2.4-1");
@@ -288,11 +287,12 @@ START_TEST(test_arch_pdb_uninstalled_native_package_02)
 
     test_arch_pdb_dep(pdb, "jansson",
         "Test actions\n"
-        "[1/1] (jansson) Install native Arch package jansson 2.4\n"
+        "[1/1] Install native Arch package jansson 2.4\n"
     );
 
     test_arch_pdb_dep(pdb, "jansson",
         "Test actions\n"
+        "  Nothing to do!\n"
     );
 
     bz_pdb_free(pdb);
@@ -306,7 +306,7 @@ START_TEST(test_arch_pdb_installed_native_package_01)
 
     /* A package that is available in the native package database, and has been
      * installed. */
-    bz_subprocess_start_mocks();
+    bz_start_mocks();
     mock_available_package("jansson", "2.4-1");
     mock_installed_package("jansson", "2.4-1");
 
@@ -314,10 +314,12 @@ START_TEST(test_arch_pdb_installed_native_package_01)
 
     test_arch_pdb_dep(pdb, "jansson",
         "Test actions\n"
+        "  Nothing to do!\n"
     );
 
     test_arch_pdb_dep(pdb, "jansson >= 2.4",
         "Test actions\n"
+        "  Nothing to do!\n"
     );
 
     bz_pdb_free(pdb);
@@ -330,7 +332,7 @@ START_TEST(test_arch_pdb_nonexistent_native_package_01)
     struct bz_pdb  *pdb;
 
     /* A package that isn't available in the native package database. */
-    bz_subprocess_start_mocks();
+    bz_start_mocks();
     mock_unavailable_package("jansson");
     mock_uninstalled_package("jansson");
     mock_unavailable_package("libjansson");
@@ -342,6 +344,179 @@ START_TEST(test_arch_pdb_nonexistent_native_package_01)
     test_arch_pdb_unknown_dep(pdb, "jansson >= 2.4");
 
     bz_pdb_free(pdb);
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
+ * Building Arch packages
+ */
+
+/* Since we're mocking the subprocess commands for each of these test cases, the
+ * tests can run on any platform; we don't need the Arch Linux packaging tools
+ * to actually be installed. */
+
+static void
+test_create_package(struct bz_package_spec *spec, bool force,
+                    const char *expected_actions)
+{
+    struct cork_path  *package_path = cork_path_new(".");
+    struct cork_path  *staging_path = cork_path_new("/tmp/staging");
+    struct bz_pdb  *pdb;
+    struct bz_action  *action;
+
+    fail_if_error(pdb = bz_arch_native_pdb());
+    bz_pdb_register(pdb);
+    mock_available_package("pacman", "4.0.3-7");
+    mock_installed_package("pacman", "4.0.3-7");
+    bz_mock_file_exists(cork_path_get(staging_path), true);
+    fail_if_error(action = bz_pacman_create_package
+                  (spec, package_path, staging_path, NULL, force, false));
+    test_action(action, expected_actions);
+    bz_action_free(action);
+}
+
+START_TEST(test_arch_create_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_package_spec  *spec;
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
+    bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", false);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(spec = bz_package_spec_new("jansson", version));
+    test_create_package(spec, false,
+        "Test actions\n"
+        "[1/1] Package jansson 2.4\n"
+    );
+    verify_commands_run(
+        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ uname -m\n"
+        "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
+        "$ pacman -Q pacman\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
+        "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
+            " <<EOF\n"
+        "pkgname='jansson'\n"
+        "pkgver='2.4'\n"
+        "pkgrel='1'\n"
+        "arch=('x86_64')\n"
+        "license=('unknown')\n"
+        "package () {\n"
+        "    rm -rf \"${pkgdir}\"\n"
+        "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
+        "}\n"
+        "EOF\n"
+        "$ makepkg -sf\n"
+    );
+    bz_package_spec_free(spec);
+}
+END_TEST
+
+START_TEST(test_arch_create_package_license_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_package_spec  *spec;
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
+    bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", false);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(spec = bz_package_spec_new("jansson", version));
+    fail_if_error(bz_package_spec_set_license(spec, "MIT"));
+    test_create_package(spec, false,
+        "Test actions\n"
+        "[1/1] Package jansson 2.4\n"
+    );
+    verify_commands_run(
+        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ uname -m\n"
+        "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
+        "$ pacman -Q pacman\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
+        "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
+            " <<EOF\n"
+        "pkgname='jansson'\n"
+        "pkgver='2.4'\n"
+        "pkgrel='1'\n"
+        "arch=('x86_64')\n"
+        "license=('MIT')\n"
+        "package () {\n"
+        "    rm -rf \"${pkgdir}\"\n"
+        "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
+        "}\n"
+        "EOF\n"
+        "$ makepkg -sf\n"
+    );
+    bz_package_spec_free(spec);
+}
+END_TEST
+
+START_TEST(test_arch_create_existing_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_package_spec  *spec;
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
+    bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", true);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(spec = bz_package_spec_new("jansson", version));
+    test_create_package(spec, false,
+        "Test actions\n"
+        "  Nothing to do!\n"
+    );
+    verify_commands_run(
+        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ uname -m\n"
+        "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
+    );
+    bz_package_spec_free(spec);
+}
+END_TEST
+
+START_TEST(test_arch_create_existing_package_02)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_package_spec  *spec;
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
+    bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", true);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(spec = bz_package_spec_new("jansson", version));
+    test_create_package(spec, true,
+        "Test actions\n"
+        "[1/1] Package jansson 2.4\n"
+    );
+    verify_commands_run(
+        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ pacman -Q pacman\n"
+        "$ uname -m\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
+        "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
+            " <<EOF\n"
+        "pkgname='jansson'\n"
+        "pkgver='2.4'\n"
+        "pkgrel='1'\n"
+        "arch=('x86_64')\n"
+        "license=('unknown')\n"
+        "package () {\n"
+        "    rm -rf \"${pkgdir}\"\n"
+        "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
+        "}\n"
+        "EOF\n"
+        "$ makepkg -sf\n"
+    );
+    bz_package_spec_free(spec);
 }
 END_TEST
 
@@ -370,6 +545,13 @@ test_suite()
     tcase_add_test(tc_arch_pdb, test_arch_pdb_nonexistent_native_package_01);
     suite_add_tcase(s, tc_arch_pdb);
 
+    TCase  *tc_arch_package = tcase_create("arch-package");
+    tcase_add_test(tc_arch_package, test_arch_create_package_01);
+    tcase_add_test(tc_arch_package, test_arch_create_package_license_01);
+    tcase_add_test(tc_arch_package, test_arch_create_existing_package_01);
+    tcase_add_test(tc_arch_package, test_arch_create_existing_package_02);
+    suite_add_tcase(s, tc_arch_package);
+
     return s;
 }
 
@@ -381,6 +563,7 @@ main(int argc, const char **argv)
     Suite  *suite = test_suite();
     SRunner  *runner = srunner_create(suite);
 
+    initialize_tests();
     srunner_run_all(runner, CK_NORMAL);
     number_failed = srunner_ntests_failed(runner);
     srunner_free(runner);

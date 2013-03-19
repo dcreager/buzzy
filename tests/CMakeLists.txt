@@ -35,7 +35,7 @@ endmacro(make_test)
 
 make_test(test-arch)
 make_test(test-action)
-make_test(test-run)
+make_test(test-os)
 make_test(test-versions)
 
 #-----------------------------------------------------------------------

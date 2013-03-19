@@ -67,15 +67,4 @@ int
 bz_action_phase_perform(struct bz_action_phase *phase);
 
 
-/*-----------------------------------------------------------------------
- * Mocking actions for test cases
- */
-
-void
-bz_action_start_mocks(void);
-
-const char *
-bz_action_mock_results(void);
-
-
 #endif /* BUZZY_ACTION_H */

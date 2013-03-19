@@ -12,9 +12,12 @@
 
 #include <string.h>
 
-#include "libcork/core/error.h"
+#include "libcork/core.h"
+#include "libcork/os.h"
 
 #include "buzzy/action.h"
+#include "buzzy/mock.h"
+#include "buzzy/os.h"
 #include "buzzy/version.h"
 
 #if !defined(PRINT_EXPECTED_FAILURES)
@@ -64,6 +67,20 @@
                  (char *) (what), (char *) (expected), (char *) (actual)))
 
 
+static void
+initialize_tests(void)
+{
+    /* Set the XDG directory variables so that we have reproducible filenames in
+     * our test cases. */
+    cork_env_add(NULL, "HOME", "/home/test");
+    cork_env_add(NULL, "XDG_RUNTIME_DIR", "/run/users/test");
+    cork_env_remove(NULL, "XDG_CACHE_HOME");
+    cork_env_remove(NULL, "XDG_CACHE_DIRS");
+    cork_env_remove(NULL, "XDG_DATA_HOME");
+    cork_env_remove(NULL, "XDG_DATA_DIRS");
+}
+
+
 CORK_ATTR_UNUSED
 static void
 test_and_free_version(struct bz_version *version, const char *expected)
@@ -75,12 +92,21 @@ test_and_free_version(struct bz_version *version, const char *expected)
 
 CORK_ATTR_UNUSED
 static void
+verify_commands_run(const char *expected_commands)
+{
+    fail_unless_streq("Executed commands", expected_commands,
+                      bz_mocked_commands_run());
+}
+
+
+CORK_ATTR_UNUSED
+static void
 test_action_phase(struct bz_action_phase *phase, const char *expected_actions)
 {
-    bz_action_start_mocks();
+    bz_mocked_actions_clear();
     fail_if_error(bz_action_phase_perform(phase));
     fail_unless_streq("Action list", expected_actions,
-                      bz_action_mock_results());
+                      bz_mocked_actions_run());
 }
 
 
@@ -89,7 +115,7 @@ static void
 test_action(struct bz_action *action, const char *expected_actions)
 {
     struct bz_action_phase  *phase;
-    bz_action_start_mocks();
+    bz_mocked_actions_clear();
     phase = bz_action_phase_new("Test actions");
     bz_action_phase_add(phase, action);
     test_action_phase(phase, expected_actions);
