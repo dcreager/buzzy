@@ -358,8 +358,11 @@ test_create_package(struct bz_package_spec *spec, const char *expected_actions)
 {
     struct cork_path  *package_path = cork_path_new(".");
     struct cork_path  *staging_path = cork_path_new("/tmp/staging");
-    struct bz_action  *action =
-        bz_pacman_create_package(spec, package_path, staging_path, NULL);
+    struct bz_action  *action;
+
+    bz_mock_file_exists(cork_path_get(staging_path), true);
+    action = bz_pacman_create_package
+        (spec, package_path, staging_path, NULL, false);
     test_action(action, expected_actions);
     bz_action_free(action);
 }
@@ -380,6 +383,7 @@ START_TEST(test_arch_create_package_01)
     );
     verify_commands_run(
         "$ uname -m\n"
+        "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
         "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
             " <<EOF\n"
@@ -416,6 +420,7 @@ START_TEST(test_arch_create_package_license_01)
     );
     verify_commands_run(
         "$ uname -m\n"
+        "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
         "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
             " <<EOF\n"

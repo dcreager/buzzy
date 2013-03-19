@@ -20,42 +20,38 @@
  * buzzy vercmp
  */
 
-#define VERCMP_SHORT_DESC \
+#define SHORT_DESC \
     "Compare two Buzzy version strings"
 
-#define VERCMP_USAGE_SUFFIX \
+#define USAGE_SUFFIX \
     "<version 1> <version 2>"
 
-#define VERCMP_HELP_TEXT \
+#define HELP_TEXT \
 "Compares two Buzzy version strings.  Prints out \"-1\", \"0\", or \"1\",\n" \
 "depending on how the two version strings compare to each other.\n" \
 
 static int
-buzzy_vercmp__options(int argc, char **argv);
+parse_options(int argc, char **argv);
 
 static void
-buzzy_vercmp__execute(int argc, char **argv);
+execute(int argc, char **argv);
 
 CORK_LOCAL struct cork_command  buzzy_vercmp =
-    cork_leaf_command("vercmp",
-                      VERCMP_SHORT_DESC,
-                      VERCMP_USAGE_SUFFIX,
-                      VERCMP_HELP_TEXT,
-                      buzzy_vercmp__options, buzzy_vercmp__execute);
+    cork_leaf_command("vercmp", SHORT_DESC, USAGE_SUFFIX, HELP_TEXT,
+                      parse_options, execute);
 
-#define VERCMP_SHORT_OPTS  "+"
+#define SHORT_OPTS  "+"
 
-static struct option  vercmp_opts[] = {
+static struct option  opts[] = {
     { NULL, 0, NULL, 0 }
 };
 
 static int
-buzzy_vercmp__options(int argc, char **argv)
+parse_options(int argc, char **argv)
 {
     int  ch;
     getopt_reset();
-    while ((ch = getopt_long
-            (argc, argv, VERCMP_SHORT_OPTS, vercmp_opts, NULL)) != -1) {
+    while ((ch = getopt_long(argc, argv, SHORT_OPTS, opts, NULL)) != -1) {
         switch (ch) {
             default:
                 cork_command_show_help(&buzzy_vercmp, NULL);
@@ -67,7 +63,7 @@ buzzy_vercmp__options(int argc, char **argv)
 }
 
 static void
-buzzy_vercmp__execute(int argc, char **argv)
+execute(int argc, char **argv)
 {
     struct bz_version  *v1;
     struct bz_version  *v2;

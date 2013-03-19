@@ -12,6 +12,7 @@
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
+#include <libcork/os.h>
 
 #include "buzzy/action.h"
 #include "buzzy/package.h"
@@ -69,16 +70,12 @@ bz_arch_native_pdb(void);
  * Creating Arch packages
  */
 
-/* Returns an action that builds a new pacman binary package from a staging
- * directory that you've already set up.  If stage_action is non-NULL, we assume
- * that's the action that fills in the staging directory; we'll make sure to
- * mark that as a prereq of the packaging action.  The new binary package will
- * be placed in package_path. */
 struct bz_action *
 bz_pacman_create_package(struct bz_package_spec *spec,
                          struct cork_path *package_path,
                          struct cork_path *staging_path,
-                         struct bz_action *stage_action);
+                         struct bz_action *stage_action,
+                         bool verbose);
 
 
 #endif /* BUZZY_DISTRO_ARCH_H */

@@ -34,6 +34,9 @@ bz_mock_subprocess(const char *cmd, const char *out, const char *err,
 void
 bz_mock_subprocess_allow_execute(const char *cmd);
 
+void
+bz_mock_file_exists(const char *path, bool exists);
+
 
 /* Querying which mocked functions were executed */
 
@@ -62,6 +65,9 @@ struct bz_mock {
     struct cork_file *
     (*create_file)(struct cork_path *path, struct cork_buffer *src);
 
+    int
+    (*file_exists)(struct cork_path *path, bool *exists);
+
     void
     (*print_action)(struct cork_buffer *buf);
 };
@@ -74,6 +80,8 @@ extern struct bz_mock  *bz_mocks;
     (bz_mocks->create_dir((p)))
 #define bz_mocked_create_file(p, s) \
     (bz_mocks->create_file((p), (s)))
+#define bz_mocked_file_exists(p, e) \
+    (bz_mocks->file_exists((p), (e)))
 #define bz_mocked_print_action(b) \
     (bz_mocks->print_action((b)))
 
@@ -91,6 +99,9 @@ bz_real__create_dir(struct cork_path *path);
 
 struct cork_file *
 bz_real__create_file(struct cork_path *path, struct cork_buffer *src);
+
+int
+bz_real__file_exists(struct cork_path *path, bool *exists);
 
 void
 bz_real__print_action(struct cork_buffer *buf);

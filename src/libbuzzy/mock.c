@@ -22,6 +22,7 @@ static struct bz_mock  real_implementations = {
     bz_real__exec,
     bz_real__create_dir,
     bz_real__create_file,
+    bz_real__file_exists,
     bz_real__print_action
 };
 
@@ -129,6 +130,15 @@ bz_mock_subprocess_allow_execute(const char *cmd)
     bz_subprocess_add_mock(cmd, NULL, NULL, 0, true);
 }
 
+void
+bz_mock_file_exists(const char *path, bool exists)
+{
+    struct cork_buffer  cmd = CORK_BUFFER_INIT();
+    cork_buffer_printf(&cmd, "[ -f %s ]", path);
+    bz_subprocess_add_mock(cmd.buf, NULL, NULL, exists? 0: 1, false);
+    cork_buffer_done(&cmd);
+}
+
 
 static int
 bz_mocked__exec(struct cork_exec *exec, struct cork_stream_consumer *out,
@@ -209,7 +219,6 @@ bz_mocked__create_dir(struct cork_path *path)
     return cork_file_new_from_path(path);
 }
 
-
 static struct cork_file *
 bz_mocked__create_file(struct cork_path *path, struct cork_buffer *src)
 {
@@ -219,6 +228,26 @@ bz_mocked__create_file(struct cork_path *path, struct cork_buffer *src)
     cork_buffer_append(&commands_run, src->buf, src->size);
     cork_buffer_append(&commands_run, "EOF\n", 4);
     return cork_file_new_from_path(path);
+}
+
+static int
+bz_mocked__file_exists(struct cork_path *path, bool *exists)
+{
+    struct bz_subprocess_mock  *mock;
+    struct cork_buffer  cmd = CORK_BUFFER_INIT();
+
+    cork_buffer_printf(&cmd, "[ -f %s ]", cork_path_get(path));
+    mock = cork_hash_table_get(&mocks, cmd.buf);
+    if (CORK_UNLIKELY(mock == NULL)) {
+        bz_subprocess_error("No mock for file \"%s\"", cork_path_get(path));
+        cork_buffer_done(&cmd);
+        return -1;
+    }
+
+    cork_buffer_append_printf(&commands_run, "$ %s\n", (char *) cmd.buf);
+    cork_buffer_done(&cmd);
+    *exists = (mock->exit_code == 0);
+    return 0;
 }
 
 
@@ -242,6 +271,7 @@ static struct bz_mock  mocked_implementations = {
     bz_mocked__exec,
     bz_mocked__create_dir,
     bz_mocked__create_file,
+    bz_mocked__file_exists,
     bz_mocked__print_action
 };
 

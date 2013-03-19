@@ -12,10 +12,12 @@
 #include "buzzy/commands.h"
 
 static struct cork_command  *subcommands[] = {
-    &buzzy_raw,
-    &buzzy_vercmp,
+    &buzzy_raw_pkg,
     NULL
 };
 
-CORK_LOCAL struct cork_command  buzzy_root =
-    cork_command_set("buzzy", NULL, NULL, subcommands);
+#define SHORT_DESC \
+    "Low-level functions for working with packages"
+
+CORK_LOCAL struct cork_command  buzzy_raw =
+    cork_command_set("raw", SHORT_DESC, NULL, subcommands);

@@ -257,3 +257,20 @@ bz_create_file(struct cork_path *path, struct cork_buffer *src)
 {
     return bz_mocked_create_file(path, src);
 }
+
+
+int
+bz_real__file_exists(struct cork_path *path, bool *exists)
+{
+    int  rc;
+    struct cork_file  *file = cork_file_new(cork_path_get(path));
+    rc = cork_file_exists(file, exists);
+    cork_file_free(file);
+    return rc;
+}
+
+int
+bz_file_exists(struct cork_path *path, bool *exists)
+{
+    return bz_mocked_file_exists(path, exists);
+}

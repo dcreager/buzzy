@@ -72,5 +72,8 @@ bz_create_file(struct cork_path *path, struct cork_buffer *src);
 struct cork_file *
 bz_create_directory(struct cork_path *path);
 
+int
+bz_file_exists(struct cork_path *path, bool *exists);
+
 
 #endif /* BUZZY_OS_H */

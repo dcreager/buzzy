@@ -440,6 +440,7 @@ struct bz_pacman_packager {
     struct bz_package_spec  *spec;
     struct cork_path  *package_path;
     struct cork_path  *staging_path;
+    bool  verbose;
 };
 
 static void
@@ -480,6 +481,7 @@ bz_pacman_packager__perform(void *user_data)
     struct cork_path  *filename;
     struct cork_file  *pkgbuild = NULL;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
+    bool  staging_exists;
 
     const char  *package_name = bz_package_spec_name(packager->spec);
     const char  *version = bz_package_spec_version_string(packager->spec);
@@ -488,6 +490,15 @@ bz_pacman_packager__perform(void *user_data)
 
     if (license == NULL) {
         license = "unknown";
+    }
+
+    rii_check(bz_file_exists(packager->staging_path, &staging_exists));
+    if (CORK_UNLIKELY(!staging_exists)) {
+        cork_error_set
+            (CORK_BUILTIN_ERROR, CORK_SYSTEM_ERROR,
+             "Staging directory %s does not exist",
+             cork_path_get(packager->staging_path));
+        return -1;
     }
 
     /* Create a temporary directory */
@@ -521,12 +532,12 @@ bz_pacman_packager__perform(void *user_data)
     cork_env_add(env, "PKGEXT", ".pkg.tar.xz");
 
     exec = cork_exec_new_with_params("makepkg", "-sf", NULL);
-    cork_exec_set_cwd(exec, ".");
+    cork_exec_set_cwd(exec, cork_path_get(pkg_path));
     cork_exec_set_env(exec, env);
 
     cork_file_free(pkg_dir);
     cork_file_free(pkgbuild);
-    return bz_subprocess_run_exec(false, NULL, exec);
+    return bz_subprocess_run_exec(packager->verbose, NULL, exec);
 
 error:
     cork_file_free(pkg_dir);
@@ -541,7 +552,8 @@ struct bz_action *
 bz_pacman_create_package(struct bz_package_spec *spec,
                          struct cork_path *package_path,
                          struct cork_path *staging_path,
-                         struct bz_action *stage_action)
+                         struct bz_action *stage_action,
+                         bool verbose)
 {
     struct bz_action  *action;
     struct bz_pacman_packager  *packager;
@@ -550,6 +562,7 @@ bz_pacman_create_package(struct bz_package_spec *spec,
     packager->spec = spec;
     packager->package_path = package_path;
     packager->staging_path = staging_path;
+    packager->verbose = verbose;
 
     action = bz_action_new
         (packager, bz_pacman_packager__free,
