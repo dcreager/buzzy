@@ -102,6 +102,8 @@ execute(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    ri_check_error(bz_pdb_discover());
+
     rp_check_error(package_path = cork_path_new("."));
     ri_check_error(cork_path_set_absolute(package_path));
     rp_check_error(staging_path = cork_path_new(argv[0]));

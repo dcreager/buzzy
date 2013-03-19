@@ -358,11 +358,16 @@ test_create_package(struct bz_package_spec *spec, const char *expected_actions)
 {
     struct cork_path  *package_path = cork_path_new(".");
     struct cork_path  *staging_path = cork_path_new("/tmp/staging");
+    struct bz_pdb  *pdb;
     struct bz_action  *action;
 
+    fail_if_error(pdb = bz_arch_native_pdb());
+    bz_pdb_register(pdb);
+    mock_available_package("pacman", "4.0.3-7");
+    mock_installed_package("pacman", "4.0.3-7");
     bz_mock_file_exists(cork_path_get(staging_path), true);
-    action = bz_pacman_create_package
-        (spec, package_path, staging_path, NULL, false);
+    fail_if_error(action = bz_pacman_create_package
+                  (spec, package_path, staging_path, NULL, false));
     test_action(action, expected_actions);
     bz_action_free(action);
 }
@@ -382,6 +387,8 @@ START_TEST(test_arch_create_package_01)
         "[1/1] Package jansson 2.4\n"
     );
     verify_commands_run(
+        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ pacman -Q pacman\n"
         "$ uname -m\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
@@ -419,6 +426,8 @@ START_TEST(test_arch_create_package_license_01)
         "[1/1] Package jansson 2.4\n"
     );
     verify_commands_run(
+        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ pacman -Q pacman\n"
         "$ uname -m\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"

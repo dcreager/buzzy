@@ -121,5 +121,14 @@ bz_pdb_register(struct bz_pdb *pdb);
 struct bz_package *
 bz_satisfy_dependency(struct bz_dependency *dep);
 
+struct bz_action *
+bz_install_dependency(struct bz_dependency *dep);
+
+struct bz_package *
+bz_satisfy_dependency_string(const char *dep_string);
+
+struct bz_action *
+bz_install_dependency_string(const char *dep_string);
+
 
 #endif /* BUZZY_PACKAGE_H */

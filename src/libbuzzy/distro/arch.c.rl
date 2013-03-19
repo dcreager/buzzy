@@ -556,6 +556,7 @@ bz_pacman_create_package(struct bz_package_spec *spec,
                          bool verbose)
 {
     struct bz_action  *action;
+    struct bz_action  *prereq;
     struct bz_pacman_packager  *packager;
 
     packager = cork_new(struct bz_pacman_packager);
@@ -570,9 +571,16 @@ bz_pacman_create_package(struct bz_package_spec *spec,
          bz_pacman_packager__is_needed,
          bz_pacman_packager__perform);
 
+    ep_check(prereq = bz_install_dependency_string("pacman"));
+    bz_action_add_pre(action, prereq);
+
     if (stage_action != NULL) {
         bz_action_add_pre(action, stage_action);
     }
 
     return action;
+
+error:
+    bz_action_free(action);
+    return NULL;
 }

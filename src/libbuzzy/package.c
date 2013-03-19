@@ -318,3 +318,33 @@ bz_satisfy_dependency(struct bz_dependency *dep)
         ("Cannot satisfy dependency %s", bz_dependency_to_string(dep));
     return NULL;
 }
+
+struct bz_action *
+bz_install_dependency(struct bz_dependency *dep)
+{
+    struct bz_package  *package;
+    rpp_check(package = bz_satisfy_dependency(dep));
+    return bz_package_install_action(package);
+}
+
+struct bz_package *
+bz_satisfy_dependency_string(const char *dep_string)
+{
+    struct bz_dependency  *dep;
+    struct bz_package  *package;
+    rpp_check(dep = bz_dependency_from_string(dep_string));
+    package = bz_satisfy_dependency(dep);
+    bz_dependency_free(dep);
+    return package;
+}
+
+struct bz_action *
+bz_install_dependency_string(const char *dep_string)
+{
+    struct bz_dependency  *dep;
+    struct bz_action  *action;
+    rpp_check(dep = bz_dependency_from_string(dep_string));
+    action = bz_install_dependency(dep);
+    bz_dependency_free(dep);
+    return action;
+}

@@ -58,6 +58,7 @@ set(LIBBUZZY_SRC
     libbuzzy/version.c
     libbuzzy/distro/arch.c
     libbuzzy/distro/packager.c
+    libbuzzy/distro/pdb.c
 )
 
 add_library(libbuzzy STATIC ${LIBBUZZY_SRC})
