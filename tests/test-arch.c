@@ -380,6 +380,7 @@ START_TEST(test_arch_create_package_01)
     bz_start_mocks();
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
+    bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", false);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(spec = bz_package_spec_new("jansson", version));
     test_create_package(spec,
@@ -388,8 +389,9 @@ START_TEST(test_arch_create_package_01)
     );
     verify_commands_run(
         "$ pacman -Sdp --print-format %v pacman\n"
-        "$ pacman -Q pacman\n"
         "$ uname -m\n"
+        "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
+        "$ pacman -Q pacman\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
         "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
@@ -418,6 +420,7 @@ START_TEST(test_arch_create_package_license_01)
     bz_start_mocks();
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
+    bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", false);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(spec = bz_package_spec_new("jansson", version));
     fail_if_error(bz_package_spec_set_license(spec, "MIT"));
@@ -427,8 +430,9 @@ START_TEST(test_arch_create_package_license_01)
     );
     verify_commands_run(
         "$ pacman -Sdp --print-format %v pacman\n"
-        "$ pacman -Q pacman\n"
         "$ uname -m\n"
+        "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
+        "$ pacman -Q pacman\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
         "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
@@ -444,6 +448,29 @@ START_TEST(test_arch_create_package_license_01)
         "}\n"
         "EOF\n"
         "$ makepkg -sf\n"
+    );
+    bz_package_spec_free(spec);
+}
+END_TEST
+
+START_TEST(test_arch_create_existing_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_package_spec  *spec;
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
+    bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", true);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(spec = bz_package_spec_new("jansson", version));
+    test_create_package(spec,
+        "Test actions\n"
+    );
+    verify_commands_run(
+        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ uname -m\n"
+        "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
     );
     bz_package_spec_free(spec);
 }
@@ -477,6 +504,7 @@ test_suite()
     TCase  *tc_arch_package = tcase_create("arch-package");
     tcase_add_test(tc_arch_package, test_arch_create_package_01);
     tcase_add_test(tc_arch_package, test_arch_create_package_license_01);
+    tcase_add_test(tc_arch_package, test_arch_create_existing_package_01);
     suite_add_tcase(s, tc_arch_package);
 
     return s;

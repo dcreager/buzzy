@@ -465,8 +465,21 @@ bz_pacman_packager__message(void *user_data, struct cork_buffer *dest)
 static int
 bz_pacman_packager__is_needed(void *user_data, bool *is_needed)
 {
-    /* TODO: Only create the binary package if it doesn't already exist. */
-    *is_needed = true;
+    struct bz_pacman_packager  *packager = user_data;
+    const char  *package_name = bz_package_spec_name(packager->spec);
+    struct bz_version  *version = bz_package_spec_version(packager->spec);
+    const char  *architecture = bz_arch_current_architecture();
+    struct cork_buffer  package_file = CORK_BUFFER_INIT();
+    struct cork_path  *package_path;
+
+    cork_buffer_printf(&package_file, "%s-", package_name);
+    bz_version_to_arch(version, &package_file);
+    cork_buffer_append_printf
+        (&package_file, "-%s-%s.pkg.tar.xz", BZ_ARCH_RELEASE, architecture);
+    package_path = cork_path_join(packager->package_path, package_file.buf);
+    cork_buffer_done(&package_file);
+    rii_check(bz_file_exists(package_path, is_needed));
+    *is_needed = !*is_needed;
     return 0;
 }
 
@@ -484,7 +497,8 @@ bz_pacman_packager__perform(void *user_data)
     bool  staging_exists;
 
     const char  *package_name = bz_package_spec_name(packager->spec);
-    const char  *version = bz_package_spec_version_string(packager->spec);
+    struct bz_version  *version = bz_package_spec_version(packager->spec);
+    const char  *version_string = bz_version_to_string(version);
     const char  *architecture = bz_arch_current_architecture();
     const char  *license = bz_package_spec_license(packager->spec);
 
@@ -505,12 +519,14 @@ bz_pacman_packager__perform(void *user_data)
     pkg_path = cork_path_user_cache_path();
     cork_path_append(pkg_path, "buzzy/arch/package");
     cork_path_append(pkg_path, package_name);
-    cork_path_append(pkg_path, version);
+    cork_path_append(pkg_path, version_string);
     rip_check(pkg_dir = bz_create_directory(pkg_path));
 
     /* Create a PKGBUILD file for this package */
     cork_buffer_append_printf(&buf, "pkgname='%s'\n", package_name);
-    cork_buffer_append_printf(&buf, "pkgver='%s'\n", version);
+    cork_buffer_append_string(&buf, "pkgver='");
+    bz_version_to_arch(version, &buf);
+    cork_buffer_append_string(&buf, "'\n");
     cork_buffer_append_printf(&buf, "pkgrel='%s'\n", BZ_ARCH_RELEASE);
     cork_buffer_append_printf(&buf, "arch=('%s')\n", architecture);
     cork_buffer_append_printf(&buf, "license=('%s')\n", license);

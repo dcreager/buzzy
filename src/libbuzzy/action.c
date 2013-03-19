@@ -262,9 +262,14 @@ bz_action_phase_perform_actions(struct bz_action_phase *phase,
                                 bz_action_array *actions)
 {
     size_t  i;
-    for (i = 0; i < cork_array_size(actions); i++) {
-        struct bz_action  *action = cork_array_at(actions, i);
-        rii_check(bz_action_phase_perform_action(phase, action));
+    if (phase->action_count == 0) {
+        cork_buffer_set_string(&phase->buf, "  Nothing to do!");
+        bz_mocked_print_action(&phase->buf);
+    } else {
+        for (i = 0; i < cork_array_size(actions); i++) {
+            struct bz_action  *action = cork_array_at(actions, i);
+            rii_check(bz_action_phase_perform_action(phase, action));
+        }
     }
     return 0;
 }
