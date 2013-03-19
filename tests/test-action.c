@@ -78,6 +78,7 @@ START_TEST(test_actions_01)
     DESCRIBE_TEST;
     struct bz_action  *a1 = test_action_new("Alpha", true);
     struct bz_action_phase  *phase = bz_action_phase_new("Running tests");
+    bz_start_mocks();
     bz_action_phase_add(phase, a1);
     test_action_phase(phase,
         "Running tests\n"
@@ -94,6 +95,7 @@ START_TEST(test_actions_02)
     struct bz_action  *a1 = test_action_new("Alpha", true);
     struct bz_action  *a2 = test_action_new("Beta", true);
     struct bz_action_phase  *phase = bz_action_phase_new("Running tests");
+    bz_start_mocks();
     bz_action_phase_add(phase, a1);
     bz_action_phase_add(phase, a2);
     test_action_phase(phase,
@@ -114,6 +116,7 @@ START_TEST(test_actions_03)
     struct bz_action  *a2 = test_action_new("Beta", true);
     struct bz_action  *a3 = test_action_new("Gamma", true);
     struct bz_action_phase  *phase = bz_action_phase_new("Running tests");
+    bz_start_mocks();
     bz_action_phase_add(phase, a2);
     bz_action_add_pre(a2, a1);
     bz_action_add_post(a2, a3);
@@ -136,6 +139,7 @@ START_TEST(test_actions_unneeded_01)
     DESCRIBE_TEST;
     struct bz_action  *a1 = test_action_new("Alpha", false);
     struct bz_action_phase  *phase = bz_action_phase_new("Running tests");
+    bz_start_mocks();
     bz_action_phase_add(phase, a1);
     test_action_phase(phase,
         "Running tests\n"
@@ -152,6 +156,7 @@ START_TEST(test_actions_unneeded_02)
     struct bz_action  *a2 = test_action_new("Beta", true);
     struct bz_action  *a3 = test_action_new("Gamma", true);
     struct bz_action_phase  *phase = bz_action_phase_new("Running tests");
+    bz_start_mocks();
     bz_action_phase_add(phase, a2);
     bz_action_add_pre(a2, a1);
     bz_action_add_post(a2, a3);
@@ -176,6 +181,8 @@ START_TEST(test_actions_repeated_01)
     struct bz_action  *a3 = test_action_new("Gamma", true);
     struct bz_action_phase  *phase1 = bz_action_phase_new("Running tests");
     struct bz_action_phase  *phase2 = bz_action_phase_new("More tests");
+
+    bz_start_mocks();
 
     bz_action_phase_add(phase1, a1);
 

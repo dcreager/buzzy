@@ -16,6 +16,7 @@
 
 #include "buzzy/action.h"
 #include "buzzy/error.h"
+#include "buzzy/mock.h"
 
 
 #if !defined(BZ_DEBUG_ACTIONS)
@@ -111,65 +112,6 @@ bz_action_is_needed(struct bz_action *action)
 
 
 /*-----------------------------------------------------------------------
- * Mocking actions for test cases
- */
-
-static bool  mocks_enabled = false;
-static struct cork_buffer  mock_results;
-
-static void
-free_mock_results(void)
-{
-    if (mocks_enabled) {
-        cork_buffer_done(&mock_results);
-        mocks_enabled = false;
-    }
-}
-
-typedef void
-(*action_printer)(struct cork_buffer *buf);
-
-static void
-bz_action_print(struct cork_buffer *buf)
-{
-    printf("%s\n", (char *) buf->buf);
-}
-
-static void
-bz_action_mock_print(struct cork_buffer *buf)
-{
-    cork_buffer_append(&mock_results, buf->buf, buf->size);
-    cork_buffer_append(&mock_results, "\n", 1);
-}
-
-/* Start by using the "real" printer */
-static action_printer  printer = bz_action_print;
-
-void
-bz_action_start_mocks(void)
-{
-    if (!mocks_enabled) {
-        cork_cleanup_at_exit(0, free_mock_results);
-    }
-
-    /* Free any existing mocks first. */
-    free_mock_results();
-
-    cork_buffer_init(&mock_results);
-    cork_buffer_append(&mock_results, "", 0);
-    mocks_enabled = true;
-    printer = bz_action_mock_print;
-}
-
-const char *
-bz_action_mock_results(void)
-{
-    assert(mocks_enabled);
-    return mock_results.buf;
-}
-
-
-/*-----------------------------------------------------------------------
  * Phases
  */
 
@@ -208,6 +150,12 @@ bz_action_phase_add(struct bz_action_phase *phase, struct bz_action *action)
     cork_array_append(&phase->actions, action);
 }
 
+
+void
+bz_real__print_action(struct cork_buffer *buf)
+{
+    printf("%s\n", (char *) buf->buf);
+}
 
 static int
 bz_action_phase_count_actions(struct bz_action_phase *phase,
@@ -275,7 +223,7 @@ bz_action_phase_print_action(struct bz_action_phase *phase,
                        (int) phase->count_length, phase->action_index,
                        phase->action_count);
     action->message(action->user_data, &phase->buf);
-    printer(&phase->buf);
+    bz_mocked_print_action(&phase->buf);
 }
 
 static int
@@ -334,6 +282,6 @@ bz_action_phase_perform(struct bz_action_phase *phase)
 
     DEBUG("Performing actions for phase \"%s\"\n", phase->message);
     cork_buffer_set_string(&phase->buf, phase->message);
-    printer(&phase->buf);
+    bz_mocked_print_action(&phase->buf);
     return bz_action_phase_perform_actions(phase, &phase->actions);
 }

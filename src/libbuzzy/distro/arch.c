@@ -25,8 +25,8 @@
 #include "buzzy/action.h"
 #include "buzzy/error.h"
 #include "buzzy/native.h"
+#include "buzzy/os.h"
 #include "buzzy/package.h"
-#include "buzzy/run.h"
 #include "buzzy/version.h"
 #include "buzzy/distro/arch.h"
 

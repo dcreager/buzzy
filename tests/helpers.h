@@ -16,7 +16,8 @@
 #include "libcork/os.h"
 
 #include "buzzy/action.h"
-#include "buzzy/run.h"
+#include "buzzy/mock.h"
+#include "buzzy/os.h"
 #include "buzzy/version.h"
 
 #if !defined(PRINT_EXPECTED_FAILURES)
@@ -94,7 +95,7 @@ static void
 verify_commands_run(const char *expected_commands)
 {
     fail_unless_streq("Executed commands", expected_commands,
-                      bz_subprocess_mocked_commands_run());
+                      bz_mocked_commands_run());
 }
 
 
@@ -102,10 +103,10 @@ CORK_ATTR_UNUSED
 static void
 test_action_phase(struct bz_action_phase *phase, const char *expected_actions)
 {
-    bz_action_start_mocks();
+    bz_mocked_actions_clear();
     fail_if_error(bz_action_phase_perform(phase));
     fail_unless_streq("Action list", expected_actions,
-                      bz_action_mock_results());
+                      bz_mocked_actions_run());
 }
 
 
@@ -114,7 +115,7 @@ static void
 test_action(struct bz_action *action, const char *expected_actions)
 {
     struct bz_action_phase  *phase;
-    bz_action_start_mocks();
+    bz_mocked_actions_clear();
     phase = bz_action_phase_new("Test actions");
     bz_action_phase_add(phase, action);
     test_action_phase(phase, expected_actions);

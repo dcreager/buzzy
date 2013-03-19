@@ -7,8 +7,8 @@
  * ----------------------------------------------------------------------
  */
 
-#ifndef BUZZY_RUN_H
-#define BUZZY_RUN_H
+#ifndef BUZZY_OS_H
+#define BUZZY_OS_H
 
 #include <stdarg.h>
 
@@ -72,31 +72,5 @@ bz_create_file(struct cork_path *path, struct cork_buffer *src);
 struct cork_file *
 bz_create_directory(struct cork_path *path);
 
-/* Takes control of file */
-int
-bz_delete_directory(struct cork_file *file);
 
-
-/*-----------------------------------------------------------------------
- * Mocking subprocesses for test cases
- */
-
-void
-bz_subprocess_start_mocks(void);
-
-/* To make it easier to specify the mocks, you provide a full command line,
- * which is the result of concatenating (separated by spaces) the program and
- * params parameters from one of the above subprocess-calling functions. */
-void
-bz_subprocess_mock(const char *cmd, const char *out, const char *err,
-                   int exit_code);
-
-/* Allow a particular command to actually be executed. */
-void
-bz_subprocess_mock_allow_execute(const char *cmd);
-
-const char *
-bz_subprocess_mocked_commands_run(void);
-
-
-#endif /* BUZZY_RUN_H */
+#endif /* BUZZY_OS_H */

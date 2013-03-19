@@ -14,7 +14,7 @@
 
 #include <check.h>
 
-#include "buzzy/run.h"
+#include "buzzy/os.h"
 
 #include "helpers.h"
 
@@ -68,8 +68,8 @@ START_TEST(test_run_mocked_01)
 {
     DESCRIBE_TEST;
 
-    bz_subprocess_start_mocks();
-    bz_subprocess_mock("echo hello world", "hello world\n", NULL, 0);
+    bz_start_mocks();
+    bz_mock_subprocess("echo hello world", "hello world\n", NULL, 0);
     test_run(0, "echo", "hello", "world", NULL);
     test_output("hello world\n", NULL,
                 "echo", "hello", "world", NULL);
@@ -84,8 +84,8 @@ START_TEST(test_run_01)
 {
     DESCRIBE_TEST;
 
-    bz_subprocess_start_mocks();
-    bz_subprocess_mock_allow_execute("echo hello world");
+    bz_start_mocks();
+    bz_mock_subprocess_allow_execute("echo hello world");
     test_run(0, "echo", "hello", "world", NULL);
     test_output("hello world\n", NULL,
                 "echo", "hello", "world", NULL);
@@ -100,7 +100,7 @@ START_TEST(test_create_file_01)
 {
     DESCRIBE_TEST;
 
-    bz_subprocess_start_mocks();
+    bz_start_mocks();
     test_file("test-file.txt", "hello world\n");
     verify_commands_run(
         "$ cat > test-file.txt <<EOF\n"
