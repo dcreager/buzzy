@@ -657,7 +657,9 @@ bz_env_get_global_default(const char *name)
 int
 bz_load_variable_definitions(void)
 {
+    bz_load_variables(cmake);
     bz_load_variables(global);
     bz_load_variables(package);
+    bz_load_variables(recipe);
     return 0;
 }

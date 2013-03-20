@@ -40,35 +40,35 @@
 
 bz_define_variables(package)
 {
-    bz_global_variable(
-        package__work_path, "package_work_path",
+    bz_package_variable(
+        package_work_path, "package_work_path",
         bz_interpolated_value_new("${work_path}/${name}/${version}"),
-        "Where build artefacts for a package should be placed",
+        "Location for artefacts created while building or installing a package",
         ""
     );
 
-    bz_global_variable(
+    bz_package_variable(
         pkg_path, "pkg_path",
         bz_interpolated_value_new("${package_work_path}/pkg"),
         "Temporary directory while building a binary package",
         ""
     );
 
-    bz_global_variable(
+    bz_package_variable(
         staging_path, "staging_path",
         bz_interpolated_value_new("${package_work_path}/stage"),
         "Where a package's staged installation should be placed",
         ""
     );
 
-    bz_global_variable(
+    bz_package_variable(
         force, "force",
         bz_string_value_new("false"),
         "Whether to always rebuild and reinstall a package",
         ""
     );
 
-    bz_global_variable(
+    bz_package_variable(
         verbose, "verbose",
         bz_string_value_new("false"),
         "Whether to print out more information while building a package",

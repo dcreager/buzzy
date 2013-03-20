@@ -59,7 +59,9 @@ set(LIBBUZZY_SRC
     libbuzzy/native.c
     libbuzzy/os.c
     libbuzzy/package.c
+    libbuzzy/recipe.c
     libbuzzy/version.c
+    libbuzzy/builders/cmake.c
     libbuzzy/distro/arch.c
     libbuzzy/distro/packager.c
     libbuzzy/distro/pdb.c
