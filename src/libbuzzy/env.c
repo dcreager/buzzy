@@ -9,6 +9,7 @@
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
+#include <libcork/helpers/errors.h>
 
 #include "buzzy/callbacks.h"
 #include "buzzy/env.h"
@@ -46,6 +47,53 @@ const char *
 bz_value_provider_get(struct bz_value_provider *provider, struct bz_env *env)
 {
     return provider->provide_value(provider->user_data, env);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Value sets
+ */
+
+struct bz_value_set {
+    const char  *name;
+    void  *user_data;
+    bz_user_data_free_f  user_data_free;
+    bz_value_set_get_f  get;
+};
+
+struct bz_value_set *
+bz_value_set_new(const char *name,
+                 void *user_data, bz_user_data_free_f user_data_free,
+                 bz_value_set_get_f get)
+{
+    struct bz_value_set  *set = cork_new(struct bz_value_set);
+    set->name = cork_strdup(name);
+    set->user_data = user_data;
+    set->user_data_free = user_data_free;
+    set->get = get;
+    return set;
+}
+
+void
+bz_value_set_free(struct bz_value_set *set)
+{
+    cork_strfree(set->name);
+    bz_user_data_free(set);
+    free(set);
+}
+
+struct bz_value_provider *
+bz_value_set_get_provider(struct bz_value_set *set, const char *key)
+{
+    return set->get(set->user_data, key);
+}
+
+const char *
+bz_value_set_get(struct bz_value_set *set, const char *key, struct bz_env *env)
+{
+    struct bz_value_provider  *provider;
+    rpp_check(provider = bz_value_set_get_provider(set, key));
+    return bz_value_provider_get(provider, env);
 }
 
 
@@ -143,4 +191,25 @@ bz_var_table_get(struct bz_var_table *table, const char *key,
     struct bz_value_provider  *provider =
         bz_var_table_get_provider(table, key);
     return (provider == NULL)? NULL: bz_value_provider_get(provider, env);
+}
+
+static struct bz_value_provider *
+bz_var_table__set__get(void *user_data, const char *key)
+{
+    struct bz_var_table  *table = user_data;
+    return bz_var_table_get_provider(table, key);
+}
+
+static void
+bz_var_table__set__free(void *user_data)
+{
+    struct bz_var_table  *table = user_data;
+    bz_var_table_free(table);
+}
+
+struct bz_value_set *
+bz_var_table_as_set(struct bz_var_table *table)
+{
+    return bz_value_set_new
+        (table->name, table, bz_var_table__set__free, bz_var_table__set__get);
 }

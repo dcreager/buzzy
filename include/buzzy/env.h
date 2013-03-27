@@ -40,6 +40,29 @@ bz_value_provider_get(struct bz_value_provider *provider, struct bz_env *env);
 
 
 /*-----------------------------------------------------------------------
+ * Value sets
+ */
+
+/* Shouldn't raise an error if the key is missing. */
+typedef struct bz_value_provider *
+(*bz_value_set_get_f)(void *user_data, const char *key);
+
+struct bz_value_set *
+bz_value_set_new(const char *name,
+                 void *user_data, bz_user_data_free_f user_data_free,
+                 bz_value_set_get_f get);
+
+void
+bz_value_set_free(struct bz_value_set *set);
+
+struct bz_value_provider *
+bz_value_set_get_provider(struct bz_value_set *set, const char *key);
+
+const char *
+bz_value_set_get(struct bz_value_set *set, const char *key, struct bz_env *env);
+
+
+/*-----------------------------------------------------------------------
  * Built-in value providers
  */
 
@@ -70,6 +93,11 @@ bz_var_table_get_provider(struct bz_var_table *table, const char *key);
 const char *
 bz_var_table_get(struct bz_var_table *table, const char *key,
                  struct bz_env *env);
+
+/* The new set controls table; you should not free it after calling this
+ * function. */
+struct bz_value_set *
+bz_var_table_as_set(struct bz_var_table *table);
 
 
 #endif /* BUZZY_ENV_H */

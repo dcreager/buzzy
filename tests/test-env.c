@@ -73,16 +73,37 @@ test_var_table_missing(struct bz_var_table *table, const char *key)
     fail_unless(actual == NULL, "Unexpected value for %s", key);
 }
 
+static void
+test_value_set(struct bz_value_set *set, const char *key,
+               const char *expected)
+{
+    const char  *actual;
+    fail_if_error(actual = bz_value_set_get(set, key, NULL));
+    fail_unless_streq("Environment variable values", expected, actual);
+}
+
+static void
+test_value_set_missing(struct bz_value_set *set, const char *key)
+{
+    const char  *actual;
+    fail_if_error(actual = bz_value_set_get(set, key, NULL));
+    fail_unless(actual == NULL, "Unexpected value for %s", key);
+}
+
 START_TEST(test_var_table_01)
 {
     DESCRIBE_TEST;
     struct bz_var_table  *table = bz_var_table_new("test");
+    struct bz_value_set  *set = bz_var_table_as_set(table);
     test_var_table_missing(table, "a");
+    test_value_set_missing(set,   "a");
     var_table_add_string(table, "a", "");
     var_table_add_string(table, "b", "hello");
     test_var_table(table, "a", "");
+    test_value_set(set,   "a", "");
     test_var_table(table, "b", "hello");
-    bz_var_table_free(table);
+    test_value_set(set,   "b", "hello");
+    bz_value_set_free(set);
 }
 END_TEST
 
