@@ -76,9 +76,7 @@ bz_action_new(void *user_data, bz_user_data_free_f user_data_free,
 void
 bz_action_free(struct bz_action *action)
 {
-    if (action->user_data_free != NULL) {
-        action->user_data_free(action->user_data);
-    }
+    bz_user_data_free(action);
     cork_array_done(&action->pre_actions);
     cork_array_done(&action->post_actions);
     free(action);

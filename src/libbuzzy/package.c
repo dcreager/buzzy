@@ -135,9 +135,7 @@ bz_package_free(struct bz_package *package)
 {
     cork_strfree(package->name);
     bz_version_free(package->version);
-    if (package->user_data_free != NULL) {
-        package->user_data_free(package->user_data);
-    }
+    bz_user_data_free(package);
     if (package->install_action != NULL) {
         bz_action_free(package->install_action);
     }
@@ -184,9 +182,7 @@ void
 bz_pdb_free(struct bz_pdb *pdb)
 {
     cork_strfree(pdb->name);
-    if (pdb->user_data_free != NULL) {
-        pdb->user_data_free(pdb->user_data);
-    }
+    bz_user_data_free(pdb);
     free(pdb);
 }
 
@@ -226,9 +222,7 @@ bz_cached_pdb__free(void *user_data)
     struct bz_cached_pdb  *pdb = user_data;
     cork_hash_table_map(&pdb->packages, bz_cached_pdb__free_package, NULL);
     cork_hash_table_done(&pdb->packages);
-    if (pdb->user_data_free != NULL) {
-        pdb->user_data_free(pdb->user_data);
-    }
+    bz_user_data_free(pdb);
     free(pdb);
 }
 

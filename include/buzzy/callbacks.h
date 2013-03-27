@@ -16,5 +16,12 @@
 typedef void
 (*bz_user_data_free_f)(void *user_data);
 
+#define bz_user_data_free(obj) \
+    do { \
+        if ((obj)->user_data_free != NULL) { \
+            (obj)->user_data_free((obj)->user_data); \
+        } \
+    } while (0)
+
 
 #endif /* BUZZY_CALLBACKS_H */
