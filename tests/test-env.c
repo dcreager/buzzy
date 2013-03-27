@@ -44,6 +44,50 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * Hash tables of variables
+ */
+
+static void
+var_table_add_string(struct bz_var_table *table, const char *key,
+                     const char *value)
+{
+    struct bz_value_provider  *provider;
+    fail_if_error(provider = bz_string_value_new(value));
+    fail_if_error(bz_var_table_add(table, key, provider));
+}
+
+static void
+test_var_table(struct bz_var_table *table, const char *key,
+               const char *expected)
+{
+    const char  *actual;
+    fail_if_error(actual = bz_var_table_get(table, key, NULL));
+    fail_unless_streq("Environment variable values", expected, actual);
+}
+
+static void
+test_var_table_missing(struct bz_var_table *table, const char *key)
+{
+    const char  *actual;
+    fail_if_error(actual = bz_var_table_get(table, key, NULL));
+    fail_unless(actual == NULL, "Unexpected value for %s", key);
+}
+
+START_TEST(test_var_table_01)
+{
+    DESCRIBE_TEST;
+    struct bz_var_table  *table = bz_var_table_new("test");
+    test_var_table_missing(table, "a");
+    var_table_add_string(table, "a", "");
+    var_table_add_string(table, "b", "hello");
+    test_var_table(table, "a", "");
+    test_var_table(table, "b", "hello");
+    bz_var_table_free(table);
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Testing harness
  */
 
@@ -55,6 +99,10 @@ test_suite()
     TCase  *tc_providers = tcase_create("providers");
     tcase_add_test(tc_providers, test_string_values);
     suite_add_tcase(s, tc_providers);
+
+    TCase  *tc_var_table = tcase_create("var-table");
+    tcase_add_test(tc_var_table, test_var_table_01);
+    suite_add_tcase(s, tc_var_table);
 
     return s;
 }
