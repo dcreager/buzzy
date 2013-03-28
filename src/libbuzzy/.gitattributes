@@ -1,3 +1,4 @@
 dependency.c                      -diff -whitespace
+interpolated.c                    -diff -whitespace
 version.c                         -diff -whitespace
 distro/arch.c                     -diff -whitespace

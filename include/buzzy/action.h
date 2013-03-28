@@ -33,7 +33,7 @@ typedef int
 struct bz_action;
 
 struct bz_action *
-bz_action_new(void *user_data, bz_user_data_free_f user_data_free,
+bz_action_new(void *user_data, bz_free_f user_data_free,
               bz_action_message_f message,
               bz_action_is_needed_f is_needed,
               bz_action_perform_f perform);

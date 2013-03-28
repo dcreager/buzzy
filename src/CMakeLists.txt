@@ -17,6 +17,7 @@ add_subdirectory(libyaml)
 
 set(LIBBUZZY_RAGEL
     libbuzzy/dependency.c.rl
+    libbuzzy/interpolated.c.rl
     libbuzzy/version.c.rl
     libbuzzy/distro/arch.c.rl
 )
@@ -52,6 +53,7 @@ set(LIBBUZZY_SRC
     libbuzzy/action.c
     libbuzzy/dependency.c
     libbuzzy/env.c
+    libbuzzy/interpolated.c
     libbuzzy/mock.c
     libbuzzy/native.c
     libbuzzy/os.c

@@ -29,7 +29,7 @@ typedef const char *
 (*bz_provide_value_f)(void *user_data, struct bz_env *env);
 
 struct bz_value_provider *
-bz_value_provider_new(void *user_data, bz_user_data_free_f user_data_free,
+bz_value_provider_new(void *user_data, bz_free_f user_data_free,
                       bz_provide_value_f provide_value);
 
 void
@@ -48,8 +48,7 @@ typedef struct bz_value_provider *
 (*bz_value_set_get_f)(void *user_data, const char *key);
 
 struct bz_value_set *
-bz_value_set_new(const char *name,
-                 void *user_data, bz_user_data_free_f user_data_free,
+bz_value_set_new(const char *name, void *user_data, bz_free_f user_data_free,
                  bz_value_set_get_f get);
 
 void
@@ -96,6 +95,10 @@ bz_env_get(struct bz_env *env, const char *key);
 
 struct bz_value_provider *
 bz_string_value_new(const char *value);
+
+/* ${var} is substituted with the value of another variable */
+struct bz_value_provider *
+bz_interpolated_value_new(const char *template_value);
 
 
 /*-----------------------------------------------------------------------

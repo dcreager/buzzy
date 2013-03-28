@@ -44,6 +44,51 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * Interpolated values
+ */
+
+static void
+test_good_interpolated_value(const char *template_value, const char *expected)
+{
+    struct bz_value_provider  *provider;
+    struct bz_env  *env = bz_env_new("test");
+    fail_if_error(provider = bz_interpolated_value_new(template_value));
+    if (expected == NULL) {
+        fail_unless_error(bz_value_provider_get(provider, env));
+    } else {
+        const char  *actual;
+        fail_if_error(actual = bz_value_provider_get(provider, env));
+        fail_unless_streq("Interpolated values", expected, actual);
+    }
+    bz_value_provider_free(provider);
+    bz_env_free(env);
+}
+
+static void
+test_bad_interpolated_value(const char *template_value)
+{
+    fail_unless_error(bz_interpolated_value_new(template_value));
+}
+
+START_TEST(test_interpolated_values)
+{
+    DESCRIBE_TEST;
+    test_good_interpolated_value("", "");
+    test_good_interpolated_value("abc", "abc");
+    test_good_interpolated_value("hello world", "hello world");
+    test_good_interpolated_value("${var}", NULL);
+    test_good_interpolated_value("${var_with_digit_00}", NULL);
+    test_good_interpolated_value("${var_with_underscore}", NULL);
+    test_good_interpolated_value("${nested.var}", NULL);
+    test_good_interpolated_value("embedded $$ dollar sign",
+                                 "embedded $ dollar sign");
+    test_bad_interpolated_value("${unclosed");
+    test_bad_interpolated_value("${invalid char");
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Hash tables of variables
  */
 
@@ -53,6 +98,15 @@ var_table_add_string(struct bz_var_table *table, const char *key,
 {
     struct bz_value_provider  *provider;
     fail_if_error(provider = bz_string_value_new(value));
+    fail_if_error(bz_var_table_add(table, key, provider));
+}
+
+static void
+var_table_add_interpolated(struct bz_var_table *table, const char *key,
+                           const char *template_value)
+{
+    struct bz_value_provider  *provider;
+    fail_if_error(provider = bz_interpolated_value_new(template_value));
     fail_if_error(bz_var_table_add(table, key, provider));
 }
 
@@ -121,6 +175,12 @@ test_env(struct bz_env *env, const char *key, const char *expected)
 }
 
 static void
+test_env_error(struct bz_env *env, const char *key)
+{
+    fail_unless_error(bz_env_get(env, key));
+}
+
+static void
 test_env_missing(struct bz_env *env, const char *key)
 {
     const char  *actual;
@@ -165,6 +225,29 @@ START_TEST(test_env_01)
 END_TEST
 
 
+START_TEST(test_env_02)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env = bz_env_new("test");
+    struct bz_var_table  *table1 = bz_var_table_new("test1");
+    struct bz_value_set  *set1 = bz_var_table_as_set(table1);
+
+    bz_env_add_set(env, set1);
+
+    var_table_add_string(table1, "a", "hello");
+    var_table_add_interpolated(table1, "b", "${a} world");
+    var_table_add_interpolated(table1, "c", "${a} ${b}");
+    var_table_add_interpolated(table1, "d", "${missing}");
+    test_env(env, "a", "hello");
+    test_env(env, "b", "hello world");
+    test_env(env, "c", "hello hello world");
+    test_env_error(env, "d");
+
+    bz_env_free(env);
+}
+END_TEST
+
+
 /*-----------------------------------------------------------------------
  * Testing harness
  */
@@ -176,6 +259,7 @@ test_suite()
 
     TCase  *tc_providers = tcase_create("providers");
     tcase_add_test(tc_providers, test_string_values);
+    tcase_add_test(tc_providers, test_interpolated_values);
     suite_add_tcase(s, tc_providers);
 
     TCase  *tc_var_table = tcase_create("var-table");
@@ -184,6 +268,7 @@ test_suite()
 
     TCase  *tc_env = tcase_create("env");
     tcase_add_test(tc_env, test_env_01);
+    tcase_add_test(tc_env, test_env_02);
     suite_add_tcase(s, tc_env);
 
     return s;

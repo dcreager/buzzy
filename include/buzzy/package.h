@@ -61,7 +61,7 @@ typedef struct bz_action *
 struct bz_package *
 bz_package_new(const char *name, struct bz_version *version,
                struct bz_dependency *dep,
-               void *user_data, bz_user_data_free_f user_data_free,
+               void *user_data, bz_free_f user_data_free,
                bz_pdb_install_f install);
 
 void
@@ -85,7 +85,7 @@ typedef struct bz_package *
 
 struct bz_pdb *
 bz_pdb_new(const char *pdb_name,
-           void *user_data, bz_user_data_free_f user_data_free,
+           void *user_data, bz_free_f user_data_free,
            bz_pdb_satisfy_f satisfy);
 
 void
@@ -106,7 +106,7 @@ bz_pdb_satisfy_dependency(struct bz_pdb *pdb, struct bz_dependency *dep);
  * so, return it. */
 struct bz_pdb *
 bz_cached_pdb_new(const char *pdb_name,
-                  void *user_data, bz_user_data_free_f user_data_free,
+                  void *user_data, bz_free_f user_data_free,
                   bz_pdb_satisfy_f satisfy);
 
 

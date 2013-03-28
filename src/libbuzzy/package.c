@@ -107,7 +107,7 @@ struct bz_package {
     struct bz_version  *version;
     struct bz_dependency  *dep;
     void  *user_data;
-    bz_user_data_free_f  user_data_free;
+    bz_free_f  user_data_free;
     bz_pdb_install_f  install;
     struct bz_action  *install_action;
 };
@@ -116,7 +116,7 @@ struct bz_package {
 struct bz_package *
 bz_package_new(const char *name, struct bz_version *version,
                struct bz_dependency *dep,
-               void *user_data, bz_user_data_free_f user_data_free,
+               void *user_data, bz_free_f user_data_free,
                bz_pdb_install_f install)
 {
     struct bz_package  *package = cork_new(struct bz_package);
@@ -159,7 +159,7 @@ bz_package_install_action(struct bz_package *package)
 struct bz_pdb {
     const char  *name;
     void  *user_data;
-    bz_user_data_free_f  user_data_free;
+    bz_free_f  user_data_free;
     bz_pdb_satisfy_f  satisfy;
     struct cork_dllist_item  item;
 };
@@ -167,7 +167,7 @@ struct bz_pdb {
 
 struct bz_pdb *
 bz_pdb_new(const char *name,
-           void *user_data, bz_user_data_free_f user_data_free,
+           void *user_data, bz_free_f user_data_free,
            bz_pdb_satisfy_f satisfy)
 {
     struct bz_pdb  *pdb = cork_new(struct bz_pdb);
@@ -199,7 +199,7 @@ bz_pdb_satisfy_dependency(struct bz_pdb *pdb, struct bz_dependency *dep)
 
 struct bz_cached_pdb {
     void  *user_data;
-    bz_user_data_free_f  user_data_free;
+    bz_free_f  user_data_free;
     bz_pdb_satisfy_f  satisfy;
     struct cork_hash_table  packages;
 };
@@ -249,7 +249,7 @@ bz_cached_pdb__satisfy(void *user_data, struct bz_dependency *dep)
 
 struct bz_pdb *
 bz_cached_pdb_new(const char *pdb_name,
-                  void *user_data, bz_user_data_free_f user_data_free,
+                  void *user_data, bz_free_f user_data_free,
                   bz_pdb_satisfy_f satisfy)
 {
     struct bz_cached_pdb  *pdb = cork_new(struct bz_cached_pdb);

@@ -14,7 +14,7 @@
 
 
 typedef void
-(*bz_user_data_free_f)(void *user_data);
+(*bz_free_f)(void *user_data);
 
 #define bz_user_data_free(obj) \
     do { \
