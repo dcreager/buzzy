@@ -98,6 +98,96 @@ bz_value_set_get(struct bz_value_set *set, const char *key, struct bz_env *env)
 
 
 /*-----------------------------------------------------------------------
+ * Environments
+ */
+
+struct bz_env {
+    const char  *name;
+    cork_array(struct bz_value_set *)  sets;
+    cork_array(struct bz_value_set *)  backup_sets;
+};
+
+struct bz_env *
+bz_env_new(const char *name)
+{
+    struct bz_env  *env = cork_new(struct bz_env);
+    env->name = cork_strdup(name);
+    cork_array_init(&env->sets);
+    cork_array_init(&env->backup_sets);
+    return env;
+}
+
+void
+bz_env_free(struct bz_env *env)
+{
+    size_t  i;
+
+    for (i = 0; i < cork_array_size(&env->sets); i++) {
+        struct bz_value_set  *set = cork_array_at(&env->sets, i);
+        bz_value_set_free(set);
+    }
+
+    for (i = 0; i < cork_array_size(&env->backup_sets); i++) {
+        struct bz_value_set  *set = cork_array_at(&env->backup_sets, i);
+        bz_value_set_free(set);
+    }
+
+    cork_strfree(env->name);
+    free(env);
+}
+
+void
+bz_env_add_set(struct bz_env *env, struct bz_value_set *set)
+{
+    cork_array_append(&env->sets, set);
+}
+
+void
+bz_env_add_backup_set(struct bz_env *env, struct bz_value_set *set)
+{
+    cork_array_append(&env->backup_sets, set);
+}
+
+struct bz_value_provider *
+bz_env_get_provider(struct bz_env *env, const char *key)
+{
+    size_t  i;
+
+    for (i = 0; i < cork_array_size(&env->sets); i++) {
+        struct bz_value_set  *set = cork_array_at(&env->sets, i);
+        struct bz_value_provider  *provider =
+            bz_value_set_get_provider(set, key);
+        if (provider != NULL) {
+            return provider;
+        } else if (cork_error_occurred()) {
+            return NULL;
+        }
+    }
+
+    for (i = 0; i < cork_array_size(&env->backup_sets); i++) {
+        struct bz_value_set  *set = cork_array_at(&env->backup_sets, i);
+        struct bz_value_provider  *provider =
+            bz_value_set_get_provider(set, key);
+        if (provider != NULL) {
+            return provider;
+        } else if (cork_error_occurred()) {
+            return NULL;
+        }
+    }
+
+    return NULL;
+}
+
+const char *
+bz_env_get(struct bz_env *env, const char *key)
+{
+    struct bz_value_provider  *provider;
+    rpp_check(provider = bz_env_get_provider(env, key));
+    return bz_value_provider_get(provider, env);
+}
+
+
+/*-----------------------------------------------------------------------
  * Built-in value providers
  */
 

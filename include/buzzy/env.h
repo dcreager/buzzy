@@ -63,6 +63,34 @@ bz_value_set_get(struct bz_value_set *set, const char *key, struct bz_env *env);
 
 
 /*-----------------------------------------------------------------------
+ * Environments
+ */
+
+struct bz_env *
+bz_env_new(const char *name);
+
+void
+bz_env_free(struct bz_env *env);
+
+/* Takes control of set */
+void
+bz_env_add_set(struct bz_env *env, struct bz_value_set *set);
+
+/* Takes control of set */
+void
+bz_env_add_backup_set(struct bz_env *env, struct bz_value_set *set);
+
+/* Each of the sets in env are checked for key.  The sets added with
+ * bz_env_add_set are checked first, in order, followed by the sets added with
+ * bz_env_add_backup_set, in order. */
+struct bz_value_provider *
+bz_env_get_provider(struct bz_env *env, const char *key);
+
+const char *
+bz_env_get(struct bz_env *env, const char *key);
+
+
+/*-----------------------------------------------------------------------
  * Built-in value providers
  */
 

@@ -109,6 +109,63 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * Environments
+ */
+
+static void
+test_env(struct bz_env *env, const char *key, const char *expected)
+{
+    const char  *actual;
+    fail_if_error(actual = bz_env_get(env, key));
+    fail_unless_streq("Environment variable values", expected, actual);
+}
+
+static void
+test_env_missing(struct bz_env *env, const char *key)
+{
+    const char  *actual;
+    fail_if_error(actual = bz_env_get(env, key));
+    fail_unless(actual == NULL, "Unexpected value for %s", key);
+}
+
+START_TEST(test_env_01)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env = bz_env_new("test");
+    struct bz_var_table  *table1 = bz_var_table_new("test1");
+    struct bz_value_set  *set1 = bz_var_table_as_set(table1);
+    struct bz_var_table  *table2 = bz_var_table_new("test2");
+    struct bz_value_set  *set2 = bz_var_table_as_set(table2);
+    struct bz_var_table  *table3 = bz_var_table_new("test3");
+    struct bz_value_set  *set3 = bz_var_table_as_set(table3);
+    struct bz_var_table  *table4 = bz_var_table_new("test4");
+    struct bz_value_set  *set4 = bz_var_table_as_set(table4);
+
+    bz_env_add_set(env, set1);
+    bz_env_add_set(env, set2);
+    bz_env_add_backup_set(env, set3);
+    bz_env_add_backup_set(env, set4);
+
+    test_env_missing(env, "a");
+    var_table_add_string(table1, "a", "");
+    test_env(env, "a", "");
+
+    test_env_missing(env, "b");
+    var_table_add_string(table4, "b", "backup");
+    test_env(env, "b", "backup");
+    var_table_add_string(table3, "b", "backup 2");
+    test_env(env, "b", "backup 2");
+    var_table_add_string(table2, "b", "hello");
+    test_env(env, "b", "hello");
+    var_table_add_string(table1, "b", "world");
+    test_env(env, "b", "world");
+
+    bz_env_free(env);
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Testing harness
  */
 
@@ -124,6 +181,10 @@ test_suite()
     TCase  *tc_var_table = tcase_create("var-table");
     tcase_add_test(tc_var_table, test_var_table_01);
     suite_add_tcase(s, tc_var_table);
+
+    TCase  *tc_env = tcase_create("env");
+    tcase_add_test(tc_env, test_env_01);
+    suite_add_tcase(s, tc_env);
 
     return s;
 }
