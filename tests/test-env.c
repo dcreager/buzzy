@@ -248,6 +248,55 @@ START_TEST(test_env_02)
 END_TEST
 
 
+static void
+set_global_default(const char *key, const char *template_value)
+{
+    struct bz_value_provider  *provider;
+    fail_if_error(provider = bz_interpolated_value_new(template_value));
+    fail_if_error(bz_env_set_global_default(key, provider));
+}
+
+START_TEST(test_global_env_01)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env;
+    bz_global_env_reset();
+    env = bz_global_env();
+    test_env_missing(env, "a");
+    set_global_default("a", "${b} value");
+    test_env_error(env, "a");
+    set_global_default("b", "test");
+    test_env(env, "b", "test");
+    test_env(env, "a", "test value");
+}
+END_TEST
+
+START_TEST(test_package_env_01)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env;
+    struct bz_var_table  *table1 = bz_var_table_new("test1");
+    struct bz_value_set  *set1 = bz_var_table_as_set(table1);
+
+    bz_global_env_reset();
+    env = bz_package_env_new("test");
+    test_env_missing(env, "a");
+    set_global_default("a", "${b} value");
+    test_env_error(env, "a");
+    set_global_default("b", "test");
+    test_env(env, "b", "test");
+    test_env(env, "a", "test value");
+
+    bz_env_add_set(env, set1);
+    var_table_add_string(table1, "b", "overridden");
+    test_env(env, "b", "overridden");
+    test_env(env, "a", "overridden value");
+
+    bz_env_free(env);
+}
+END_TEST
+
+
 /*-----------------------------------------------------------------------
  * Testing harness
  */
@@ -269,6 +318,8 @@ test_suite()
     TCase  *tc_env = tcase_create("env");
     tcase_add_test(tc_env, test_env_01);
     tcase_add_test(tc_env, test_env_02);
+    tcase_add_test(tc_env, test_global_env_01);
+    tcase_add_test(tc_env, test_package_env_01);
     suite_add_tcase(s, tc_env);
 
     return s;

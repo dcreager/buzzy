@@ -22,6 +22,28 @@ struct bz_var_table;
 
 
 /*-----------------------------------------------------------------------
+ * Global and package-specific environments
+ */
+
+struct bz_env *
+bz_global_env(void);
+
+/* env_name is usually the same as the package name, but if you don't know the
+ * package name yet, you can use something like "new package". */
+struct bz_env *
+bz_package_env_new(const char *env_name);
+
+/* Every global and package-specific environment will use these default values
+ * for any variables that aren't explicitly defined. */
+void
+bz_env_set_global_default(const char *key, struct bz_value_provider *value);
+
+/* Only needed for reproducible test cases */
+void
+bz_global_env_reset(void);
+
+
+/*-----------------------------------------------------------------------
  * Value providers
  */
 

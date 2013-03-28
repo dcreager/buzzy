@@ -9,6 +9,7 @@
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
+#include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/callbacks.h"
@@ -301,4 +302,80 @@ bz_var_table_as_set(struct bz_var_table *table)
 {
     return bz_value_set_new
         (table->name, table, bz_var_table__set__free, bz_var_table__set__get);
+}
+
+static struct bz_value_set *
+bz_var_table_as_unowned_set(struct bz_var_table *table)
+{
+    return bz_value_set_new
+        (table->name, table, NULL, bz_var_table__set__get);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Global and package-specific environments
+ */
+
+static struct bz_env  *global = NULL;
+static struct bz_var_table  *global_defaults = NULL;
+
+static void
+global_new(void)
+{
+    struct bz_value_set  *global_default_set;
+    global = bz_env_new("global");
+    global_defaults = bz_var_table_new("global defaults");
+    global_default_set = bz_var_table_as_set(global_defaults);
+    bz_env_add_backup_set(global, global_default_set);
+}
+
+static void
+global_free(void)
+{
+    bz_env_free(global);
+}
+
+static void
+ensure_global_created(void)
+{
+    if (CORK_UNLIKELY(global == NULL)) {
+        global_new();
+        cork_cleanup_at_exit(0, global_free);
+    }
+}
+
+void
+bz_global_env_reset(void)
+{
+    if (global != NULL) {
+        global_free();
+        global_new();
+    }
+}
+
+
+struct bz_env *
+bz_global_env(void)
+{
+    ensure_global_created();
+    return global;
+}
+
+struct bz_env *
+bz_package_env_new(const char *env_name)
+{
+    struct bz_env  *env;
+    struct bz_value_set  *global_default_set;
+    ensure_global_created();
+    env = bz_env_new(env_name);
+    global_default_set = bz_var_table_as_unowned_set(global_defaults);
+    bz_env_add_backup_set(env, global_default_set);
+    return env;
+}
+
+void
+bz_env_set_global_default(const char *key, struct bz_value_provider *value)
+{
+    ensure_global_created();
+    bz_var_table_add(global_defaults, key, value);
 }
