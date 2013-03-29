@@ -21,6 +21,8 @@
 
 CORK_LOCAL extern struct cork_command  buzzy_root;
 
+CORK_LOCAL extern struct cork_command  buzzy_doc;
+
 CORK_LOCAL extern struct cork_command  buzzy_vercmp;
 
 CORK_LOCAL extern struct cork_command  buzzy_raw;

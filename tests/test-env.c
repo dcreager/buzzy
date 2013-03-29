@@ -253,7 +253,7 @@ set_global_default(const char *key, const char *template_value)
 {
     struct bz_value_provider  *provider;
     fail_if_error(provider = bz_interpolated_value_new(template_value));
-    fail_if_error(bz_env_set_global_default(key, provider));
+    fail_if_error(bz_env_set_global_default(key, provider, NULL, NULL));
 }
 
 START_TEST(test_global_env_01)

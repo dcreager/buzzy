@@ -14,6 +14,7 @@
 
 #include "buzzy/callbacks.h"
 #include "buzzy/env.h"
+#include "buzzy/error.h"
 
 
 /*-----------------------------------------------------------------------
@@ -330,28 +331,87 @@ bz_var_table_as_set(struct bz_var_table *table)
         (table->name, table, bz_var_table__set__free, bz_var_table__set__get);
 }
 
-static struct bz_value_set *
-bz_var_table_as_unowned_set(struct bz_var_table *table)
-{
-    return bz_value_set_new
-        (table->name, table, NULL, bz_var_table__set__get);
-}
-
 
 /*-----------------------------------------------------------------------
  * Global and package-specific environments
  */
 
+static struct bz_var_doc *
+bz_var_doc_new(const char *name, struct bz_value_provider *value,
+               const char *short_desc, const char *long_desc)
+{
+    struct bz_var_doc  *doc = cork_new(struct bz_var_doc);
+    doc->name = cork_strdup(name);
+    doc->value = value;
+    if (short_desc == NULL) {
+        short_desc = "";
+    }
+    doc->short_desc = cork_strdup(short_desc);
+    if (long_desc == NULL) {
+        long_desc = "";
+    }
+    doc->long_desc = cork_strdup(long_desc);
+    return doc;
+}
+
+static void
+bz_var_doc_free(struct bz_var_doc *doc)
+{
+    cork_strfree(doc->name);
+    bz_value_provider_free(doc->value);
+    cork_strfree(doc->short_desc);
+    cork_strfree(doc->long_desc);
+    free(doc);
+}
+
+static struct cork_hash_table  global_docs;
+
+static struct bz_value_provider *
+bz_global_docs__set__get(void *user_data, const char *key)
+{
+    struct bz_var_doc  *doc = cork_hash_table_get(&global_docs, (void *) key);
+    return (doc == NULL)? NULL: doc->value;
+}
+
+static enum cork_hash_table_map_result
+free_doc(struct cork_hash_table_entry *entry, void *user_data)
+{
+    struct bz_var_doc  *doc = entry->value;
+    bz_var_doc_free(doc);
+    return CORK_HASH_TABLE_MAP_DELETE;
+}
+
+static void
+bz_global_docs__set__free(void *user_data)
+{
+    cork_hash_table_map(&global_docs, free_doc, NULL);
+    cork_hash_table_done(&global_docs);
+}
+
+static struct bz_value_set *
+bz_global_docs_set(const char *name)
+{
+    return bz_value_set_new
+        (name, NULL, bz_global_docs__set__free, bz_global_docs__set__get);
+}
+
+static struct bz_value_set *
+bz_global_docs_unowned_set(const char *name)
+{
+    return bz_value_set_new
+        (name, NULL, NULL, bz_global_docs__set__get);
+}
+
+
 static struct bz_env  *global = NULL;
-static struct bz_var_table  *global_defaults = NULL;
 
 static void
 global_new(void)
 {
     struct bz_value_set  *global_default_set;
     global = bz_env_new("global");
-    global_defaults = bz_var_table_new("global defaults");
-    global_default_set = bz_var_table_as_set(global_defaults);
+    cork_string_hash_table_init(&global_docs, 0);
+    global_default_set = bz_global_docs_set("global defaults");
     bz_env_add_backup_set(global, global_default_set);
 }
 
@@ -394,16 +454,42 @@ bz_package_env_new(const char *env_name)
     struct bz_value_set  *global_default_set;
     ensure_global_created();
     env = bz_env_new(env_name);
-    global_default_set = bz_var_table_as_unowned_set(global_defaults);
+    global_default_set = bz_global_docs_unowned_set("global defaults");
     bz_env_add_backup_set(env, global_default_set);
     return env;
 }
 
-void
-bz_env_set_global_default(const char *key, struct bz_value_provider *value)
+int
+bz_env_set_global_default(const char *key, struct bz_value_provider *value,
+                          const char *short_desc, const char *long_desc)
 {
+    bool  is_new;
+    struct cork_hash_table_entry  *entry;
+
     ensure_global_created();
-    bz_var_table_add(global_defaults, key, value);
+    entry = cork_hash_table_get_or_create(&global_docs, (void *) key, &is_new);
+    if (is_new) {
+        struct bz_var_doc  *doc =
+            bz_var_doc_new(key, value, short_desc, long_desc);
+        entry->key = (void *) doc->name;
+        entry->value = doc;
+        return 0;
+    } else {
+        bz_value_provider_free(value);
+        bz_bad_config("Variable %s defined twice", key);
+        return -1;
+    }
+}
+
+struct bz_var_doc *
+bz_env_get_global_default(const char *name)
+{
+    struct bz_var_doc  *doc =
+        cork_hash_table_get(&global_docs, (void *) name);
+    if (CORK_UNLIKELY(doc == NULL)) {
+        bz_bad_config("No variable named %s", name);
+    }
+    return doc;
 }
 
 
@@ -411,35 +497,12 @@ bz_env_set_global_default(const char *key, struct bz_value_provider *value)
  * Documenting variables
  */
 
-void
-bz_define_global_(const char *name, struct bz_value_provider *default_value,
-                  const char *short_desc, const char *long_desc)
-{
-    assert(name != NULL);
-
-    if (default_value != NULL) {
-        bz_env_set_global_default(name, default_value);
-    }
-}
-
-void
-bz_define_package_(const char *name, struct bz_value_provider *default_value,
-                   const char *short_desc, const char *long_desc)
-{
-    assert(name != NULL);
-
-    if (default_value != NULL) {
-        bz_env_set_global_default(name, default_value);
-    }
-}
-
 #define bz_load_variables(prefix) \
     do { \
         extern int \
         bz_vars__##prefix(void); \
         rii_check(bz_vars__##prefix()); \
     } while (0)
-
 
 int
 bz_load_variable_definitions(void)

@@ -76,6 +76,7 @@ set_target_properties(libbuzzy PROPERTIES
 
 set(BUZZY_SRC
     buzzy/buzzy.c
+    buzzy/doc.c
     buzzy/raw.c
     buzzy/raw-pkg.c
     buzzy/root.c

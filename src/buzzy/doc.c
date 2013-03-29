@@ -14,21 +14,20 @@
 #include <libcork/core.h>
 
 #include "buzzy/commands.h"
-#include "buzzy/version.h"
+#include "buzzy/env.h"
 
 /*-----------------------------------------------------------------------
- * buzzy vercmp
+ * buzzy doc
  */
 
 #define SHORT_DESC \
-    "Compare two Buzzy version strings"
+    "Describe a Buzzy configuration variable"
 
 #define USAGE_SUFFIX \
-    "<version 1> <version 2>"
+    "<variable name>"
 
 #define HELP_TEXT \
-"Compares two Buzzy version strings.  Prints out \"-1\", \"0\", or \"1\",\n" \
-"depending on how the two version strings compare to each other.\n" \
+"Prints out documentation about a Buzzy configuration variable.\n" \
 
 static int
 parse_options(int argc, char **argv);
@@ -36,8 +35,8 @@ parse_options(int argc, char **argv);
 static void
 execute(int argc, char **argv);
 
-CORK_LOCAL struct cork_command  buzzy_vercmp =
-    cork_leaf_command("vercmp", SHORT_DESC, USAGE_SUFFIX, HELP_TEXT,
+CORK_LOCAL struct cork_command  buzzy_doc =
+    cork_leaf_command("doc", SHORT_DESC, USAGE_SUFFIX, HELP_TEXT,
                       parse_options, execute);
 
 #define SHORT_OPTS  "+"
@@ -54,7 +53,7 @@ parse_options(int argc, char **argv)
     while ((ch = getopt_long(argc, argv, SHORT_OPTS, opts, NULL)) != -1) {
         switch (ch) {
             default:
-                cork_command_show_help(&buzzy_vercmp, NULL);
+                cork_command_show_help(&buzzy_doc, NULL);
                 exit(EXIT_FAILURE);
         }
 
@@ -65,28 +64,31 @@ parse_options(int argc, char **argv)
 static void
 execute(int argc, char **argv)
 {
-    struct bz_version  *v1;
-    struct bz_version  *v2;
-    int  cmp;
+    struct bz_var_doc  *doc;
+    const char  *value;
 
-    if (argc != 2) {
-        cork_command_show_help
-            (&buzzy_vercmp, "Must provide two version strings.");
+    if (argc != 1) {
+        cork_command_show_help(&buzzy_doc, "Must provide a variable name.");
         exit(EXIT_FAILURE);
     }
 
-    rp_check_error(v1 = bz_version_from_string(argv[0]));
-    rp_check_error(v2 = bz_version_from_string(argv[1]));
-    cmp = bz_version_cmp(v1, v2);
-    bz_version_free(v1);
-    bz_version_free(v2);
+    ri_check_error(bz_load_variable_definitions());
+    rp_check_error(doc = bz_env_get_global_default(argv[0]));
 
-    if (cmp < 0) {
-        printf("-1\n");
-    } else if (cmp > 0) {
-        printf("1\n");
-    } else {
-        printf("0\n");
+    printf("%s\n", doc->name);
+
+    if (doc->short_desc[0] != '\0') {
+        printf("  %s\n", doc->short_desc);
     }
+    if (doc->long_desc[0] != '\0') {
+        /* TODO: Word wrap this */
+        printf("\n  %s\n", doc->long_desc);
+    }
+
+    value = bz_env_get(bz_global_env(), argv[0]);
+    if (value != NULL) {
+        printf("\n  Current value: %s\n", value);
+    }
+
     exit(EXIT_SUCCESS);
 }

@@ -36,8 +36,19 @@ bz_package_env_new(const char *env_name);
 
 /* Every global and package-specific environment will use these default values
  * for any variables that aren't explicitly defined. */
-void
-bz_env_set_global_default(const char *key, struct bz_value_provider *value);
+int
+bz_env_set_global_default(const char *name, struct bz_value_provider *value,
+                          const char *short_desc, const char *long_desc);
+
+struct bz_var_doc {
+    const char  *name;
+    const char  *short_desc;
+    const char  *long_desc;
+    struct bz_value_provider  *value;
+};
+
+struct bz_var_doc *
+bz_env_get_global_default(const char *name);
 
 /* Only needed for reproducible test cases */
 void
@@ -165,14 +176,6 @@ bz_var_table_as_set(struct bz_var_table *table);
 int
 bz_load_variable_definitions(void);
 
-void
-bz_define_global_(const char *name, struct bz_value_provider *default_value,
-                  const char *short_desc, const char *long_desc);
-
-void
-bz_define_package_(const char *name, struct bz_value_provider *default_value,
-                   const char *short_desc, const char *long_desc);
-
 #define bz_define_variables(prefix) \
 static void \
 bz_define_vars__##prefix(void); \
@@ -194,20 +197,28 @@ bz_define_vars__##prefix(void) \
 
 #define bz_global_variable(c_name, name, default_value, short_desc, long_desc) \
     do { \
+        int  __rc; \
         struct bz_value_provider  *__dv = default_value; \
         if (CORK_UNLIKELY(__dv == NULL)) { \
             return; \
         } \
-        bz_define_global_(name, __dv, short_desc, long_desc); \
+        __rc = bz_env_set_global_default(name, __dv, short_desc, long_desc); \
+        if (CORK_UNLIKELY(__rc != 0)) { \
+            return; \
+        } \
     } while (0)
 
 #define bz_package_variable(c_name, name, default_value, short_desc, long_desc) \
     do { \
+        int  __rc; \
         struct bz_value_provider  *__dv = default_value; \
         if (CORK_UNLIKELY(__dv == NULL)) { \
             return; \
         } \
-        bz_define_package_(name, __dv, short_desc, long_desc); \
+        __rc = bz_env_set_global_default(name, __dv, short_desc, long_desc); \
+        if (CORK_UNLIKELY(__rc != 0)) { \
+            return; \
+        } \
     } while (0)
 
 
