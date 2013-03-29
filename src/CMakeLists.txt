@@ -53,6 +53,7 @@ set(LIBBUZZY_SRC
     libbuzzy/action.c
     libbuzzy/dependency.c
     libbuzzy/env.c
+    libbuzzy/global-vars.c
     libbuzzy/interpolated.c
     libbuzzy/mock.c
     libbuzzy/native.c

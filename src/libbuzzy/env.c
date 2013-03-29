@@ -188,6 +188,32 @@ bz_env_get(struct bz_env *env, const char *key)
 
 
 /*-----------------------------------------------------------------------
+ * Path values
+ */
+
+static const char *
+bz_path_value__provide(void *user_data, struct bz_env *env)
+{
+    struct cork_path  *path = user_data;
+    return cork_path_get(path);
+}
+
+static void
+bz_path_value__free(void *user_data)
+{
+    struct cork_path  *path = user_data;
+    cork_path_free(path);
+}
+
+struct bz_value_provider *
+bz_path_value_new(struct cork_path *path)
+{
+    return bz_value_provider_new
+        (path, bz_path_value__free, bz_path_value__provide);
+}
+
+
+/*-----------------------------------------------------------------------
  * String values
  */
 
@@ -378,4 +404,46 @@ bz_env_set_global_default(const char *key, struct bz_value_provider *value)
 {
     ensure_global_created();
     bz_var_table_add(global_defaults, key, value);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Documenting variables
+ */
+
+void
+bz_define_global_(const char *name, struct bz_value_provider *default_value,
+                  const char *short_desc, const char *long_desc)
+{
+    assert(name != NULL);
+
+    if (default_value != NULL) {
+        bz_env_set_global_default(name, default_value);
+    }
+}
+
+void
+bz_define_package_(const char *name, struct bz_value_provider *default_value,
+                   const char *short_desc, const char *long_desc)
+{
+    assert(name != NULL);
+
+    if (default_value != NULL) {
+        bz_env_set_global_default(name, default_value);
+    }
+}
+
+#define bz_load_variables(prefix) \
+    do { \
+        extern int \
+        bz_vars__##prefix(void); \
+        rii_check(bz_vars__##prefix()); \
+    } while (0)
+
+
+int
+bz_load_variable_definitions(void)
+{
+    bz_load_variables(global);
+    return 0;
 }

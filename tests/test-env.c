@@ -298,6 +298,23 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * Built-in variables
+ */
+
+START_TEST(test_builtin_vars_01)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env;
+    bz_global_env_reset();
+    fail_if_error(bz_load_variable_definitions());
+    env = bz_global_env();
+    test_env(env, "cache_path", "/home/test/.cache");
+    test_env(env, "work_path", "/home/test/.cache/buzzy");
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Testing harness
  */
 
@@ -321,6 +338,10 @@ test_suite()
     tcase_add_test(tc_env, test_global_env_01);
     tcase_add_test(tc_env, test_package_env_01);
     suite_add_tcase(s, tc_env);
+
+    TCase  *tc_builtin_vars = tcase_create("builtin-vars");
+    tcase_add_test(tc_builtin_vars, test_builtin_vars_01);
+    suite_add_tcase(s, tc_builtin_vars);
 
     return s;
 }

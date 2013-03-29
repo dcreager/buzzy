@@ -11,6 +11,7 @@
 #define BUZZY_ENV_H
 
 #include <libcork/core.h>
+#include <libcork/os.h>
 
 #include "buzzy/callbacks.h"
 
@@ -115,6 +116,10 @@ bz_env_get(struct bz_env *env, const char *key);
  * Built-in value providers
  */
 
+/* Takes control of path */
+struct bz_value_provider *
+bz_path_value_new(struct cork_path *path);
+
 struct bz_value_provider *
 bz_string_value_new(const char *value);
 
@@ -151,6 +156,59 @@ bz_var_table_get(struct bz_var_table *table, const char *key,
  * function. */
 struct bz_value_set *
 bz_var_table_as_set(struct bz_var_table *table);
+
+
+/*-----------------------------------------------------------------------
+ * Documenting variables
+ */
+
+int
+bz_load_variable_definitions(void);
+
+void
+bz_define_global_(const char *name, struct bz_value_provider *default_value,
+                  const char *short_desc, const char *long_desc);
+
+void
+bz_define_package_(const char *name, struct bz_value_provider *default_value,
+                   const char *short_desc, const char *long_desc);
+
+#define bz_define_variables(prefix) \
+static void \
+bz_define_vars__##prefix(void); \
+\
+int \
+bz_vars__##prefix(void) \
+{ \
+    cork_error_clear(); \
+    bz_define_vars__##prefix(); \
+    if (CORK_UNLIKELY(cork_error_occurred())) { \
+        return -1; \
+    } else { \
+        return 0; \
+    } \
+} \
+\
+static void \
+bz_define_vars__##prefix(void) \
+
+#define bz_global_variable(c_name, name, default_value, short_desc, long_desc) \
+    do { \
+        struct bz_value_provider  *__dv = default_value; \
+        if (CORK_UNLIKELY(__dv == NULL)) { \
+            return; \
+        } \
+        bz_define_global_(name, __dv, short_desc, long_desc); \
+    } while (0)
+
+#define bz_package_variable(c_name, name, default_value, short_desc, long_desc) \
+    do { \
+        struct bz_value_provider  *__dv = default_value; \
+        if (CORK_UNLIKELY(__dv == NULL)) { \
+            return; \
+        } \
+        bz_define_package_(name, __dv, short_desc, long_desc); \
+    } while (0)
 
 
 #endif /* BUZZY_ENV_H */

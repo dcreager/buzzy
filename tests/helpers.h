@@ -62,7 +62,8 @@
                  (what), (expected), (actual)))
 
 #define fail_unless_streq(what, expected, actual) \
-    (fail_unless(strcmp((expected), (actual)) == 0, \
+    (fail_unless(strcmp((expected) == NULL? "": (expected), \
+                        (actual) == NULL? "": (actual)) == 0, \
                  "%s not equal (expected \"%s\", got \"%s\")", \
                  (char *) (what), (char *) (expected), (char *) (actual)))
 
