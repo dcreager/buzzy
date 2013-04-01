@@ -17,6 +17,7 @@ add_subdirectory(libyaml)
 
 set(LIBBUZZY_RAGEL
     libbuzzy/dependency.c.rl
+    libbuzzy/interpolated.c.rl
     libbuzzy/version.c.rl
     libbuzzy/distro/arch.c.rl
 )
@@ -51,6 +52,9 @@ endforeach(RAGEL_INPUT)
 set(LIBBUZZY_SRC
     libbuzzy/action.c
     libbuzzy/dependency.c
+    libbuzzy/env.c
+    libbuzzy/global-vars.c
+    libbuzzy/interpolated.c
     libbuzzy/mock.c
     libbuzzy/native.c
     libbuzzy/os.c
@@ -72,6 +76,7 @@ set_target_properties(libbuzzy PROPERTIES
 
 set(BUZZY_SRC
     buzzy/buzzy.c
+    buzzy/doc.c
     buzzy/raw.c
     buzzy/raw-pkg.c
     buzzy/root.c

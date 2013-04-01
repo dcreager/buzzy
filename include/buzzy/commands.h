@@ -18,8 +18,11 @@
 #include <libcork/ds.h>
 
 #include "buzzy/distro.h"
+#include "buzzy/env.h"
 
 CORK_LOCAL extern struct cork_command  buzzy_root;
+
+CORK_LOCAL extern struct cork_command  buzzy_doc;
 
 CORK_LOCAL extern struct cork_command  buzzy_vercmp;
 
@@ -157,77 +160,61 @@ packager_parse_opt(int ch, struct cork_command *cmd)
 
 
 /*-----------------------------------------------------------------------
- * Common options: Package specs
+ * Common options: Package environments
  */
 
-static const char  *pspec_name = NULL;
-static const char  *pspec_version = NULL;
-static const char  *pspec_license = NULL;
+static struct bz_env  *package_env = NULL;
 
-#define PACKAGE_SPEC_HELP_TEXT \
+#define PACKAGE_ENV_HELP_TEXT \
 "\n" \
-"Package specification options:\n" \
-"  --package-name=<name>\n" \
-"    The name of the new package.\n" \
-"  --package-version=<version>\n" \
-"    The version number of the new package.\n" \
-"  --package-license=<license>\n" \
-"    The name of the license that the package is released under.\n" \
+"Package configuration options:\n" \
+"  -P <name>=<value>, --package-var <name>=<value>\n" \
+"    Override the value of a package-specific configuration option.\n" \
 
-#define PACKAGE_SPEC_SHORT_OPTS  ""
+#define PACKAGE_ENV_SHORT_OPTS  "P:"
 
-#define OPT_PSPEC_NAME     2000
-#define OPT_PSPEC_VERSION  2001
-#define OPT_PSPEC_LICENSE  2002
+#define PACKAGE_ENV_LONG_OPTS \
+    { "package-var", required_argument, NULL, 'P' } \
 
-#define PACKAGE_SPEC_LONG_OPTS \
-    { "package-name", required_argument, NULL, OPT_PSPEC_NAME }, \
-    { "package-version", required_argument, NULL, OPT_PSPEC_VERSION }, \
-    { "package-license", required_argument, NULL, OPT_PSPEC_LICENSE }
+CORK_ATTR_UNUSED
+static void
+package_env_init(void)
+{
+    if (package_env == NULL) {
+        package_env = bz_package_env_new_empty("new package");
+    }
+}
+
+CORK_ATTR_UNUSED
+static void
+package_env_done(void)
+{
+    bz_env_free(package_env);
+    package_env = NULL;
+}
 
 CORK_ATTR_UNUSED
 static bool
-package_spec_parse_opt(int ch, struct cork_command *cmd)
+package_env_parse_opt(int ch, struct cork_command *cmd)
 {
-    if (ch == OPT_PSPEC_NAME) {
-        pspec_name = optarg;
-        return true;
-    } else if (ch == OPT_PSPEC_VERSION) {
-        pspec_version = optarg;
-        return true;
-    } else if (ch == OPT_PSPEC_LICENSE) {
-        pspec_license = optarg;
+    package_env_init();
+
+    if (ch == 'P') {
+        struct cork_buffer  buf = CORK_BUFFER_INIT();
+        const char  *equals = strchr(optarg, '=');
+        struct bz_value_provider  *value;
+        if (equals == NULL) {
+            cork_command_show_help(cmd, "Missing variable value.");
+            exit(EXIT_FAILURE);
+        }
+        cork_buffer_set(&buf, optarg, equals - optarg);
+        rp_check_error(value = bz_interpolated_value_new(equals + 1));
+        bz_env_add_override(package_env, buf.buf, value);
+        cork_buffer_done(&buf);
         return true;
     }
 
     return false;
-}
-
-CORK_ATTR_UNUSED
-static struct bz_package_spec *
-package_spec_get(struct cork_command *cmd)
-{
-    struct bz_version  *version;
-    struct bz_package_spec  *spec;
-
-    if (pspec_name == NULL) {
-        cork_command_show_help(cmd, "Missing package name.");
-        exit(EXIT_FAILURE);
-    }
-
-    if (pspec_version == NULL) {
-        cork_command_show_help(cmd, "Missing package version.");
-        exit(EXIT_FAILURE);
-    }
-
-    rp_check_error(version = bz_version_from_string(pspec_version));
-    rp_check_error(spec = bz_package_spec_new(pspec_name, version));
-
-    if (pspec_license != NULL) {
-        bz_package_spec_set_license(spec, pspec_license);
-    }
-
-    return spec;
 }
 
 

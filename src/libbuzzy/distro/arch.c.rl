@@ -21,6 +21,7 @@
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/action.h"
+#include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/native.h"
 #include "buzzy/os.h"
@@ -437,8 +438,11 @@ bz_arch_native_pdb(void)
  */
 
 struct bz_pacman_packager {
-    struct bz_package_spec  *spec;
+    struct bz_env  *env;
+    const char  *package_name;
+    struct bz_version  *package_version;
     struct cork_path  *package_path;
+    struct cork_path  *pkg_path;
     struct cork_path  *staging_path;
     bool  force;
     bool  verbose;
@@ -459,8 +463,8 @@ bz_pacman_packager__message(void *user_data, struct cork_buffer *dest)
     struct bz_pacman_packager  *packager = user_data;
     cork_buffer_append_printf
         (dest, "Package %s %s",
-         bz_package_spec_name(packager->spec),
-         bz_package_spec_version_string(packager->spec));
+         packager->package_name,
+         bz_version_to_string(packager->package_version));
 }
 
 static int
@@ -472,14 +476,12 @@ bz_pacman_packager__is_needed(void *user_data, bool *is_needed)
         *is_needed = true;
         return 0;
     } else {
-        const char  *package_name = bz_package_spec_name(packager->spec);
-        struct bz_version  *version = bz_package_spec_version(packager->spec);
         const char  *architecture = bz_arch_current_architecture();
         struct cork_buffer  package_file = CORK_BUFFER_INIT();
         struct cork_path  *package_path;
 
-        cork_buffer_printf(&package_file, "%s-", package_name);
-        bz_version_to_arch(version, &package_file);
+        cork_buffer_printf(&package_file, "%s-", packager->package_name);
+        bz_version_to_arch(packager->package_version, &package_file);
         cork_buffer_append_printf
             (&package_file, "-%s-%s.pkg.tar.xz", BZ_ARCH_RELEASE, architecture);
         package_path = cork_path_join(packager->package_path, package_file.buf);
@@ -503,12 +505,10 @@ bz_pacman_packager__perform(void *user_data)
     struct cork_buffer  buf = CORK_BUFFER_INIT();
     bool  staging_exists;
 
-    const char  *package_name = bz_package_spec_name(packager->spec);
-    struct bz_version  *version = bz_package_spec_version(packager->spec);
-    const char  *version_string = bz_version_to_string(version);
     const char  *architecture = bz_arch_current_architecture();
-    const char  *license = bz_package_spec_license(packager->spec);
+    const char  *license;
 
+    license = bz_env_get_string(packager->env, "license", false);
     if (license == NULL) {
         license = "unknown";
     }
@@ -523,16 +523,13 @@ bz_pacman_packager__perform(void *user_data)
     }
 
     /* Create a temporary directory */
-    pkg_path = cork_path_user_cache_path();
-    cork_path_append(pkg_path, "buzzy/arch/package");
-    cork_path_append(pkg_path, package_name);
-    cork_path_append(pkg_path, version_string);
+    pkg_path = cork_path_clone(packager->pkg_path);
     rip_check(pkg_dir = bz_create_directory(pkg_path));
 
     /* Create a PKGBUILD file for this package */
-    cork_buffer_append_printf(&buf, "pkgname='%s'\n", package_name);
+    cork_buffer_append_printf(&buf, "pkgname='%s'\n", packager->package_name);
     cork_buffer_append_string(&buf, "pkgver='");
-    bz_version_to_arch(version, &buf);
+    bz_version_to_arch(packager->package_version, &buf);
     cork_buffer_append_string(&buf, "'\n");
     cork_buffer_append_printf(&buf, "pkgrel='%s'\n", BZ_ARCH_RELEASE);
     cork_buffer_append_printf(&buf, "arch=('%s')\n", architecture);
@@ -546,7 +543,7 @@ bz_pacman_packager__perform(void *user_data)
         cork_path_get(packager->staging_path)
     );
 
-    filename = cork_path_join(pkg_path, "PKGBUILD");
+    filename = cork_path_join(packager->pkg_path, "PKGBUILD");
     ep_check(pkgbuild = bz_create_file(filename, &buf));
     cork_buffer_done(&buf);
 
@@ -572,19 +569,34 @@ error:
 }
 
 struct bz_action *
-bz_pacman_create_package(struct bz_package_spec *spec,
-                         struct cork_path *package_path,
-                         struct cork_path *staging_path,
-                         struct bz_action *stage_action,
-                         bool force, bool verbose)
+bz_pacman_create_package(struct bz_env *env, struct bz_action *stage_action)
 {
-    struct bz_action  *action;
-    struct bz_action  *prereq;
     struct bz_pacman_packager  *packager;
+    struct bz_action  *action;
+    struct bz_action  *prereq = NULL;
+    const char  *package_name = NULL;
+    struct bz_version  *package_version = NULL;
+    struct cork_path  *package_path = NULL;
+    struct cork_path  *pkg_path = NULL;
+    struct cork_path  *staging_path = NULL;
+    bool  force;
+    bool  verbose;
+
+    ep_check(prereq = bz_install_dependency_string("pacman"));
+    ep_check(package_name = bz_env_get_string(env, "name", true));
+    ep_check(package_version = bz_env_get_version(env, "version", true));
+    ep_check(package_path = bz_env_get_path(env, "package_path", true));
+    ep_check(pkg_path = bz_env_get_path(env, "pkg_path", true));
+    ep_check(staging_path = bz_env_get_path(env, "staging_path", true));
+    ei_check(bz_env_get_bool(env, "force", &force, true));
+    ei_check(bz_env_get_bool(env, "verbose", &verbose, true));
 
     packager = cork_new(struct bz_pacman_packager);
-    packager->spec = spec;
+    packager->env = env;
+    packager->package_name = package_name;
+    packager->package_version = package_version;
     packager->package_path = package_path;
+    packager->pkg_path = pkg_path;
     packager->staging_path = staging_path;
     packager->force = force;
     packager->verbose = verbose;
@@ -595,7 +607,6 @@ bz_pacman_create_package(struct bz_package_spec *spec,
          bz_pacman_packager__is_needed,
          bz_pacman_packager__perform);
 
-    ep_check(prereq = bz_install_dependency_string("pacman"));
     bz_action_add_pre(action, prereq);
 
     if (stage_action != NULL) {
@@ -605,6 +616,17 @@ bz_pacman_create_package(struct bz_package_spec *spec,
     return action;
 
 error:
-    bz_action_free(action);
+    if (package_version != NULL) {
+        bz_version_free(package_version);
+    }
+    if (package_path != NULL) {
+        cork_path_free(package_path);
+    }
+    if (pkg_path != NULL) {
+        cork_path_free(pkg_path);
+    }
+    if (staging_path != NULL) {
+        cork_path_free(staging_path);
+    }
     return NULL;
 }

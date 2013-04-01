@@ -357,7 +357,7 @@ END_TEST
  * to actually be installed. */
 
 static void
-test_create_package(struct bz_package_spec *spec, bool force,
+test_create_package(struct bz_env *env, bool force,
                     const char *expected_actions)
 {
     struct cork_path  *package_path = cork_path_new(".");
@@ -365,13 +365,19 @@ test_create_package(struct bz_package_spec *spec, bool force,
     struct bz_pdb  *pdb;
     struct bz_action  *action;
 
+    bz_global_env_reset();
+    fail_if_error(bz_load_variable_definitions());
     fail_if_error(pdb = bz_arch_native_pdb());
     bz_pdb_register(pdb);
+
     mock_available_package("pacman", "4.0.3-7");
     mock_installed_package("pacman", "4.0.3-7");
     bz_mock_file_exists(cork_path_get(staging_path), true);
-    fail_if_error(action = bz_pacman_create_package
-                  (spec, package_path, staging_path, NULL, force, false));
+    bz_env_add_override(env, "package_path", bz_path_value_new(package_path));
+    bz_env_add_override(env, "staging_path", bz_path_value_new(staging_path));
+    bz_env_add_override(env, "force", bz_string_value_new(force? "1": "0"));
+    bz_env_add_override(env, "verbose", bz_string_value_new("0"));
+    fail_if_error(action = bz_pacman_create_package(env, NULL));
     test_action(action, expected_actions);
     bz_action_free(action);
 }
@@ -380,14 +386,14 @@ START_TEST(test_arch_create_package_01)
 {
     DESCRIBE_TEST;
     struct bz_version  *version;
-    struct bz_package_spec  *spec;
+    struct bz_env  *env;
     bz_start_mocks();
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
     bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", false);
     fail_if_error(version = bz_version_from_string("2.4"));
-    fail_if_error(spec = bz_package_spec_new("jansson", version));
-    test_create_package(spec, false,
+    fail_if_error(env = bz_package_env_new("jansson", version));
+    test_create_package(env, false,
         "Test actions\n"
         "[1/1] Package jansson 2.4\n"
     );
@@ -397,8 +403,8 @@ START_TEST(test_arch_create_package_01)
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
         "$ pacman -Q pacman\n"
         "$ [ -f /tmp/staging ]\n"
-        "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
-        "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
+        "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/pkg\n"
+        "$ cat > /home/test/.cache/buzzy/jansson/2.4/pkg/PKGBUILD"
             " <<EOF\n"
         "pkgname='jansson'\n"
         "pkgver='2.4'\n"
@@ -412,7 +418,7 @@ START_TEST(test_arch_create_package_01)
         "EOF\n"
         "$ makepkg -sf\n"
     );
-    bz_package_spec_free(spec);
+    bz_env_free(env);
 }
 END_TEST
 
@@ -420,15 +426,16 @@ START_TEST(test_arch_create_package_license_01)
 {
     DESCRIBE_TEST;
     struct bz_version  *version;
-    struct bz_package_spec  *spec;
+    struct bz_env  *env;
     bz_start_mocks();
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
     bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", false);
     fail_if_error(version = bz_version_from_string("2.4"));
-    fail_if_error(spec = bz_package_spec_new("jansson", version));
-    fail_if_error(bz_package_spec_set_license(spec, "MIT"));
-    test_create_package(spec, false,
+    fail_if_error(env = bz_package_env_new("jansson", version));
+    fail_if_error(bz_env_add_override
+                  (env, "license", bz_string_value_new("MIT")));
+    test_create_package(env, false,
         "Test actions\n"
         "[1/1] Package jansson 2.4\n"
     );
@@ -438,8 +445,8 @@ START_TEST(test_arch_create_package_license_01)
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
         "$ pacman -Q pacman\n"
         "$ [ -f /tmp/staging ]\n"
-        "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
-        "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
+        "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/pkg\n"
+        "$ cat > /home/test/.cache/buzzy/jansson/2.4/pkg/PKGBUILD"
             " <<EOF\n"
         "pkgname='jansson'\n"
         "pkgver='2.4'\n"
@@ -453,7 +460,7 @@ START_TEST(test_arch_create_package_license_01)
         "EOF\n"
         "$ makepkg -sf\n"
     );
-    bz_package_spec_free(spec);
+    bz_env_free(env);
 }
 END_TEST
 
@@ -461,14 +468,14 @@ START_TEST(test_arch_create_existing_package_01)
 {
     DESCRIBE_TEST;
     struct bz_version  *version;
-    struct bz_package_spec  *spec;
+    struct bz_env  *env;
     bz_start_mocks();
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
     bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", true);
     fail_if_error(version = bz_version_from_string("2.4"));
-    fail_if_error(spec = bz_package_spec_new("jansson", version));
-    test_create_package(spec, false,
+    fail_if_error(env = bz_package_env_new("jansson", version));
+    test_create_package(env, false,
         "Test actions\n"
         "  Nothing to do!\n"
     );
@@ -477,7 +484,7 @@ START_TEST(test_arch_create_existing_package_01)
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
     );
-    bz_package_spec_free(spec);
+    bz_env_free(env);
 }
 END_TEST
 
@@ -485,14 +492,14 @@ START_TEST(test_arch_create_existing_package_02)
 {
     DESCRIBE_TEST;
     struct bz_version  *version;
-    struct bz_package_spec  *spec;
+    struct bz_env  *env;
     bz_start_mocks();
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
     bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", true);
     fail_if_error(version = bz_version_from_string("2.4"));
-    fail_if_error(spec = bz_package_spec_new("jansson", version));
-    test_create_package(spec, true,
+    fail_if_error(env = bz_package_env_new("jansson", version));
+    test_create_package(env, true,
         "Test actions\n"
         "[1/1] Package jansson 2.4\n"
     );
@@ -501,8 +508,8 @@ START_TEST(test_arch_create_existing_package_02)
         "$ pacman -Q pacman\n"
         "$ uname -m\n"
         "$ [ -f /tmp/staging ]\n"
-        "$ mkdir -p /home/test/.cache/buzzy/arch/package/jansson/2.4\n"
-        "$ cat > /home/test/.cache/buzzy/arch/package/jansson/2.4/PKGBUILD"
+        "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/pkg\n"
+        "$ cat > /home/test/.cache/buzzy/jansson/2.4/pkg/PKGBUILD"
             " <<EOF\n"
         "pkgname='jansson'\n"
         "pkgver='2.4'\n"
@@ -516,7 +523,7 @@ START_TEST(test_arch_create_existing_package_02)
         "EOF\n"
         "$ makepkg -sf\n"
     );
-    bz_package_spec_free(spec);
+    bz_env_free(env);
 }
 END_TEST
 

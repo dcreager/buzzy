@@ -36,7 +36,7 @@
 "  -f, --force\n" \
 "    Rebuild the binary package even if it already exists.\n" \
 GENERAL_HELP_TEXT \
-PACKAGE_SPEC_HELP_TEXT \
+PACKAGE_ENV_HELP_TEXT \
 PACKAGER_HELP_TEXT \
 
 static int
@@ -51,13 +51,13 @@ CORK_LOCAL struct cork_command  buzzy_raw_pkg =
 
 #define SHORT_OPTS  "+f" \
     GENERAL_SHORT_OPTS \
-    PACKAGE_SPEC_SHORT_OPTS \
+    PACKAGE_ENV_SHORT_OPTS \
     PACKAGER_SHORT_OPTS \
 
 static struct option  opts[] = {
     { "force", no_argument, NULL, 'f' },
     GENERAL_LONG_OPTS,
-    PACKAGE_SPEC_LONG_OPTS,
+    PACKAGE_ENV_LONG_OPTS,
     PACKAGER_LONG_OPTS,
     { NULL, 0, NULL, 0 }
 };
@@ -74,7 +74,7 @@ parse_options(int argc, char **argv)
             continue;
         }
 
-        if (package_spec_parse_opt(ch, &buzzy_raw_pkg)) {
+        if (package_env_parse_opt(ch, &buzzy_raw_pkg)) {
             continue;
         }
 
@@ -99,11 +99,11 @@ parse_options(int argc, char **argv)
 static void
 execute(int argc, char **argv)
 {
-    struct bz_package_spec  *spec;
     struct cork_path  *package_path;
     struct cork_path  *staging_path;
     struct bz_action  *action;
     struct bz_action_phase  *phase;
+    struct bz_value_provider  *value;
 
     if (argc == 0) {
         cork_command_show_help(&buzzy_raw_pkg, "Missing staging directory.");
@@ -113,16 +113,27 @@ execute(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    ri_check_error(bz_load_variable_definitions());
     ri_check_error(bz_pdb_discover());
+    package_env_init();
 
     rp_check_error(package_path = cork_path_new("."));
     ri_check_error(cork_path_set_absolute(package_path));
+    rp_check_error(value = bz_path_value_new(package_path));
+    bz_env_add_override(package_env, "package_path", value);
+
     rp_check_error(staging_path = cork_path_new(argv[0]));
     ri_check_error(cork_path_set_absolute(staging_path));
-    rp_check_error(spec = package_spec_get(&buzzy_raw_pkg));
-    rp_check_error(action = bz_create_package
-                   (spec, package_path, staging_path, NULL,
-                    force, verbosity > 0));
+    rp_check_error(value = bz_path_value_new(staging_path));
+    bz_env_add_override(package_env, "staging_path", value);
+
+    rp_check_error(value = bz_string_value_new(force? "1": "0"));
+    bz_env_add_override(package_env, "force", value);
+
+    rp_check_error(value = bz_string_value_new((verbosity > 0)? "1": "0"));
+    bz_env_add_override(package_env, "verbosity", value);
+
+    rp_check_error(action = bz_create_package(package_env, NULL));
 
     phase = bz_action_phase_new("Create package:");
     bz_action_phase_add(phase, action);
@@ -130,6 +141,6 @@ execute(int argc, char **argv)
 
     bz_action_phase_free(phase);
     bz_action_free(action);
-    bz_package_spec_free(spec);
+    package_env_done();
     exit(EXIT_SUCCESS);
 }

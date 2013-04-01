@@ -14,6 +14,7 @@
 #include <libcork/os.h>
 
 #include "buzzy/action.h"
+#include "buzzy/env.h"
 #include "buzzy/package.h"
 
 
@@ -30,11 +31,7 @@ bz_pdb_discover(void);
  */
 
 typedef struct bz_action *
-(*bz_create_package_f)(struct bz_package_spec *spec,
-                       struct cork_path *package_path,
-                       struct cork_path *staging_path,
-                       struct bz_action *stage_action,
-                       bool force, bool verbose);
+(*bz_create_package_f)(struct bz_env *env, struct bz_action *stage_action);
 
 /* If name is NULL, we try to auto-detect. */
 int
@@ -48,11 +45,7 @@ bz_packager_choose(const char *name);
  *
  * Takes control of package_path and staging_path. */
 struct bz_action *
-bz_create_package(struct bz_package_spec *spec,
-                  struct cork_path *package_path,
-                  struct cork_path *staging_path,
-                  struct bz_action *stage_action,
-                  bool force, bool verbose);
+bz_create_package(struct bz_env *env, struct bz_action *stage_action);
 
 
 #endif /* BUZZY_DISTRO_H */

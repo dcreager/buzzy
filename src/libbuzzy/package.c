@@ -16,6 +16,7 @@
 
 #include "buzzy/action.h"
 #include "buzzy/callbacks.h"
+#include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/package.h"
 #include "buzzy/version.h"
@@ -34,67 +35,45 @@
 
 
 /*-----------------------------------------------------------------------
- * Package specs
+ * Builtin package-specific variables
  */
 
-struct bz_package_spec {
-    const char  *package_name;
-    struct bz_version  *version;
-    const char  *license;
-};
-
-struct bz_package_spec *
-bz_package_spec_new(const char *package_name, struct bz_version *version)
+bz_define_variables(package)
 {
-    struct bz_package_spec  *spec = cork_new(struct bz_package_spec);
-    spec->package_name = cork_strdup(package_name);
-    spec->version = version;
-    spec->license = NULL;
-    return spec;
-}
+    bz_global_variable(
+        package__work_path, "package_work_path",
+        bz_interpolated_value_new("${work_path}/${name}/${version}"),
+        "Where build artefacts for a package should be placed",
+        ""
+    );
 
-void
-bz_package_spec_free(struct bz_package_spec *spec)
-{
-    cork_strfree(spec->package_name);
-    bz_version_free(spec->version);
-    if (spec->license != NULL) {
-        cork_strfree(spec->license);
-    }
-    free(spec);
-}
+    bz_global_variable(
+        pkg_path, "pkg_path",
+        bz_interpolated_value_new("${package_work_path}/pkg"),
+        "Temporary directory while building a binary package",
+        ""
+    );
 
-const char *
-bz_package_spec_name(struct bz_package_spec *spec)
-{
-    return spec->package_name;
-}
+    bz_global_variable(
+        staging_path, "staging_path",
+        bz_interpolated_value_new("${package_work_path}/stage"),
+        "Where a package's staged installation should be placed",
+        ""
+    );
 
-struct bz_version *
-bz_package_spec_version(struct bz_package_spec *spec)
-{
-    return spec->version;
-}
+    bz_global_variable(
+        force, "force",
+        bz_string_value_new("false"),
+        "Whether to always rebuild and reinstall a package",
+        ""
+    );
 
-const char *
-bz_package_spec_version_string(struct bz_package_spec *spec)
-{
-    return bz_version_to_string(spec->version);
-}
-
-const char *
-bz_package_spec_license(struct bz_package_spec *spec)
-{
-    return spec->license;
-}
-
-void
-bz_package_spec_set_license(struct bz_package_spec *spec, const char *license)
-{
-    if (spec->license != NULL) {
-        cork_strfree(spec->license);
-    }
-    spec->license = cork_strdup(license);
+    bz_global_variable(
+        verbose, "verbose",
+        bz_string_value_new("false"),
+        "Whether to print out more information while building a package",
+        ""
+    );
 }
 
 
@@ -107,8 +86,8 @@ struct bz_package {
     struct bz_version  *version;
     struct bz_dependency  *dep;
     void  *user_data;
-    bz_user_data_free_f  user_data_free;
-    bz_pdb_install_f  install;
+    bz_free_f  user_data_free;
+    bz_package_install_f  install;
     struct bz_action  *install_action;
 };
 
@@ -116,8 +95,8 @@ struct bz_package {
 struct bz_package *
 bz_package_new(const char *name, struct bz_version *version,
                struct bz_dependency *dep,
-               void *user_data, bz_user_data_free_f user_data_free,
-               bz_pdb_install_f install)
+               void *user_data, bz_free_f user_data_free,
+               bz_package_install_f install)
 {
     struct bz_package  *package = cork_new(struct bz_package);
     package->name = cork_strdup(name);
@@ -135,9 +114,7 @@ bz_package_free(struct bz_package *package)
 {
     cork_strfree(package->name);
     bz_version_free(package->version);
-    if (package->user_data_free != NULL) {
-        package->user_data_free(package->user_data);
-    }
+    bz_user_data_free(package);
     if (package->install_action != NULL) {
         bz_action_free(package->install_action);
     }
@@ -161,7 +138,7 @@ bz_package_install_action(struct bz_package *package)
 struct bz_pdb {
     const char  *name;
     void  *user_data;
-    bz_user_data_free_f  user_data_free;
+    bz_free_f  user_data_free;
     bz_pdb_satisfy_f  satisfy;
     struct cork_dllist_item  item;
 };
@@ -169,7 +146,7 @@ struct bz_pdb {
 
 struct bz_pdb *
 bz_pdb_new(const char *name,
-           void *user_data, bz_user_data_free_f user_data_free,
+           void *user_data, bz_free_f user_data_free,
            bz_pdb_satisfy_f satisfy)
 {
     struct bz_pdb  *pdb = cork_new(struct bz_pdb);
@@ -184,9 +161,7 @@ void
 bz_pdb_free(struct bz_pdb *pdb)
 {
     cork_strfree(pdb->name);
-    if (pdb->user_data_free != NULL) {
-        pdb->user_data_free(pdb->user_data);
-    }
+    bz_user_data_free(pdb);
     free(pdb);
 }
 
@@ -203,7 +178,7 @@ bz_pdb_satisfy_dependency(struct bz_pdb *pdb, struct bz_dependency *dep)
 
 struct bz_cached_pdb {
     void  *user_data;
-    bz_user_data_free_f  user_data_free;
+    bz_free_f  user_data_free;
     bz_pdb_satisfy_f  satisfy;
     struct cork_hash_table  packages;
 };
@@ -226,9 +201,7 @@ bz_cached_pdb__free(void *user_data)
     struct bz_cached_pdb  *pdb = user_data;
     cork_hash_table_map(&pdb->packages, bz_cached_pdb__free_package, NULL);
     cork_hash_table_done(&pdb->packages);
-    if (pdb->user_data_free != NULL) {
-        pdb->user_data_free(pdb->user_data);
-    }
+    bz_user_data_free(pdb);
     free(pdb);
 }
 
@@ -255,7 +228,7 @@ bz_cached_pdb__satisfy(void *user_data, struct bz_dependency *dep)
 
 struct bz_pdb *
 bz_cached_pdb_new(const char *pdb_name,
-                  void *user_data, bz_user_data_free_f user_data_free,
+                  void *user_data, bz_free_f user_data_free,
                   bz_pdb_satisfy_f satisfy)
 {
     struct bz_cached_pdb  *pdb = cork_new(struct bz_cached_pdb);
