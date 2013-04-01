@@ -149,9 +149,10 @@ bz_interpolated_value__free(void *user_data)
 static const char *
 bz_interpolated_value__provide(void *user_data, struct bz_env *env)
 {
-    struct bz_interpolated_value  *value = user_data;
     size_t  i;
+    struct bz_interpolated_value  *value = user_data;
     struct cork_buffer  *dest = &value->value;
+
     cork_buffer_clear(dest);
     for (i = 0; i < cork_array_size(&value->elements); i++) {
         struct bz_interpolated_element  *element =
@@ -183,18 +184,18 @@ bz_interpolated_value_parse(struct bz_interpolated_value *value,
     struct bz_interpolated_element  *element;
 
     
-#line 192 "libbuzzy/interpolated.c"
+#line 188 "libbuzzy/interpolated.c"
 static const int interpolated_value_start = 4;
 
 static const int interpolated_value_en_main = 4;
 
 
-#line 198 "libbuzzy/interpolated.c"
+#line 194 "libbuzzy/interpolated.c"
 	{
 	cs = interpolated_value_start;
 	}
 
-#line 203 "libbuzzy/interpolated.c"
+#line 199 "libbuzzy/interpolated.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
@@ -205,53 +206,53 @@ case 4:
 		goto st1;
 	goto tr6;
 tr6:
-#line 210 "libbuzzy/interpolated.c.rl"
+#line 206 "libbuzzy/interpolated.c.rl"
 	{ sstart = p; }
 	goto st5;
 tr10:
-#line 203 "libbuzzy/interpolated.c.rl"
+#line 199 "libbuzzy/interpolated.c.rl"
 	{
                    element = bz_string_element_new("$", 1);
                    bz_interpolated_value_add(value, element);
                }
-#line 210 "libbuzzy/interpolated.c.rl"
+#line 206 "libbuzzy/interpolated.c.rl"
 	{ sstart = p; }
 	goto st5;
 tr12:
-#line 197 "libbuzzy/interpolated.c.rl"
+#line 193 "libbuzzy/interpolated.c.rl"
 	{
                       element = bz_var_ref_element_new(vstart, vend - vstart);
                       bz_interpolated_value_add(value, element);
                   }
-#line 210 "libbuzzy/interpolated.c.rl"
+#line 206 "libbuzzy/interpolated.c.rl"
 	{ sstart = p; }
 	goto st5;
 st5:
 	if ( ++p == pe )
 		goto _test_eof5;
 case 5:
-#line 239 "libbuzzy/interpolated.c"
+#line 235 "libbuzzy/interpolated.c"
 	if ( (*p) == 36 )
 		goto tr9;
 	goto st5;
 tr9:
-#line 211 "libbuzzy/interpolated.c.rl"
+#line 207 "libbuzzy/interpolated.c.rl"
 	{ send = p; }
-#line 214 "libbuzzy/interpolated.c.rl"
+#line 210 "libbuzzy/interpolated.c.rl"
 	{
                      element = bz_string_element_new(sstart, send - sstart);
                      bz_interpolated_value_add(value, element);
                  }
 	goto st1;
 tr11:
-#line 203 "libbuzzy/interpolated.c.rl"
+#line 199 "libbuzzy/interpolated.c.rl"
 	{
                    element = bz_string_element_new("$", 1);
                    bz_interpolated_value_add(value, element);
                }
 	goto st1;
 tr13:
-#line 197 "libbuzzy/interpolated.c.rl"
+#line 193 "libbuzzy/interpolated.c.rl"
 	{
                       element = bz_var_ref_element_new(vstart, vend - vstart);
                       bz_interpolated_value_add(value, element);
@@ -261,7 +262,7 @@ st1:
 	if ( ++p == pe )
 		goto _test_eof1;
 case 1:
-#line 270 "libbuzzy/interpolated.c"
+#line 266 "libbuzzy/interpolated.c"
 	switch( (*p) ) {
 		case 36: goto st6;
 		case 123: goto st2;
@@ -295,14 +296,14 @@ case 2:
 		goto tr3;
 	goto st0;
 tr3:
-#line 193 "libbuzzy/interpolated.c.rl"
+#line 189 "libbuzzy/interpolated.c.rl"
 	{ vstart = p; }
 	goto st3;
 st3:
 	if ( ++p == pe )
 		goto _test_eof3;
 case 3:
-#line 311 "libbuzzy/interpolated.c"
+#line 307 "libbuzzy/interpolated.c"
 	switch( (*p) ) {
 		case 46: goto st3;
 		case 95: goto st3;
@@ -318,14 +319,14 @@ case 3:
 		goto st3;
 	goto st0;
 tr5:
-#line 194 "libbuzzy/interpolated.c.rl"
+#line 190 "libbuzzy/interpolated.c.rl"
 	{ vend = p; }
 	goto st7;
 st7:
 	if ( ++p == pe )
 		goto _test_eof7;
 case 7:
-#line 334 "libbuzzy/interpolated.c"
+#line 330 "libbuzzy/interpolated.c"
 	if ( (*p) == 36 )
 		goto tr13;
 	goto tr12;
@@ -342,45 +343,45 @@ case 7:
 	{
 	switch ( cs ) {
 	case 7: 
-#line 197 "libbuzzy/interpolated.c.rl"
+#line 193 "libbuzzy/interpolated.c.rl"
 	{
                       element = bz_var_ref_element_new(vstart, vend - vstart);
                       bz_interpolated_value_add(value, element);
                   }
 	break;
 	case 6: 
-#line 203 "libbuzzy/interpolated.c.rl"
+#line 199 "libbuzzy/interpolated.c.rl"
 	{
                    element = bz_string_element_new("$", 1);
                    bz_interpolated_value_add(value, element);
                }
 	break;
 	case 5: 
-#line 211 "libbuzzy/interpolated.c.rl"
+#line 207 "libbuzzy/interpolated.c.rl"
 	{ send = p; }
-#line 214 "libbuzzy/interpolated.c.rl"
+#line 210 "libbuzzy/interpolated.c.rl"
 	{
                      element = bz_string_element_new(sstart, send - sstart);
                      bz_interpolated_value_add(value, element);
                  }
 	break;
-#line 373 "libbuzzy/interpolated.c"
+#line 369 "libbuzzy/interpolated.c"
 	}
 	}
 
 	_out: {}
 	}
 
-#line 226 "libbuzzy/interpolated.c.rl"
+#line 222 "libbuzzy/interpolated.c.rl"
 
 
     /* A hack to suppress some unused variable warnings */
     (void) interpolated_value_en_main;
 
     if (CORK_UNLIKELY(cs < 
-#line 387 "libbuzzy/interpolated.c"
+#line 383 "libbuzzy/interpolated.c"
 4
-#line 231 "libbuzzy/interpolated.c.rl"
+#line 227 "libbuzzy/interpolated.c.rl"
 )) {
         bz_bad_config("Bad interpolated value \"%s\"", template_value);
         return -1;

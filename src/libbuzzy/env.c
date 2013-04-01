@@ -7,6 +7,10 @@
  * ----------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <ctype.h>
+#include <string.h>
+
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/os.h>
@@ -15,6 +19,119 @@
 #include "buzzy/callbacks.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
+#include "buzzy/version.h"
+
+
+/*-----------------------------------------------------------------------
+ * Retrieving the value of a variable
+ */
+
+static struct { const char *s; bool b; }  bool_values[] = {
+    { "1", true },
+    { "true", true },
+    { "yes", true },
+
+    { "0", false },
+    { "false", false },
+    { "no", false },
+
+    { NULL }
+};
+
+int
+bz_env_get_bool(struct bz_env *env, const char *name, bool *dest,
+                bool required)
+{
+    const char  *value = bz_env_get(env, name);
+    assert(dest != NULL);
+    if (value == NULL) {
+        if (required) {
+            bz_bad_config("Missing %s in %s", name, bz_env_name(env));
+            return -1;
+        } else {
+            return 0;
+        }
+    } else {
+        size_t  i;
+        for (i = 0; bool_values[i].s != NULL; i++) {
+            if (strcasecmp(value, bool_values[i].s) == 0) {
+                *dest = bool_values[i].b;
+                return 0;
+            }
+        }
+        bz_bad_config
+            ("Invalid boolean for %s in %s: %s", name, bz_env_name(env), value);
+        return -1;
+    }
+}
+
+int
+bz_env_get_long(struct bz_env *env, const char *name, long *dest,
+                bool required)
+{
+    const char  *value = bz_env_get(env, name);
+    assert(dest != NULL);
+    if (value == NULL) {
+        if (required) {
+            bz_bad_config("Missing %s in %s", name, bz_env_name(env));
+            return -1;
+        } else {
+            return 0;
+        }
+    } else {
+        char  *endptr = NULL;
+        *dest = strtol(value, &endptr, 0);
+        if (!isdigit(*dest) || *endptr != '\0') {
+            bz_bad_config
+                ("Invalid integer %s in %s: %s", name, bz_env_name(env), value);
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+}
+
+struct cork_path *
+bz_env_get_path(struct bz_env *env, const char *name, bool required)
+{
+    const char  *value = bz_env_get(env, name);
+    if (value == NULL) {
+        if (required) {
+            bz_bad_config("Missing %s in %s", name, bz_env_name(env));
+        }
+        return NULL;
+    } else {
+        return cork_path_new(value);
+    }
+}
+
+const char *
+bz_env_get_string(struct bz_env *env, const char *name, bool required)
+{
+    const char  *value = bz_env_get(env, name);
+    if (value == NULL) {
+        if (required) {
+            bz_bad_config("Missing %s in %s", name, bz_env_name(env));
+        }
+        return NULL;
+    } else {
+        return value;
+    }
+}
+
+struct bz_version *
+bz_env_get_version(struct bz_env *env, const char *name, bool required)
+{
+    const char  *value = bz_env_get(env, name);
+    if (value == NULL) {
+        if (required) {
+            bz_bad_config("Missing %s in %s", name, bz_env_name(env));
+        }
+        return NULL;
+    } else {
+        return bz_version_from_string(value);
+    }
+}
 
 
 /*-----------------------------------------------------------------------
@@ -106,15 +223,24 @@ struct bz_env {
     const char  *name;
     cork_array(struct bz_value_set *)  sets;
     cork_array(struct bz_value_set *)  backup_sets;
+    struct bz_var_table  *override_table;
 };
 
 struct bz_env *
 bz_env_new(const char *name)
 {
     struct bz_env  *env = cork_new(struct bz_env);
+    struct bz_value_set  *set;
     env->name = cork_strdup(name);
     cork_array_init(&env->sets);
     cork_array_init(&env->backup_sets);
+
+    /* Every environment comes with one var_table set for free, which takes
+     * precedence over every other value set. */
+    env->override_table = bz_var_table_new(name);
+    set = bz_var_table_as_set(env->override_table);
+    bz_env_add_set(env, set);
+
     return env;
 }
 
@@ -135,6 +261,12 @@ bz_env_free(struct bz_env *env)
 
     cork_strfree(env->name);
     free(env);
+}
+
+const char *
+bz_env_name(struct bz_env *env)
+{
+    return env->name;
 }
 
 void
@@ -185,6 +317,13 @@ bz_env_get(struct bz_env *env, const char *key)
     struct bz_value_provider  *provider;
     rpp_check(provider = bz_env_get_provider(env, key));
     return bz_value_provider_get(provider, env);
+}
+
+void
+bz_env_add_override(struct bz_env *env, const char *key,
+                    struct bz_value_provider *value)
+{
+    bz_var_table_add(env->override_table, key, value);
 }
 
 
@@ -448,7 +587,7 @@ bz_global_env(void)
 }
 
 struct bz_env *
-bz_package_env_new(const char *env_name)
+bz_package_env_new_empty(const char *env_name)
 {
     struct bz_env  *env;
     struct bz_value_set  *global_default_set;
@@ -456,6 +595,17 @@ bz_package_env_new(const char *env_name)
     env = bz_env_new(env_name);
     global_default_set = bz_global_docs_unowned_set("global defaults");
     bz_env_add_backup_set(env, global_default_set);
+    return env;
+}
+
+struct bz_env *
+bz_package_env_new(const char *package_name, struct bz_version *version)
+{
+    const char  *version_string = bz_version_to_string(version);
+    struct bz_env  *env = bz_package_env_new_empty(package_name);
+    bz_env_add_override(env, "name", bz_string_value_new(package_name));
+    bz_env_add_override(env, "version", bz_string_value_new(version_string));
+    bz_version_free(version);
     return env;
 }
 
@@ -508,5 +658,6 @@ int
 bz_load_variable_definitions(void)
 {
     bz_load_variables(global);
+    bz_load_variables(package);
     return 0;
 }

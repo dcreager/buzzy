@@ -30,4 +30,11 @@ bz_define_variables(global)
         "A directory for Buzzy's intermediate build products",
         ""
     );
+
+    bz_global_variable(
+        package_path, "package_path",
+        bz_interpolated_value_new("${cache_path}/buzzy/packages"),
+        "Where new binary packages should be placed",
+        ""
+    );
 }

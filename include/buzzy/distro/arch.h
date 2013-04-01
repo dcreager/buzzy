@@ -15,6 +15,7 @@
 #include <libcork/os.h>
 
 #include "buzzy/action.h"
+#include "buzzy/env.h"
 #include "buzzy/package.h"
 #include "buzzy/version.h"
 
@@ -71,11 +72,7 @@ bz_arch_native_pdb(void);
  */
 
 struct bz_action *
-bz_pacman_create_package(struct bz_package_spec *spec,
-                         struct cork_path *package_path,
-                         struct cork_path *staging_path,
-                         struct bz_action *stage_action,
-                         bool force, bool verbose);
+bz_pacman_create_package(struct bz_env *env, struct bz_action *stage_action);
 
 
 #endif /* BUZZY_DISTRO_ARCH_H */

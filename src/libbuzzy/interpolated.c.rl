@@ -128,7 +128,6 @@ bz_var_ref_element_new(const char *var_name, size_t length)
 struct bz_interpolated_value {
     cork_array(struct bz_interpolated_element *)  elements;
     struct cork_buffer  value;
-    bool  rendered;
 };
 
 static void
@@ -148,19 +147,16 @@ bz_interpolated_value__free(void *user_data)
 static const char *
 bz_interpolated_value__provide(void *user_data, struct bz_env *env)
 {
+    size_t  i;
     struct bz_interpolated_value  *value = user_data;
+    struct cork_buffer  *dest = &value->value;
 
-    if (!value->rendered) {
-        size_t  i;
-        struct cork_buffer  *dest = &value->value;
-        for (i = 0; i < cork_array_size(&value->elements); i++) {
-            struct bz_interpolated_element  *element =
-                cork_array_at(&value->elements, i);
-            rpi_check(bz_interpolated_element_render(element, env, dest));
-        }
-        value->rendered = true;
+    cork_buffer_clear(dest);
+    for (i = 0; i < cork_array_size(&value->elements); i++) {
+        struct bz_interpolated_element  *element =
+            cork_array_at(&value->elements, i);
+        rpi_check(bz_interpolated_element_render(element, env, dest));
     }
-
     return value->value.buf;
 }
 
@@ -245,7 +241,6 @@ bz_interpolated_value_new(const char *template_value)
     cork_array_init(&value->elements);
     cork_buffer_init(&value->value);
     cork_buffer_append(&value->value, "", 0);
-    value->rendered = false;
     ei_check(bz_interpolated_value_parse(value, template_value));
     return bz_value_provider_new
         (value, bz_interpolated_value__free, bz_interpolated_value__provide);

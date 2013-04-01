@@ -167,6 +167,14 @@ END_TEST
  */
 
 static void
+env_add_string(struct bz_env *env, const char *key, const char *value)
+{
+    struct bz_value_provider  *provider;
+    fail_if_error(provider = bz_string_value_new(value));
+    fail_if_error(bz_env_add_override(env, key, provider));
+}
+
+static void
 test_env(struct bz_env *env, const char *key, const char *expected)
 {
     const char  *actual;
@@ -219,6 +227,8 @@ START_TEST(test_env_01)
     test_env(env, "b", "hello");
     var_table_add_string(table1, "b", "world");
     test_env(env, "b", "world");
+    env_add_string(env, "b", "overridden");
+    test_env(env, "b", "overridden");
 
     bz_env_free(env);
 }
@@ -279,7 +289,7 @@ START_TEST(test_package_env_01)
     struct bz_value_set  *set1 = bz_var_table_as_set(table1);
 
     bz_global_env_reset();
-    env = bz_package_env_new("test");
+    env = bz_package_env_new_empty("test");
     test_env_missing(env, "a");
     set_global_default("a", "${b} value");
     test_env_error(env, "a");

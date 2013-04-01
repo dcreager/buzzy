@@ -18,43 +18,13 @@
 
 
 /*-----------------------------------------------------------------------
- * Package specs
- */
-
-struct bz_package_spec;
-
-/* Takes control of version */
-struct bz_package_spec *
-bz_package_spec_new(const char *package_name, struct bz_version *version);
-
-void
-bz_package_spec_free(struct bz_package_spec *spec);
-
-const char *
-bz_package_spec_name(struct bz_package_spec *spec);
-
-struct bz_version *
-bz_package_spec_version(struct bz_package_spec *spec);
-
-const char *
-bz_package_spec_version_string(struct bz_package_spec *spec);
-
-/* Can be NULL if no license was specified */
-const char *
-bz_package_spec_license(struct bz_package_spec *spec);
-
-void
-bz_package_spec_set_license(struct bz_package_spec *spec, const char *license);
-
-
-/*-----------------------------------------------------------------------
  * Packages
  */
 
 struct bz_package;
 
 typedef struct bz_action *
-(*bz_pdb_install_f)(void *user_data);
+(*bz_package_install_f)(void *user_data);
 
 
 /* Takes control of version, but not dep */
@@ -62,7 +32,7 @@ struct bz_package *
 bz_package_new(const char *name, struct bz_version *version,
                struct bz_dependency *dep,
                void *user_data, bz_free_f user_data_free,
-               bz_pdb_install_f install);
+               bz_package_install_f install);
 
 void
 bz_package_free(struct bz_package *package);

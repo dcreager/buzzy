@@ -23,6 +23,31 @@ struct bz_var_table;
 
 
 /*-----------------------------------------------------------------------
+ * Retrieving the value of a variable
+ */
+
+/* Error if it has malformed value.  If required is true, then also an error if
+ * value is missing. */
+
+int
+bz_env_get_bool(struct bz_env *env, const char *name, bool *dest,
+                bool required);
+
+int
+bz_env_get_long(struct bz_env *env, const char *name, long *dest,
+                bool required);
+
+struct cork_path *
+bz_env_get_path(struct bz_env *env, const char *name, bool required);
+
+const char *
+bz_env_get_string(struct bz_env *env, const char *name, bool required);
+
+struct bz_version *
+bz_env_get_version(struct bz_env *env, const char *name, bool required);
+
+
+/*-----------------------------------------------------------------------
  * Global and package-specific environments
  */
 
@@ -32,7 +57,11 @@ bz_global_env(void);
 /* env_name is usually the same as the package name, but if you don't know the
  * package name yet, you can use something like "new package". */
 struct bz_env *
-bz_package_env_new(const char *env_name);
+bz_package_env_new_empty(const char *env_name);
+
+/* Takes control of version */
+struct bz_env *
+bz_package_env_new(const char *package_name, struct bz_version *version);
 
 /* Every global and package-specific environment will use these default values
  * for any variables that aren't explicitly defined. */
@@ -105,6 +134,9 @@ bz_env_new(const char *name);
 void
 bz_env_free(struct bz_env *env);
 
+const char *
+bz_env_name(struct bz_env *env);
+
 /* Takes control of set */
 void
 bz_env_add_set(struct bz_env *env, struct bz_value_set *set);
@@ -121,6 +153,12 @@ bz_env_get_provider(struct bz_env *env, const char *key);
 
 const char *
 bz_env_get(struct bz_env *env, const char *key);
+
+/* Every environment comes with one var_table set for free, which takes
+ * precedence over every other value set. */
+void
+bz_env_add_override(struct bz_env *env, const char *key,
+                    struct bz_value_provider *value);
 
 
 /*-----------------------------------------------------------------------
