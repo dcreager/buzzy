@@ -43,6 +43,9 @@ bz_recipe_new(struct bz_env *env, const char *builder_name,
 void
 bz_recipe_free(struct bz_recipe *recipe);
 
+int
+bz_recipe_add_prereq_package(struct bz_recipe *recipe, const char *dep_string);
+
 /* The recipe is responsible for freeing all of the following actions. */
 
 struct bz_action *

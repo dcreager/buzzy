@@ -129,7 +129,14 @@ bz_cmake__stage(void *user_data, struct bz_env *env)
 struct bz_recipe *
 bz_cmake_new(struct bz_env *env, struct bz_action *source_action)
 {
-    return bz_recipe_new
-        (env, "cmake", source_action, NULL, NULL,
-         bz_cmake__build, bz_cmake__test, bz_cmake__stage);
+    struct bz_recipe  *recipe;
+    rpp_check(recipe = bz_recipe_new
+              (env, "cmake", source_action, NULL, NULL,
+               bz_cmake__build, bz_cmake__test, bz_cmake__stage));
+    ei_check(bz_recipe_add_prereq_package(recipe, "cmake"));
+    return recipe;
+
+error:
+    bz_recipe_free(recipe);
+    return NULL;
 }

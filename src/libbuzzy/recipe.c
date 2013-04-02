@@ -273,6 +273,16 @@ bz_recipe_free(struct bz_recipe *recipe)
     free(recipe);
 }
 
+int
+bz_recipe_add_prereq_package(struct bz_recipe *recipe, const char *dep_string)
+{
+    struct bz_action  *prereq;
+    rip_check(prereq = bz_install_dependency_string(dep_string));
+    bz_action_add_pre(recipe->build_action, prereq);
+    bz_action_add_pre(recipe->test_action, prereq);
+    bz_action_add_pre(recipe->stage_action, prereq);
+    return 0;
+}
 
 
 struct bz_action *

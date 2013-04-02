@@ -83,8 +83,10 @@ bz_subprocess_get_output_exec(struct cork_buffer *out_buf,
     struct cork_stream_consumer  *out;
     struct cork_stream_consumer  *err;
 
-    out = (out_buf == NULL)? NULL: cork_buffer_to_stream_consumer(out_buf);
-    err = (err_buf == NULL)? NULL: cork_buffer_to_stream_consumer(err_buf);
+    out = (out_buf == NULL)? &drop_consumer:
+        cork_buffer_to_stream_consumer(out_buf);
+    err = (err_buf == NULL)? &drop_consumer:
+        cork_buffer_to_stream_consumer(err_buf);
     rc = bz_mocked_exec(exec, out, err, &exit_code);
     if (out != NULL) {
         cork_stream_consumer_free(out);
