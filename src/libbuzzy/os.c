@@ -224,6 +224,16 @@ bz_create_directory(struct cork_path *path)
     return bz_mocked_create_dir(path);
 }
 
+int
+bz_create_directory_from_string(const char *path_string)
+{
+    struct cork_path  *path = cork_path_new(path_string);
+    struct cork_file  *dir;
+    rip_check(dir = bz_create_directory(path));
+    cork_file_free(dir);
+    return 0;
+}
+
 
 struct cork_file *
 bz_real__create_file(struct cork_path *path, struct cork_buffer *src)
@@ -260,6 +270,16 @@ bz_create_file(struct cork_path *path, struct cork_buffer *src)
     return bz_mocked_create_file(path, src);
 }
 
+int
+bz_create_file_from_string(const char *path_string, struct cork_buffer *src)
+{
+    struct cork_path  *path = cork_path_new(path_string);
+    struct cork_file  *file;
+    rip_check(file = bz_create_file(path, src));
+    cork_file_free(file);
+    return 0;
+}
+
 
 int
 bz_real__file_exists(struct cork_path *path, bool *exists)
@@ -275,4 +295,11 @@ int
 bz_file_exists(struct cork_path *path, bool *exists)
 {
     return bz_mocked_file_exists(path, exists);
+}
+
+int
+bz_file_exists_from_string(const char *path_string, bool *exists)
+{
+    struct cork_path  *path = cork_path_new(path_string);
+    return bz_file_exists(path, exists);
 }

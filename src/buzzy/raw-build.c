@@ -14,8 +14,8 @@
 #include <libcork/core.h>
 #include <libcork/os.h>
 
+#include "buzzy/built.h"
 #include "buzzy/commands.h"
-#include "buzzy/recipe.h"
 #include "buzzy/version.h"
 
 /*-----------------------------------------------------------------------
@@ -92,7 +92,7 @@ static void
 execute(int argc, char **argv)
 {
     struct cork_path  *source_path;
-    struct bz_recipe  *recipe;
+    struct bz_builder  *builder;
     struct bz_action  *action;
     struct bz_action_phase  *phase;
     struct bz_value_provider  *value;
@@ -117,15 +117,15 @@ execute(int argc, char **argv)
     rp_check_error(value = bz_string_value_new((verbosity > -1)? "1": "0"));
     bz_env_add_override(package_env, "verbose", value);
 
-    rp_check_error(recipe = bz_builder_new(package_env, NULL));
-    rp_check_error(action = bz_recipe_build_action(recipe));
+    rp_check_error(builder = bz_package_builder_new(package_env));
+    rp_check_error(action = bz_builder_build_action(builder));
 
     phase = bz_action_phase_new("Build package:");
     bz_action_phase_add(phase, action);
     ri_check_error(bz_action_phase_perform(phase));
 
     bz_action_phase_free(phase);
-    bz_recipe_free(recipe);
+    bz_builder_free(builder);
     package_env_done();
     exit(EXIT_SUCCESS);
 }

@@ -56,6 +56,7 @@ bz_native_package__free(void *user_data)
     free(native);
 }
 
+
 static void
 bz_native_package__install__message(void *user_data, struct cork_buffer *dest)
 {
@@ -106,6 +107,7 @@ bz_native_package__install(void *user_data)
          bz_native_package__install__perform);
 }
 
+
 struct bz_package *
 bz_native_package_new(const char *short_distro_name,
                       const char *package_name, const char *native_package_name,
@@ -123,6 +125,8 @@ bz_native_package_new(const char *short_distro_name,
     return bz_package_new
         (package_name, version, dep,
          native, bz_native_package__free,
+         NULL, /* build */
+         NULL, /* test */
          bz_native_package__install);
 }
 

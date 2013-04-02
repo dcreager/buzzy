@@ -22,6 +22,18 @@
 #include "buzzy/version.h"
 
 
+#if !defined(BZ_DEBUG_ENV)
+#define BZ_DEBUG_ENV  0
+#endif
+
+#if BZ_DEBUG_ENV
+#include <stdio.h>
+#define DEBUG(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define DEBUG(...) /* no debug messages */
+#endif
+
+
 /*-----------------------------------------------------------------------
  * Retrieving the value of a variable
  */
@@ -296,11 +308,15 @@ bz_env_get_provider(struct bz_env *env, const char *key)
 {
     size_t  i;
 
+    DEBUG("=== Looking for %s in %s\n", key, env->name);
+
     for (i = 0; i < cork_array_size(&env->sets); i++) {
         struct bz_value_set  *set = cork_array_at(&env->sets, i);
-        struct bz_value_provider  *provider =
-            bz_value_set_get_provider(set, key);
+        struct bz_value_provider  *provider;
+        DEBUG("=== Looking for %s in %s:%s\n", key, env->name, set->name);
+        provider = bz_value_set_get_provider(set, key);
         if (provider != NULL) {
+            DEBUG("=== FOUND %s in %s:%s\n", key, env->name, set->name);
             return provider;
         } else if (cork_error_occurred()) {
             return NULL;
@@ -309,15 +325,18 @@ bz_env_get_provider(struct bz_env *env, const char *key)
 
     for (i = 0; i < cork_array_size(&env->backup_sets); i++) {
         struct bz_value_set  *set = cork_array_at(&env->backup_sets, i);
-        struct bz_value_provider  *provider =
-            bz_value_set_get_provider(set, key);
+        struct bz_value_provider  *provider;
+        DEBUG("=== Looking for %s in %s:%s\n", key, env->name, set->name);
+        provider = bz_value_set_get_provider(set, key);
         if (provider != NULL) {
+            DEBUG("=== FOUND %s in %s:%s\n", key, env->name, set->name);
             return provider;
         } else if (cork_error_occurred()) {
             return NULL;
         }
     }
 
+    DEBUG("=== Couldn't find %s in %s\n", key, env->name);
     return NULL;
 }
 
@@ -669,9 +688,13 @@ bz_env_get_global_default(const char *name)
 int
 bz_load_variable_definitions(void)
 {
-    bz_load_variables(cmake);
     bz_load_variables(global);
     bz_load_variables(package);
-    bz_load_variables(recipe);
+
+    /* builders */
+    bz_load_variables(cmake);
+
+    /* packagers */
+    bz_load_variables(pacman);
     return 0;
 }

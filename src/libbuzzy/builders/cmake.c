@@ -12,9 +12,9 @@
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/action.h"
+#include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/os.h"
-#include "buzzy/recipe.h"
 
 
 /*-----------------------------------------------------------------------
@@ -36,9 +36,27 @@ bz_define_variables(cmake)
  * CMake builder
  */
 
-static int
-bz_cmake__build(void *user_data, struct bz_env *env)
+static void
+bz_cmake__build__message(void *user_data, struct cork_buffer *dest)
 {
+    struct bz_env  *env = user_data;
+    bz_build_message(dest, env, "cmake");
+}
+
+static int
+bz_cmake__build__is_needed(void *user_data, bool *is_needed)
+{
+    /* Let CMake determine what needs to be rebuilt.  We'll reuse the build
+     * directory from the last time we tried to build this particular version of
+     * the package, so we might be able to reuse some work. */
+    *is_needed = true;
+    return 0;
+}
+
+static int
+bz_cmake__build__perform(void *user_data)
+{
+    struct bz_env  *env = user_data;
     const char  *build_path;
     const char  *source_path;
     const char  *install_prefix;
@@ -52,6 +70,9 @@ bz_cmake__build(void *user_data, struct bz_env *env)
     rip_check(install_prefix = bz_env_get_string(env, "install_prefix", true));
     rip_check(build_type = bz_env_get_string(env, "cmake.build_type", true));
     rii_check(bz_env_get_bool(env, "verbose", &verbose, false));
+
+    /* Create the build path */
+    rii_check(bz_create_directory_from_string(build_path));
 
     /* $ cmake ${source_path} */
     exec = cork_exec_new("cmake");
@@ -81,9 +102,37 @@ error:
     return -1;
 }
 
-static int
-bz_cmake__test(void *user_data, struct bz_env *env)
+static struct bz_action *
+bz_cmake__build(struct bz_env *env)
 {
+    return bz_action_new
+        (env, NULL,
+         bz_cmake__build__message,
+         bz_cmake__build__is_needed,
+         bz_cmake__build__perform);
+}
+
+
+static void
+bz_cmake__test__message(void *user_data, struct cork_buffer *dest)
+{
+    struct bz_env  *env = user_data;
+    bz_test_message(dest, env, "cmake");
+}
+
+static int
+bz_cmake__test__is_needed(void *user_data, bool *is_needed)
+{
+    /* We only perform tests when explicitly asked to, and when asked, we always
+     * perform them. */
+    *is_needed = true;
+    return 0;
+}
+
+static int
+bz_cmake__test__perform(void *user_data)
+{
+    struct bz_env  *env = user_data;
     const char  *build_path;
     bool  verbose = false;
     struct cork_exec  *exec;
@@ -100,9 +149,36 @@ bz_cmake__test(void *user_data, struct bz_env *env)
     return bz_subprocess_run_exec(verbose, NULL, exec);
 }
 
-static int
-bz_cmake__stage(void *user_data, struct bz_env *env)
+static struct bz_action *
+bz_cmake__test(struct bz_env *env)
 {
+    return bz_action_new
+        (env, NULL,
+         bz_cmake__test__message,
+         bz_cmake__test__is_needed,
+         bz_cmake__test__perform);
+}
+
+
+static void
+bz_cmake__stage__message(void *user_data, struct cork_buffer *dest)
+{
+    struct bz_env  *env = user_data;
+    bz_stage_message(dest, env, "cmake");
+}
+
+static int
+bz_cmake__stage__is_needed(void *user_data, bool *is_needed)
+{
+    /* Always perform a fresh staged installation. */
+    *is_needed = true;
+    return 0;
+}
+
+static int
+bz_cmake__stage__perform(void *user_data)
+{
+    struct bz_env  *env = user_data;
     const char  *build_path;
     const char  *staging_path;
     bool  verbose = false;
@@ -112,6 +188,9 @@ bz_cmake__stage(void *user_data, struct bz_env *env)
     rip_check(build_path = bz_env_get_string(env, "build_path", true));
     rip_check(staging_path = bz_env_get_string(env, "staging_path", true));
     rii_check(bz_env_get_bool(env, "verbose", &verbose, false));
+
+    /* Create the staging path */
+    rii_check(bz_create_directory_from_string(staging_path));
 
     /* $ cmake --build ${build_path} --target install */
     exec = cork_exec_new("cmake");
@@ -126,17 +205,30 @@ bz_cmake__stage(void *user_data, struct bz_env *env)
     return bz_subprocess_run_exec(verbose, NULL, exec);
 }
 
-struct bz_recipe *
-bz_cmake_new(struct bz_env *env, struct bz_action *source_action)
+static struct bz_action *
+bz_cmake__stage(struct bz_env *env)
 {
-    struct bz_recipe  *recipe;
-    rpp_check(recipe = bz_recipe_new
-              (env, "cmake", source_action, NULL, NULL,
-               bz_cmake__build, bz_cmake__test, bz_cmake__stage));
-    ei_check(bz_recipe_add_prereq_package(recipe, "cmake"));
-    return recipe;
+    return bz_action_new
+        (env, NULL,
+         bz_cmake__stage__message,
+         bz_cmake__stage__is_needed,
+         bz_cmake__stage__perform);
+}
+
+
+struct bz_builder *
+bz_cmake_builder_new(struct bz_env *env)
+{
+    struct bz_builder  *builder;
+    rpp_check(builder = bz_builder_new
+              (env, "cmake",
+               bz_cmake__build(env),
+               bz_cmake__test(env),
+               bz_cmake__stage(env)));
+    ei_check(bz_builder_add_prereq_package(builder, "cmake"));
+    return builder;
 
 error:
-    bz_recipe_free(recipe);
+    bz_builder_free(builder);
     return NULL;
 }

@@ -51,6 +51,7 @@ endforeach(RAGEL_INPUT)
 
 set(LIBBUZZY_SRC
     libbuzzy/action.c
+    libbuzzy/builder.c
     libbuzzy/dependency.c
     libbuzzy/env.c
     libbuzzy/global-vars.c
@@ -59,13 +60,15 @@ set(LIBBUZZY_SRC
     libbuzzy/native.c
     libbuzzy/os.c
     libbuzzy/package.c
-    libbuzzy/recipe.c
+    libbuzzy/packager.c
     libbuzzy/version.c
-    libbuzzy/builders/build.c
     libbuzzy/builders/cmake.c
+    libbuzzy/builders/noop.c
     libbuzzy/distro/arch.c
     libbuzzy/distro/packager.c
     libbuzzy/distro/pdb.c
+    libbuzzy/packagers/noop.c
+    libbuzzy/packagers/pacman.c
 )
 
 add_library(libbuzzy STATIC ${LIBBUZZY_SRC})

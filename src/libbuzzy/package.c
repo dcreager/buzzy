@@ -15,6 +15,7 @@
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/action.h"
+#include "buzzy/built.h"
 #include "buzzy/callbacks.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
@@ -48,6 +49,13 @@ bz_define_variables(package)
     );
 
     bz_package_variable(
+        license, "license",
+        bz_string_value_new("unknown"),
+        "The license that the package is released under",
+        ""
+    );
+
+    bz_package_variable(
         force, "force",
         bz_string_value_new("false"),
         "Whether to always rebuild and reinstall a package",
@@ -58,6 +66,57 @@ bz_define_variables(package)
         verbose, "verbose",
         bz_string_value_new("false"),
         "Whether to print out more information while building a package",
+        ""
+    );
+
+    /* Everything below is only needed for built packages */
+
+    bz_package_variable(
+        builder, "builder",
+        NULL,
+        "What build system is used to build the package",
+        ""
+    );
+
+    bz_package_variable(
+        packager, "packager",
+        bz_packager_detector_new(),
+        "What packager is used to create a binary package file",
+        ""
+    );
+
+    bz_package_variable(
+        install_prefix, "install_prefix",
+        bz_string_value_new("/usr"),
+        "The installation prefix for the package",
+        ""
+    );
+
+    bz_package_variable(
+        build_path, "build_path",
+        bz_interpolated_value_new("${package_work_path}/build"),
+        "Where the package's build artefacts should be placed",
+        ""
+    );
+
+    bz_package_variable(
+        pkg_path, "pkg_path",
+        bz_interpolated_value_new("${package_work_path}/pkg"),
+        "Temporary directory while building a binary package",
+        ""
+    );
+
+    bz_package_variable(
+        source_path, "source_path",
+        bz_interpolated_value_new("${package_work_path}/source"),
+        "Where the package's extracted source archive should be placed",
+        ""
+    );
+
+    bz_package_variable(
+        staging_path, "staging_path",
+        bz_interpolated_value_new("${package_work_path}/stage"),
+        "Where a package's staged installation should be placed",
         ""
     );
 }
@@ -73,7 +132,11 @@ struct bz_package {
     struct bz_dependency  *dep;
     void  *user_data;
     bz_free_f  user_data_free;
+    bz_package_build_f  build;
+    bz_package_test_f  test;
     bz_package_install_f  install;
+    struct bz_action  *build_action;
+    struct bz_action  *test_action;
     struct bz_action  *install_action;
 };
 
@@ -82,6 +145,8 @@ struct bz_package *
 bz_package_new(const char *name, struct bz_version *version,
                struct bz_dependency *dep,
                void *user_data, bz_free_f user_data_free,
+               bz_package_build_f build,
+               bz_package_test_f test,
                bz_package_install_f install)
 {
     struct bz_package  *package = cork_new(struct bz_package);
@@ -90,6 +155,10 @@ bz_package_new(const char *name, struct bz_version *version,
     package->dep = dep;
     package->user_data = user_data;
     package->user_data_free = user_data_free;
+    package->build = build;
+    package->build_action = NULL;
+    package->test = test;
+    package->test_action = NULL;
     package->install = install;
     package->install_action = NULL;
     return package;
@@ -101,10 +170,34 @@ bz_package_free(struct bz_package *package)
     cork_strfree(package->name);
     bz_version_free(package->version);
     bz_user_data_free(package);
+    if (package->build_action != NULL) {
+        bz_action_free(package->build_action);
+    }
+    if (package->test_action != NULL) {
+        bz_action_free(package->test_action);
+    }
     if (package->install_action != NULL) {
         bz_action_free(package->install_action);
     }
     free(package);
+}
+
+struct bz_action *
+bz_package_build_action(struct bz_package *package)
+{
+    if (package->build_action == NULL) {
+        package->build_action = package->build(package->user_data);
+    }
+    return package->build_action;
+}
+
+struct bz_action *
+bz_package_test_action(struct bz_package *package)
+{
+    if (package->test_action == NULL) {
+        package->test_action = package->test(package->user_data);
+    }
+    return package->test_action;
 }
 
 struct bz_action *

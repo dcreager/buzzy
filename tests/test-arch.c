@@ -14,6 +14,7 @@
 #include <check.h>
 
 #include "buzzy/action.h"
+#include "buzzy/built.h"
 #include "buzzy/os.h"
 #include "buzzy/package.h"
 #include "buzzy/version.h"
@@ -363,6 +364,7 @@ test_create_package(struct bz_env *env, bool force,
     struct cork_path  *package_path = cork_path_new(".");
     struct cork_path  *staging_path = cork_path_new("/tmp/staging");
     struct bz_pdb  *pdb;
+    struct bz_packager  *packager;
     struct bz_action  *action;
 
     bz_global_env_reset();
@@ -377,9 +379,10 @@ test_create_package(struct bz_env *env, bool force,
     bz_env_add_override(env, "staging_path", bz_path_value_new(staging_path));
     bz_env_add_override(env, "force", bz_string_value_new(force? "1": "0"));
     bz_env_add_override(env, "verbose", bz_string_value_new("0"));
-    fail_if_error(action = bz_pacman_create_package(env, NULL));
+    fail_if_error(packager = bz_pacman_packager_new(env));
+    fail_if_error(action = bz_packager_package_action(packager));
     test_action(action, expected_actions);
-    bz_action_free(action);
+    bz_packager_free(packager);
 }
 
 START_TEST(test_arch_create_package_01)
@@ -395,7 +398,7 @@ START_TEST(test_arch_create_package_01)
     fail_if_error(env = bz_package_env_new("jansson", version));
     test_create_package(env, false,
         "Test actions\n"
-        "[1/1] Package jansson 2.4\n"
+        "[1/1] Package jansson 2.4 (pacman)\n"
     );
     verify_commands_run(
         "$ pacman -Sdp --print-format %v pacman\n"
@@ -437,7 +440,7 @@ START_TEST(test_arch_create_package_license_01)
                   (env, "license", bz_string_value_new("MIT")));
     test_create_package(env, false,
         "Test actions\n"
-        "[1/1] Package jansson 2.4\n"
+        "[1/1] Package jansson 2.4 (pacman)\n"
     );
     verify_commands_run(
         "$ pacman -Sdp --print-format %v pacman\n"
@@ -501,7 +504,7 @@ START_TEST(test_arch_create_existing_package_02)
     fail_if_error(env = bz_package_env_new("jansson", version));
     test_create_package(env, true,
         "Test actions\n"
-        "[1/1] Package jansson 2.4\n"
+        "[1/1] Package jansson 2.4 (pacman)\n"
     );
     verify_commands_run(
         "$ pacman -Sdp --print-format %v pacman\n"

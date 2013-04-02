@@ -14,11 +14,10 @@
 #include <check.h>
 
 #include "buzzy/action.h"
+#include "buzzy/built.h"
 #include "buzzy/os.h"
 #include "buzzy/package.h"
-#include "buzzy/recipe.h"
 #include "buzzy/version.h"
-#include "buzzy/builders/cmake.h"
 #include "buzzy/distro/arch.h"
 
 #include "helpers.h"
@@ -115,7 +114,7 @@ mock_cmake_unavailable(void)
 
 
 /*-----------------------------------------------------------------------
- * CMake recipes
+ * CMake builder
  */
 
 static void
@@ -124,7 +123,7 @@ test_stage_package(struct bz_env *env, bool force,
 {
     struct cork_path  *source_path = cork_path_new("/home/test/source");
     struct bz_pdb  *pdb;
-    struct bz_recipe  *recipe;
+    struct bz_builder  *builder;
     struct bz_action  *action;
 
     bz_global_env_reset();
@@ -136,10 +135,10 @@ test_stage_package(struct bz_env *env, bool force,
     bz_env_add_override(env, "source_path", bz_path_value_new(source_path));
     bz_env_add_override(env, "force", bz_string_value_new(force? "1": "0"));
     bz_env_add_override(env, "verbose", bz_string_value_new("0"));
-    fail_if_error(recipe = bz_cmake_new(env, NULL));
-    fail_if_error(action = bz_recipe_stage_action(recipe));
+    fail_if_error(builder = bz_cmake_builder_new(env));
+    fail_if_error(action = bz_builder_stage_action(builder));
     test_action(action, expected_actions);
-    bz_recipe_free(recipe);
+    bz_builder_free(builder);
 }
 
 START_TEST(test_cmake_stage_package_01)
@@ -149,8 +148,6 @@ START_TEST(test_cmake_stage_package_01)
     struct bz_env  *env;
     bz_start_mocks();
     mock_cmake_installed();
-    bz_mock_file_exists("/home/test/.cache/buzzy/jansson/2.4/.built", false);
-    bz_mock_file_exists("/home/test/.cache/buzzy/jansson/2.4/.staged", false);
     bz_mock_subprocess
         ("cmake /home/test/source"
          " -DCMAKE_INSTALL_PREFIX=/usr"
@@ -172,8 +169,6 @@ START_TEST(test_cmake_stage_package_01)
     );
     verify_commands_run(
         "$ pacman -Sdp --print-format %v cmake\n"
-        "$ [ -f /home/test/.cache/buzzy/jansson/2.4/.staged ]\n"
-        "$ [ -f /home/test/.cache/buzzy/jansson/2.4/.built ]\n"
         "$ pacman -Q cmake\n"
         "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/build\n"
         "$ cmake /home/test/source"
@@ -183,68 +178,6 @@ START_TEST(test_cmake_stage_package_01)
         "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/stage\n"
         "$ cmake --build /home/test/.cache/buzzy/jansson/2.4/build"
             " --target install\n"
-    );
-    bz_env_free(env);
-}
-END_TEST
-
-START_TEST(test_cmake_stage_prebuilt_package_01)
-{
-    DESCRIBE_TEST;
-    struct bz_version  *version;
-    struct bz_env  *env;
-    bz_start_mocks();
-    mock_cmake_installed();
-    bz_mock_file_exists("/home/test/.cache/buzzy/jansson/2.4/.built", true);
-    bz_mock_file_exists("/home/test/.cache/buzzy/jansson/2.4/.staged", false);
-    bz_mock_subprocess
-        ("cmake /home/test/source"
-         " -DCMAKE_INSTALL_PREFIX=/usr"
-         " -DCMAKE_BUILD_TYPE=RelWithDebInfo",
-         NULL, NULL, 0);
-    bz_mock_subprocess
-        ("cmake --build /home/test/.cache/buzzy/jansson/2.4/build",
-         NULL, NULL, 0);
-    bz_mock_subprocess
-        ("cmake --build /home/test/.cache/buzzy/jansson/2.4/build"
-         " --target install",
-         NULL, NULL, 0);
-    fail_if_error(version = bz_version_from_string("2.4"));
-    fail_if_error(env = bz_package_env_new("jansson", version));
-    test_stage_package(env, false,
-        "Test actions\n"
-        "[1/1] Stage jansson 2.4 (cmake)\n"
-    );
-    verify_commands_run(
-        "$ pacman -Sdp --print-format %v cmake\n"
-        "$ [ -f /home/test/.cache/buzzy/jansson/2.4/.staged ]\n"
-        "$ [ -f /home/test/.cache/buzzy/jansson/2.4/.built ]\n"
-        "$ pacman -Q cmake\n"
-        "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/stage\n"
-        "$ cmake --build /home/test/.cache/buzzy/jansson/2.4/build"
-            " --target install\n"
-    );
-    bz_env_free(env);
-}
-END_TEST
-
-START_TEST(test_cmake_stage_existing_package_01)
-{
-    DESCRIBE_TEST;
-    struct bz_version  *version;
-    struct bz_env  *env;
-    bz_start_mocks();
-    mock_cmake_installed();
-    bz_mock_file_exists("/home/test/.cache/buzzy/jansson/2.4/.staged", true);
-    fail_if_error(version = bz_version_from_string("2.4"));
-    fail_if_error(env = bz_package_env_new("jansson", version));
-    test_stage_package(env, false,
-        "Test actions\n"
-        "  Nothing to do!\n"
-    );
-    verify_commands_run(
-        "$ pacman -Sdp --print-format %v cmake\n"
-        "$ [ -f /home/test/.cache/buzzy/jansson/2.4/.staged ]\n"
     );
     bz_env_free(env);
 }
@@ -282,8 +215,6 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
     );
     verify_commands_run(
         "$ pacman -Sdp --print-format %v cmake\n"
-        "$ [ -f /home/test/.cache/buzzy/jansson/2.4/.staged ]\n"
-        "$ [ -f /home/test/.cache/buzzy/jansson/2.4/.built ]\n"
         "$ pacman -Q cmake\n"
         "$ sudo pacman -S --noconfirm cmake\n"
         "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/build\n"
@@ -310,7 +241,7 @@ test_unavailable(struct bz_env *env)
     fail_if_error(pdb = bz_arch_native_pdb());
     bz_pdb_register(pdb);
 
-    fail_unless_error(bz_cmake_new(env, NULL));
+    fail_unless_error(bz_cmake_builder_new(env));
 }
 
 START_TEST(test_cmake_unavailable_01)
@@ -343,8 +274,6 @@ test_suite()
 
     TCase  *tc_cmake_package = tcase_create("cmake");
     tcase_add_test(tc_cmake_package, test_cmake_stage_package_01);
-    tcase_add_test(tc_cmake_package, test_cmake_stage_prebuilt_package_01);
-    tcase_add_test(tc_cmake_package, test_cmake_stage_existing_package_01);
     tcase_add_test(tc_cmake_package, test_cmake_uninstalled_stage_package_01);
     tcase_add_test(tc_cmake_package, test_cmake_unavailable_01);
     suite_add_tcase(s, tc_cmake_package);
