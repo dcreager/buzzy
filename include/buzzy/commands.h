@@ -27,6 +27,7 @@ CORK_LOCAL extern struct cork_command  buzzy_doc;
 CORK_LOCAL extern struct cork_command  buzzy_vercmp;
 
 CORK_LOCAL extern struct cork_command  buzzy_raw;
+CORK_LOCAL extern struct cork_command  buzzy_raw_build;
 CORK_LOCAL extern struct cork_command  buzzy_raw_pkg;
 
 #define ri_check_error(call) \
@@ -111,47 +112,6 @@ general_parse_opt(int ch, struct cork_command *cmd)
         return true;
     } else if (ch == 'v') {
         verbosity++;
-        return true;
-    }
-
-    return false;
-}
-
-
-/*-----------------------------------------------------------------------
- * Common options: Packager selection
- */
-
-CORK_ATTR_UNUSED
-static const char  *packager_name = NULL;
-
-#define PACKAGER_HELP_TEXT \
-"\n" \
-"Packager options:\n" \
-"  --packager=<packager>\n" \
-"    Choose which packager to use to create and install binary packages.\n" \
-"    Normally, you will not have to provide this option, and we will use the\n" \
-"    native packager for the current platform.  You can override our\n" \
-"    selection with one of the following values:\n" \
-"        pacman\n" \
-
-#define PACKAGER_SHORT_OPTS  ""
-
-#define OPT_PACKAGER  1000
-
-#define PACKAGER_LONG_OPTS \
-    { "packager", required_argument, NULL, OPT_PACKAGER }
-
-CORK_ATTR_UNUSED
-static bool
-packager_parse_opt(int ch, struct cork_command *cmd)
-{
-    if (ch == OPT_PACKAGER) {
-        if (CORK_UNLIKELY(bz_packager_choose(optarg) != 0)) {
-            cork_command_show_help(cmd, cork_error_message());
-            exit(EXIT_FAILURE);
-        }
-
         return true;
     }
 

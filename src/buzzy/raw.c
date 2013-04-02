@@ -12,6 +12,7 @@
 #include "buzzy/commands.h"
 
 static struct cork_command  *subcommands[] = {
+    &buzzy_raw_build,
     &buzzy_raw_pkg,
     NULL
 };

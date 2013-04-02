@@ -55,4 +55,23 @@ struct bz_action *
 bz_recipe_stage_action(struct bz_recipe *recipe);
 
 
+/*-----------------------------------------------------------------------
+ * Recipes
+ */
+
+/* Returns an action that builds a package from source code that you've already
+ * unpacked.  If source_action is non-NULL, we assume that's the action that
+ * unpacks in the source code; we'll make sure to mark that as a prereq of the
+ * building action. */
+struct bz_recipe *
+bz_builder_new(struct bz_env *env, struct bz_action *source_action);
+
+/* Returns an action that builds a binary package from a staging directory that
+ * you've already set up.  If stage_action is non-NULL, we assume that's the
+ * action that fills in the staging directory; we'll make sure to mark that as a
+ * prereq of the packaging action. */
+struct bz_action *
+bz_create_package(struct bz_env *env, struct bz_action *stage_action);
+
+
 #endif /* BUZZY_RECIPE_H */

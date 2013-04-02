@@ -237,7 +237,7 @@ bz_define_vars__##prefix(void) \
     do { \
         int  __rc; \
         struct bz_value_provider  *__dv = default_value; \
-        if (CORK_UNLIKELY(__dv == NULL)) { \
+        if (CORK_UNLIKELY(cork_error_occurred())) { \
             return; \
         } \
         __rc = bz_env_set_global_default(name, __dv, short_desc, long_desc); \
@@ -247,17 +247,7 @@ bz_define_vars__##prefix(void) \
     } while (0)
 
 #define bz_package_variable(c_name, name, default_value, short_desc, long_desc) \
-    do { \
-        int  __rc; \
-        struct bz_value_provider  *__dv = default_value; \
-        if (CORK_UNLIKELY(__dv == NULL)) { \
-            return; \
-        } \
-        __rc = bz_env_set_global_default(name, __dv, short_desc, long_desc); \
-        if (CORK_UNLIKELY(__rc != 0)) { \
-            return; \
-        } \
-    } while (0)
+    bz_global_variable(c_name, name, default_value, short_desc, long_desc)
 
 
 #endif /* BUZZY_ENV_H */

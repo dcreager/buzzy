@@ -14,6 +14,7 @@
 
 #include "buzzy/action.h"
 #include "buzzy/callbacks.h"
+#include "buzzy/env.h"
 #include "buzzy/version.h"
 
 

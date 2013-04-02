@@ -61,6 +61,7 @@ set(LIBBUZZY_SRC
     libbuzzy/package.c
     libbuzzy/recipe.c
     libbuzzy/version.c
+    libbuzzy/builders/build.c
     libbuzzy/builders/cmake.c
     libbuzzy/distro/arch.c
     libbuzzy/distro/packager.c
@@ -80,6 +81,7 @@ set(BUZZY_SRC
     buzzy/buzzy.c
     buzzy/doc.c
     buzzy/raw.c
+    buzzy/raw-build.c
     buzzy/raw-pkg.c
     buzzy/root.c
     buzzy/vercmp.c

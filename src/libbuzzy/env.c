@@ -44,7 +44,9 @@ bz_env_get_bool(struct bz_env *env, const char *name, bool *dest,
 {
     const char  *value = bz_env_get(env, name);
     assert(dest != NULL);
-    if (value == NULL) {
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return -1;
+    } else if (value == NULL) {
         if (required) {
             bz_bad_config("Missing %s in %s", name, bz_env_name(env));
             return -1;
@@ -71,7 +73,9 @@ bz_env_get_long(struct bz_env *env, const char *name, long *dest,
 {
     const char  *value = bz_env_get(env, name);
     assert(dest != NULL);
-    if (value == NULL) {
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return -1;
+    } else if (value == NULL) {
         if (required) {
             bz_bad_config("Missing %s in %s", name, bz_env_name(env));
             return -1;
@@ -95,7 +99,9 @@ struct cork_path *
 bz_env_get_path(struct bz_env *env, const char *name, bool required)
 {
     const char  *value = bz_env_get(env, name);
-    if (value == NULL) {
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return NULL;
+    } else if (value == NULL) {
         if (required) {
             bz_bad_config("Missing %s in %s", name, bz_env_name(env));
         }
@@ -109,7 +115,9 @@ const char *
 bz_env_get_string(struct bz_env *env, const char *name, bool required)
 {
     const char  *value = bz_env_get(env, name);
-    if (value == NULL) {
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return NULL;
+    } else if (value == NULL) {
         if (required) {
             bz_bad_config("Missing %s in %s", name, bz_env_name(env));
         }
@@ -123,7 +131,9 @@ struct bz_version *
 bz_env_get_version(struct bz_env *env, const char *name, bool required)
 {
     const char  *value = bz_env_get(env, name);
-    if (value == NULL) {
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return NULL;
+    } else if (value == NULL) {
         if (required) {
             bz_bad_config("Missing %s in %s", name, bz_env_name(env));
         }
@@ -497,7 +507,9 @@ static void
 bz_var_doc_free(struct bz_var_doc *doc)
 {
     cork_strfree(doc->name);
-    bz_value_provider_free(doc->value);
+    if (doc->value != NULL) {
+        bz_value_provider_free(doc->value);
+    }
     cork_strfree(doc->short_desc);
     cork_strfree(doc->long_desc);
     free(doc);

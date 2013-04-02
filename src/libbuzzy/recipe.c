@@ -11,6 +11,7 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
+#include "buzzy/distro.h"
 #include "buzzy/os.h"
 #include "buzzy/recipe.h"
 
@@ -22,23 +23,51 @@
 bz_define_variables(recipe)
 {
     bz_package_variable(
+        builder, "builder",
+        NULL,
+        "What build system is used to build the package",
+        ""
+    );
+
+    bz_package_variable(
+        packager, "packager",
+        bz_packager_detector_new(),
+        "What packager is used to create a binary package file",
+        ""
+    );
+
+    bz_package_variable(
         install_prefix, "install_prefix",
         bz_string_value_new("/usr"),
-        "The installation prefix for any built packages",
+        "The installation prefix for the package",
         ""
     );
 
     bz_package_variable(
         build_path, "build_path",
         bz_interpolated_value_new("${package_work_path}/build"),
-        "Where a package's build artefacts should be placed",
+        "Where the package's build artefacts should be placed",
+        ""
+    );
+
+    bz_package_variable(
+        pkg_path, "pkg_path",
+        bz_interpolated_value_new("${package_work_path}/pkg"),
+        "Temporary directory while building a binary package",
         ""
     );
 
     bz_package_variable(
         source_path, "source_path",
         bz_interpolated_value_new("${package_work_path}/source"),
-        "Where a package's extracted source archive should be placed",
+        "Where the package's extracted source archive should be placed",
+        ""
+    );
+
+    bz_package_variable(
+        staging_path, "staging_path",
+        bz_interpolated_value_new("${package_work_path}/stage"),
+        "Where a package's staged installation should be placed",
         ""
     );
 }

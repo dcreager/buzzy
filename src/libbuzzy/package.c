@@ -48,20 +48,6 @@ bz_define_variables(package)
     );
 
     bz_package_variable(
-        pkg_path, "pkg_path",
-        bz_interpolated_value_new("${package_work_path}/pkg"),
-        "Temporary directory while building a binary package",
-        ""
-    );
-
-    bz_package_variable(
-        staging_path, "staging_path",
-        bz_interpolated_value_new("${package_work_path}/stage"),
-        "Where a package's staged installation should be placed",
-        ""
-    );
-
-    bz_package_variable(
         force, "force",
         bz_string_value_new("false"),
         "Whether to always rebuild and reinstall a package",
