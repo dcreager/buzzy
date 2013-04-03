@@ -83,8 +83,10 @@ bz_subprocess_get_output_exec(struct cork_buffer *out_buf,
     struct cork_stream_consumer  *out;
     struct cork_stream_consumer  *err;
 
-    out = (out_buf == NULL)? NULL: cork_buffer_to_stream_consumer(out_buf);
-    err = (err_buf == NULL)? NULL: cork_buffer_to_stream_consumer(err_buf);
+    out = (out_buf == NULL)? &drop_consumer:
+        cork_buffer_to_stream_consumer(out_buf);
+    err = (err_buf == NULL)? &drop_consumer:
+        cork_buffer_to_stream_consumer(err_buf);
     rc = bz_mocked_exec(exec, out, err, &exit_code);
     if (out != NULL) {
         cork_stream_consumer_free(out);
@@ -216,10 +218,14 @@ error:
     return NULL;
 }
 
-struct cork_file *
-bz_create_directory(struct cork_path *path)
+int
+bz_create_directory(const char *path_string)
 {
-    return bz_mocked_create_dir(path);
+    struct cork_path  *path = cork_path_new(path_string);
+    struct cork_file  *dir;
+    rip_check(dir = bz_mocked_create_dir(path));
+    cork_file_free(dir);
+    return 0;
 }
 
 
@@ -252,10 +258,14 @@ error:
     return NULL;
 }
 
-struct cork_file *
-bz_create_file(struct cork_path *path, struct cork_buffer *src)
+int
+bz_create_file(const char *path_string, struct cork_buffer *src)
 {
-    return bz_mocked_create_file(path, src);
+    struct cork_path  *path = cork_path_new(path_string);
+    struct cork_file  *file;
+    rip_check(file = bz_mocked_create_file(path, src));
+    cork_file_free(file);
+    return 0;
 }
 
 
@@ -270,7 +280,11 @@ bz_real__file_exists(struct cork_path *path, bool *exists)
 }
 
 int
-bz_file_exists(struct cork_path *path, bool *exists)
+bz_file_exists(const char *path_string, bool *exists)
 {
-    return bz_mocked_file_exists(path, exists);
+    int  rc;
+    struct cork_path  *path = cork_path_new(path_string);
+    rc = bz_mocked_file_exists(path, exists);
+    cork_path_free(path);
+    return rc;
 }

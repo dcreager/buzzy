@@ -7,57 +7,32 @@
  * ----------------------------------------------------------------------
  */
 
-#include <string.h>
-
 #include <libcork/core.h>
-#include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/action.h"
+#include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/distro.h"
-#include "buzzy/package.h"
 
 #include "buzzy/distro/arch.h"
 
 
-static bz_create_package_f  create_package = NULL;
-
-int
-bz_packager_choose(const char *name)
+static const char *
+bz_packager__detect(void *user_data, struct bz_env *env)
 {
-    /* Should we autodetect? */
-    if (name == NULL) {
-        bool  is_arch;
+    bool  is_arch;
 
-        rii_check(bz_arch_is_present(&is_arch));
-        if (is_arch) {
-            create_package = bz_pacman_create_package;
-            return 0;
-        }
-
-        bz_bad_config("Don't know what packager to use on this platform");
-        return -1;
+    rpi_check(bz_arch_is_present(&is_arch));
+    if (is_arch) {
+        return "pacman";
     }
 
-    /* A specific packager has been requested. */
-    if (strcmp(name, "pacman") == 0) {
-        create_package = bz_pacman_create_package;
-        return 0;
-    } else {
-        bz_bad_config("Unknown packager \"%s\"", name);
-        return -1;
-    }
+    bz_bad_config("Don't know what packager to use on this platform");
+    return NULL;
 }
 
-struct bz_action *
-bz_create_package(struct bz_env *env, struct bz_action *stage_action)
+struct bz_value_provider *
+bz_packager_detector_new(void)
 {
-    if (CORK_UNLIKELY(create_package == NULL)) {
-        /* If we haven't chosen a packager yet, try to autodetect. */
-        rpi_check(bz_packager_choose(NULL));
-    }
-
-    assert(create_package != NULL);
-    return create_package(env, stage_action);
+    return bz_value_provider_new(NULL, NULL, bz_packager__detect);
 }

@@ -212,7 +212,7 @@ static int
 bz_action_phase_perform_actions(struct bz_action_phase *phase,
                                 bz_action_array *actions);
 
-static void
+static int
 bz_action_phase_print_action(struct bz_action_phase *phase,
                              struct bz_action *action)
 {
@@ -220,8 +220,9 @@ bz_action_phase_print_action(struct bz_action_phase *phase,
     cork_buffer_printf(&phase->buf, "[%*zu/%zu] ",
                        (int) phase->count_length, phase->action_index,
                        phase->action_count);
-    action->message(action->user_data, &phase->buf);
+    rii_check(action->message(action->user_data, &phase->buf));
     bz_mocked_print_action(&phase->buf);
+    return 0;
 }
 
 static int
@@ -246,7 +247,7 @@ bz_action_phase_perform_action(struct bz_action_phase *phase,
         action->performing = true;
         rii_check(bz_action_phase_perform_actions(phase, &action->pre_actions));
         DEBUG("  performing %p\n", action);
-        bz_action_phase_print_action(phase, action);
+        rii_check(bz_action_phase_print_action(phase, action));
         rii_check(action->perform(action->user_data));
         action->performed = true;
         return bz_action_phase_perform_actions(phase, &action->post_actions);

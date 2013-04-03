@@ -64,16 +64,14 @@ bz_subprocess_run_exec(bool verbose, bool *successful, struct cork_exec *exec);
  * Creating files and directories
  */
 
-struct cork_file *
-bz_create_file(struct cork_path *path, struct cork_buffer *src);
-
-/* Takes control of path.  You must delete the directory with
- * bz_delete_directory. */
-struct cork_file *
-bz_create_directory(struct cork_path *path);
+int
+bz_create_file(const char *path, struct cork_buffer *src);
 
 int
-bz_file_exists(struct cork_path *path, bool *exists);
+bz_create_directory(const char *path);
+
+int
+bz_file_exists(const char *path, bool *exists);
 
 
 #endif /* BUZZY_OS_H */

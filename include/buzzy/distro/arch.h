@@ -20,10 +20,6 @@
 #include "buzzy/version.h"
 
 
-/* The Arch package release number to use for any packages we create. */
-#define BZ_ARCH_RELEASE  "1"
-
-
 /*-----------------------------------------------------------------------
  * Platform detection
  */
@@ -65,14 +61,6 @@ bz_arch_native_version_installed(const char *native_package_name);
 
 struct bz_pdb *
 bz_arch_native_pdb(void);
-
-
-/*-----------------------------------------------------------------------
- * Creating Arch packages
- */
-
-struct bz_action *
-bz_pacman_create_package(struct bz_env *env, struct bz_action *stage_action);
 
 
 #endif /* BUZZY_DISTRO_ARCH_H */

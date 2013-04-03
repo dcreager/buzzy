@@ -22,6 +22,18 @@
 #include "buzzy/version.h"
 
 
+#if !defined(BZ_DEBUG_ENV)
+#define BZ_DEBUG_ENV  0
+#endif
+
+#if BZ_DEBUG_ENV
+#include <stdio.h>
+#define DEBUG(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define DEBUG(...) /* no debug messages */
+#endif
+
+
 /*-----------------------------------------------------------------------
  * Retrieving the value of a variable
  */
@@ -44,7 +56,9 @@ bz_env_get_bool(struct bz_env *env, const char *name, bool *dest,
 {
     const char  *value = bz_env_get(env, name);
     assert(dest != NULL);
-    if (value == NULL) {
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return -1;
+    } else if (value == NULL) {
         if (required) {
             bz_bad_config("Missing %s in %s", name, bz_env_name(env));
             return -1;
@@ -71,7 +85,9 @@ bz_env_get_long(struct bz_env *env, const char *name, long *dest,
 {
     const char  *value = bz_env_get(env, name);
     assert(dest != NULL);
-    if (value == NULL) {
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return -1;
+    } else if (value == NULL) {
         if (required) {
             bz_bad_config("Missing %s in %s", name, bz_env_name(env));
             return -1;
@@ -95,7 +111,9 @@ struct cork_path *
 bz_env_get_path(struct bz_env *env, const char *name, bool required)
 {
     const char  *value = bz_env_get(env, name);
-    if (value == NULL) {
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return NULL;
+    } else if (value == NULL) {
         if (required) {
             bz_bad_config("Missing %s in %s", name, bz_env_name(env));
         }
@@ -109,7 +127,9 @@ const char *
 bz_env_get_string(struct bz_env *env, const char *name, bool required)
 {
     const char  *value = bz_env_get(env, name);
-    if (value == NULL) {
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return NULL;
+    } else if (value == NULL) {
         if (required) {
             bz_bad_config("Missing %s in %s", name, bz_env_name(env));
         }
@@ -123,7 +143,9 @@ struct bz_version *
 bz_env_get_version(struct bz_env *env, const char *name, bool required)
 {
     const char  *value = bz_env_get(env, name);
-    if (value == NULL) {
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return NULL;
+    } else if (value == NULL) {
         if (required) {
             bz_bad_config("Missing %s in %s", name, bz_env_name(env));
         }
@@ -286,11 +308,15 @@ bz_env_get_provider(struct bz_env *env, const char *key)
 {
     size_t  i;
 
+    DEBUG("=== Looking for %s in %s\n", key, env->name);
+
     for (i = 0; i < cork_array_size(&env->sets); i++) {
         struct bz_value_set  *set = cork_array_at(&env->sets, i);
-        struct bz_value_provider  *provider =
-            bz_value_set_get_provider(set, key);
+        struct bz_value_provider  *provider;
+        DEBUG("=== Looking for %s in %s:%s\n", key, env->name, set->name);
+        provider = bz_value_set_get_provider(set, key);
         if (provider != NULL) {
+            DEBUG("=== FOUND %s in %s:%s\n", key, env->name, set->name);
             return provider;
         } else if (cork_error_occurred()) {
             return NULL;
@@ -299,15 +325,18 @@ bz_env_get_provider(struct bz_env *env, const char *key)
 
     for (i = 0; i < cork_array_size(&env->backup_sets); i++) {
         struct bz_value_set  *set = cork_array_at(&env->backup_sets, i);
-        struct bz_value_provider  *provider =
-            bz_value_set_get_provider(set, key);
+        struct bz_value_provider  *provider;
+        DEBUG("=== Looking for %s in %s:%s\n", key, env->name, set->name);
+        provider = bz_value_set_get_provider(set, key);
         if (provider != NULL) {
+            DEBUG("=== FOUND %s in %s:%s\n", key, env->name, set->name);
             return provider;
         } else if (cork_error_occurred()) {
             return NULL;
         }
     }
 
+    DEBUG("=== Couldn't find %s in %s\n", key, env->name);
     return NULL;
 }
 
@@ -497,7 +526,9 @@ static void
 bz_var_doc_free(struct bz_var_doc *doc)
 {
     cork_strfree(doc->name);
-    bz_value_provider_free(doc->value);
+    if (doc->value != NULL) {
+        bz_value_provider_free(doc->value);
+    }
     cork_strfree(doc->short_desc);
     cork_strfree(doc->long_desc);
     free(doc);
@@ -659,5 +690,11 @@ bz_load_variable_definitions(void)
 {
     bz_load_variables(global);
     bz_load_variables(package);
+
+    /* builders */
+    bz_load_variables(cmake);
+
+    /* packagers */
+    bz_load_variables(pacman);
     return 0;
 }

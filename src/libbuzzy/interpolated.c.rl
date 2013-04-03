@@ -103,7 +103,9 @@ bz_var_ref_element__render(void *user_data, struct bz_env *env,
 {
     const char  *var_name = user_data;
     const char  *value = bz_env_get(env, var_name);
-    if (CORK_UNLIKELY(value == NULL)) {
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return -1;
+    } else if (CORK_UNLIKELY(value == NULL)) {
         bz_bad_config("No variable named \"%s\"", var_name);
         return -1;
     } else {
@@ -140,6 +142,7 @@ bz_interpolated_value__free(void *user_data)
             cork_array_at(&value->elements, i);
         bz_interpolated_element_free(element);
     }
+    cork_array_done(&value->elements);
     cork_buffer_done(&value->value);
     free(value);
 }

@@ -20,7 +20,7 @@
  * Actions
  */
 
-typedef void
+typedef int
 (*bz_action_message_f)(void *user_data, struct cork_buffer *dest);
 
 typedef int

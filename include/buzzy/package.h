@@ -14,6 +14,7 @@
 
 #include "buzzy/action.h"
 #include "buzzy/callbacks.h"
+#include "buzzy/env.h"
 #include "buzzy/version.h"
 
 
@@ -24,6 +25,12 @@
 struct bz_package;
 
 typedef struct bz_action *
+(*bz_package_build_f)(void *user_data);
+
+typedef struct bz_action *
+(*bz_package_test_f)(void *user_data);
+
+typedef struct bz_action *
 (*bz_package_install_f)(void *user_data);
 
 
@@ -32,12 +39,21 @@ struct bz_package *
 bz_package_new(const char *name, struct bz_version *version,
                struct bz_dependency *dep,
                void *user_data, bz_free_f user_data_free,
+               bz_package_build_f build,
+               bz_package_test_f test,
                bz_package_install_f install);
 
 void
 bz_package_free(struct bz_package *package);
 
-/* The package is responsible for freeing the action. */
+/* The package is responsible for freeing all of the following actions. */
+
+struct bz_action *
+bz_package_build_action(struct bz_package *package);
+
+struct bz_action *
+bz_package_test_action(struct bz_package *package);
+
 struct bz_action *
 bz_package_install_action(struct bz_package *package);
 
@@ -87,6 +103,9 @@ bz_cached_pdb_new(const char *pdb_name,
 /* Takes control of pdb */
 void
 bz_pdb_register(struct bz_pdb *pdb);
+
+void
+bz_pdb_registry_clear(void);
 
 struct bz_package *
 bz_satisfy_dependency(struct bz_dependency *dep);
