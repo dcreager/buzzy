@@ -25,28 +25,30 @@
  * Standard messages
  */
 
-void
+int
 bz_package_message(struct cork_buffer *dest, struct bz_env *env,
                    const char *packager_name)
 {
-    const char  *package_name = "unknown";
-    const char  *version = "unknown";
-    package_name = bz_env_get_string(env, "name", false);
-    version = bz_env_get_string(env, "version", false);
+    const char  *package_name;
+    const char  *version;
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
     cork_buffer_append_printf
         (dest, "Package %s %s (%s)", package_name, version, packager_name);
+    return 0;
 }
 
-void
+int
 bz_install_message(struct cork_buffer *dest, struct bz_env *env,
                    const char *packager_name)
 {
-    const char  *package_name = "unknown";
-    const char  *version = "unknown";
-    package_name = bz_env_get_string(env, "name", false);
-    version = bz_env_get_string(env, "version", false);
+    const char  *package_name;
+    const char  *version;
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
     cork_buffer_append_printf
         (dest, "Install %s %s (%s)", package_name, version, packager_name);
+    return 0;
 }
 
 

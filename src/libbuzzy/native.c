@@ -57,7 +57,7 @@ bz_native_package__free(void *user_data)
 }
 
 
-static void
+static int
 bz_native_package__install__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_native_package  *native = user_data;
@@ -66,6 +66,7 @@ bz_native_package__install__message(void *user_data, struct cork_buffer *dest)
          native->short_distro_name,
          native->native_package_name,
          bz_version_to_string(native->version));
+    return 0;
 }
 
 static int

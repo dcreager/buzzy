@@ -36,11 +36,11 @@ bz_define_variables(cmake)
  * CMake builder
  */
 
-static void
+static int
 bz_cmake__build__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_env  *env = user_data;
-    bz_build_message(dest, env, "cmake");
+    return bz_build_message(dest, env, "cmake");
 }
 
 static int
@@ -113,11 +113,11 @@ bz_cmake__build(struct bz_env *env)
 }
 
 
-static void
+static int
 bz_cmake__test__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_env  *env = user_data;
-    bz_test_message(dest, env, "cmake");
+    return bz_test_message(dest, env, "cmake");
 }
 
 static int
@@ -160,11 +160,11 @@ bz_cmake__test(struct bz_env *env)
 }
 
 
-static void
+static int
 bz_cmake__stage__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_env  *env = user_data;
-    bz_stage_message(dest, env, "cmake");
+    return bz_stage_message(dest, env, "cmake");
 }
 
 static int

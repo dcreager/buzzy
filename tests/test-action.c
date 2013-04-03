@@ -36,11 +36,12 @@ test_action__free(void *user_data)
     free(action);
 }
 
-static void
+static int
 test_action__message(void *user_data, struct cork_buffer *dest)
 {
     struct test_action  *action = user_data;
     cork_buffer_append_string(dest, action->message);
+    return 0;
 }
 
 static int

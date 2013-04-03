@@ -132,11 +132,11 @@ bz_define_variables(pacman)
  * Creating pacman packages
  */
 
-static void
+static int
 bz_pacman__package__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_env  *env = user_data;
-    bz_package_message(dest, env, "pacman");
+    return bz_package_message(dest, env, "pacman");
 }
 
 static int
@@ -246,11 +246,11 @@ bz_pacman__package(struct bz_env *env)
 }
 
 
-static void
+static int
 bz_pacman__install__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_env  *env = user_data;
-    bz_install_message(dest, env, "pacman");
+    return bz_install_message(dest, env, "pacman");
 }
 
 static int

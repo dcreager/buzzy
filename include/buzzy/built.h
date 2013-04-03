@@ -36,24 +36,24 @@
  * Standard messages
  */
 
-void
+int
 bz_build_message(struct cork_buffer *dest, struct bz_env *env,
                  const char *builder_name);
 
-void
+int
 bz_test_message(struct cork_buffer *dest, struct bz_env *env,
                 const char *builder_name);
 
-void
+int
 bz_stage_message(struct cork_buffer *dest, struct bz_env *env,
                  const char *builder_name);
 
 
-void
+int
 bz_package_message(struct cork_buffer *dest, struct bz_env *env,
                    const char *packager_name);
 
-void
+int
 bz_install_message(struct cork_buffer *dest, struct bz_env *env,
                    const char *packager_name);
 

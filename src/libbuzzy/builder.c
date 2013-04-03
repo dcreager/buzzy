@@ -25,40 +25,43 @@
  * Standard messages
  */
 
-void
+int
 bz_build_message(struct cork_buffer *dest, struct bz_env *env,
                  const char *builder_name)
 {
-    const char  *package_name = "unknown";
-    const char  *version = "unknown";
-    package_name = bz_env_get_string(env, "name", false);
-    version = bz_env_get_string(env, "version", false);
+    const char  *package_name;
+    const char  *version;
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
     cork_buffer_append_printf
         (dest, "Build %s %s (%s)", package_name, version, builder_name);
+    return 0;
 }
 
-void
+int
 bz_test_message(struct cork_buffer *dest, struct bz_env *env,
                 const char *builder_name)
 {
-    const char  *package_name = "unknown";
-    const char  *version = "unknown";
-    package_name = bz_env_get_string(env, "name", false);
-    version = bz_env_get_string(env, "version", false);
+    const char  *package_name;
+    const char  *version;
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
     cork_buffer_append_printf
         (dest, "Test %s %s (%s)", package_name, version, builder_name);
+    return 0;
 }
 
-void
+int
 bz_stage_message(struct cork_buffer *dest, struct bz_env *env,
                  const char *builder_name)
 {
-    const char  *package_name = "unknown";
-    const char  *version = "unknown";
-    package_name = bz_env_get_string(env, "name", false);
-    version = bz_env_get_string(env, "version", false);
+    const char  *package_name;
+    const char  *version;
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
     cork_buffer_append_printf
         (dest, "Stage %s %s (%s)", package_name, version, builder_name);
+    return 0;
 }
 
 

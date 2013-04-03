@@ -21,11 +21,11 @@
  * Noop packager
  */
 
-static void
+static int
 bz_noop__package__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_env  *env = user_data;
-    bz_package_message(dest, env, "noop");
+    return bz_package_message(dest, env, "noop");
 }
 
 static int
@@ -52,11 +52,11 @@ bz_noop__package(struct bz_env *env)
 }
 
 
-static void
+static int
 bz_noop__install__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_env  *env = user_data;
-    bz_install_message(dest, env, "noop");
+    return bz_install_message(dest, env, "noop");
 }
 
 static int

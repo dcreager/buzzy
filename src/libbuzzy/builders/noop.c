@@ -21,11 +21,11 @@
  * Noop builder
  */
 
-static void
+static int
 bz_noop__build__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_env  *env = user_data;
-    bz_build_message(dest, env, "noop");
+    return bz_build_message(dest, env, "noop");
 }
 
 static int
@@ -52,11 +52,11 @@ bz_noop__build(struct bz_env *env)
 }
 
 
-static void
+static int
 bz_noop__test__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_env  *env = user_data;
-    bz_test_message(dest, env, "noop");
+    return bz_test_message(dest, env, "noop");
 }
 
 static int
@@ -83,11 +83,11 @@ bz_noop__test(struct bz_env *env)
 }
 
 
-static void
+static int
 bz_noop__stage__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_env  *env = user_data;
-    bz_stage_message(dest, env, "noop");
+    return bz_stage_message(dest, env, "noop");
 }
 
 static int
