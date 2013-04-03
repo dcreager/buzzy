@@ -55,12 +55,9 @@ test_output(const char *expected_out, const char *expected_err, ...)
 static void
 test_file(const char *filename, const char *content)
 {
-    struct cork_path  *path = cork_path_new(filename);
-    struct cork_file  *file;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
     cork_buffer_set_string(&buf, content);
-    fail_if_error(file = bz_create_file(path, &buf));
-    cork_file_free(file);
+    fail_if_error(bz_create_file(filename, &buf));
     cork_buffer_done(&buf);
 }
 

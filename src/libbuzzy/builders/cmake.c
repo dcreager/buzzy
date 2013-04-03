@@ -72,7 +72,7 @@ bz_cmake__build__perform(void *user_data)
     rii_check(bz_env_get_bool(env, "verbose", &verbose, false));
 
     /* Create the build path */
-    rii_check(bz_create_directory_from_string(build_path));
+    rii_check(bz_create_directory(build_path));
 
     /* $ cmake ${source_path} */
     exec = cork_exec_new("cmake");
@@ -190,7 +190,7 @@ bz_cmake__stage__perform(void *user_data)
     rii_check(bz_env_get_bool(env, "verbose", &verbose, false));
 
     /* Create the staging path */
-    rii_check(bz_create_directory_from_string(staging_path));
+    rii_check(bz_create_directory(staging_path));
 
     /* $ cmake --build ${build_path} --target install */
     exec = cork_exec_new("cmake");

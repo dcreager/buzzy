@@ -154,7 +154,7 @@ bz_pacman__package__is_needed(void *user_data, bool *is_needed)
         const char  *package_path;
         rip_check(package_path = bz_env_get_string
                   (env, "pacman.package_path", true));
-        rii_check(bz_file_exists_from_string(package_path, is_needed));
+        rii_check(bz_file_exists(package_path, is_needed));
         *is_needed = !*is_needed;
         return 0;
     }
@@ -193,7 +193,7 @@ bz_pacman__package__perform(void *user_data)
     rip_check(license = bz_env_get_string(env, "license", true));
     rii_check(bz_env_get_bool(env, "verbose", &verbose, false));
 
-    rii_check(bz_file_exists_from_string(staging_path, &staging_exists));
+    rii_check(bz_file_exists(staging_path, &staging_exists));
     if (CORK_UNLIKELY(!staging_exists)) {
         cork_error_set
             (CORK_BUILTIN_ERROR, CORK_SYSTEM_ERROR,
@@ -202,7 +202,7 @@ bz_pacman__package__perform(void *user_data)
     }
 
     /* Create a temporary directory */
-    rii_check(bz_create_directory_from_string(pkg_path));
+    rii_check(bz_create_directory(pkg_path));
 
     /* Create a PKGBUILD file for this package */
     cork_buffer_append_printf(&buf, "pkgname='%s'\n", package_name);
@@ -219,7 +219,7 @@ bz_pacman__package__perform(void *user_data)
         staging_path
     );
 
-    ei_check(bz_create_file_from_string(pkgbuild_path, &buf));
+    ei_check(bz_create_file(pkgbuild_path, &buf));
     cork_buffer_done(&buf);
 
     exec_env = cork_env_clone_current();
