@@ -369,6 +369,7 @@ test_create_package(struct bz_env *env, bool force,
 
     bz_global_env_reset();
     fail_if_error(bz_load_variable_definitions());
+    bz_pdb_registry_clear();
     fail_if_error(pdb = bz_arch_native_pdb());
     bz_pdb_register(pdb);
 
@@ -405,6 +406,7 @@ START_TEST(test_arch_create_package_01)
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
         "$ pacman -Q pacman\n"
+        "$ uname -m\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/pkg\n"
         "$ cat > /home/test/.cache/buzzy/jansson/2.4/pkg/PKGBUILD"
@@ -447,6 +449,7 @@ START_TEST(test_arch_create_package_license_01)
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
         "$ pacman -Q pacman\n"
+        "$ uname -m\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/pkg\n"
         "$ cat > /home/test/.cache/buzzy/jansson/2.4/pkg/PKGBUILD"

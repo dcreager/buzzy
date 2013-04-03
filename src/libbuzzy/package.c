@@ -351,6 +351,13 @@ bz_pdb_register(struct bz_pdb *pdb)
     cork_dllist_add(&pdbs, &pdb->item);
 }
 
+void
+bz_pdb_registry_clear(void)
+{
+    cork_dllist_map(&pdbs, free_pdb, NULL);
+    cork_dllist_init(&pdbs);
+}
+
 struct bz_package *
 bz_satisfy_dependency(struct bz_dependency *dep)
 {

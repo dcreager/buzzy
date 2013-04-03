@@ -80,14 +80,13 @@ CORK_INITIALIZER(init_architecture)
 const char *
 bz_arch_current_architecture(void)
 {
-    if (architecture.size == 0) {
-        char  *buf;
-        rpi_check(bz_subprocess_get_output
-                  (&architecture, NULL, NULL, "uname", "-m", NULL));
-        /* Chomp the trailing newline */
-        buf = architecture.buf;
-        buf[--architecture.size] = '\0';
-    }
+    char  *buf;
+    cork_buffer_clear(&architecture);
+    rpi_check(bz_subprocess_get_output
+              (&architecture, NULL, NULL, "uname", "-m", NULL));
+    /* Chomp the trailing newline */
+    buf = architecture.buf;
+    buf[--architecture.size] = '\0';
     return architecture.buf;
 }
 

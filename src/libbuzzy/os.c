@@ -300,6 +300,9 @@ bz_file_exists(struct cork_path *path, bool *exists)
 int
 bz_file_exists_from_string(const char *path_string, bool *exists)
 {
+    int  rc;
     struct cork_path  *path = cork_path_new(path_string);
-    return bz_file_exists(path, exists);
+    rc = bz_file_exists(path, exists);
+    cork_path_free(path);
+    return rc;
 }

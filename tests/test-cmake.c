@@ -128,6 +128,7 @@ test_stage_package(struct bz_env *env, bool force,
 
     bz_global_env_reset();
     fail_if_error(bz_load_variable_definitions());
+    bz_pdb_registry_clear();
     fail_if_error(pdb = bz_arch_native_pdb());
     bz_pdb_register(pdb);
 
@@ -238,6 +239,7 @@ test_unavailable(struct bz_env *env)
 
     bz_global_env_reset();
     fail_if_error(bz_load_variable_definitions());
+    bz_pdb_registry_clear();
     fail_if_error(pdb = bz_arch_native_pdb());
     bz_pdb_register(pdb);
 

@@ -142,6 +142,7 @@ bz_interpolated_value__free(void *user_data)
             cork_array_at(&value->elements, i);
         bz_interpolated_element_free(element);
     }
+    cork_array_done(&value->elements);
     cork_buffer_done(&value->value);
     free(value);
 }

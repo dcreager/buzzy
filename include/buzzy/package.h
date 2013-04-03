@@ -104,6 +104,9 @@ bz_cached_pdb_new(const char *pdb_name,
 void
 bz_pdb_register(struct bz_pdb *pdb);
 
+void
+bz_pdb_registry_clear(void);
+
 struct bz_package *
 bz_satisfy_dependency(struct bz_dependency *dep);
 
