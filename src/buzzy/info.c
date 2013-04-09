@@ -96,7 +96,7 @@ execute(int argc, char **argv)
     rp_check_error(load = bz_repo_load(repo));
     phase = bz_action_phase_new("Load repositories:");
     bz_action_phase_add(phase, load);
-    ri_check_error(bz_action_phase_perform(phase));
+    ri_check_error(bz_action_phase_perform(phase, BZ_ACTION_HIDE_NOOP));
     bz_action_phase_free(phase);
 
     rp_check_error(env = bz_repo_env(repo));

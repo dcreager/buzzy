@@ -133,7 +133,7 @@ execute(int argc, char **argv)
 
     phase = bz_action_phase_new("Create package:");
     bz_action_phase_add(phase, action);
-    ri_check_error(bz_action_phase_perform(phase));
+    ri_check_error(bz_action_phase_perform(phase, 0));
 
     bz_action_phase_free(phase);
     bz_packager_free(packager);

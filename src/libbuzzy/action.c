@@ -245,7 +245,7 @@ bz_action_phase_count_actions(struct bz_action_phase *phase,
 
 static int
 bz_action_phase_perform_actions(struct bz_action_phase *phase,
-                                bz_action_array *actions);
+                                bz_action_array *actions, unsigned int flags);
 
 static int
 bz_action_phase_print_action(struct bz_action_phase *phase,
@@ -262,7 +262,7 @@ bz_action_phase_print_action(struct bz_action_phase *phase,
 
 static int
 bz_action_phase_perform_action(struct bz_action_phase *phase,
-                               struct bz_action *action)
+                               struct bz_action *action, unsigned int flags)
 {
     if (action->performed) {
         /* We already performed this action at some point. */
@@ -280,12 +280,14 @@ bz_action_phase_perform_action(struct bz_action_phase *phase,
 
     if (action->needed) {
         action->performing = true;
-        rii_check(bz_action_phase_perform_actions(phase, &action->pre_actions));
+        rii_check(bz_action_phase_perform_actions
+                  (phase, &action->pre_actions, flags));
         DEBUG("  performing %p\n", action);
         rii_check(bz_action_phase_print_action(phase, action));
         rii_check(action->perform(action->user_data));
         action->performed = true;
-        return bz_action_phase_perform_actions(phase, &action->post_actions);
+        return bz_action_phase_perform_actions
+            (phase, &action->post_actions, flags);
     } else {
         return 0;
     }
@@ -293,16 +295,29 @@ bz_action_phase_perform_action(struct bz_action_phase *phase,
 
 static int
 bz_action_phase_perform_actions(struct bz_action_phase *phase,
-                                bz_action_array *actions)
+                                bz_action_array *actions, unsigned int flags)
 {
     size_t  i;
     if (phase->action_count == 0) {
-        cork_buffer_set_string(&phase->buf, "  Nothing to do!");
-        bz_mocked_print_action(&phase->buf);
+        if ((flags & BZ_ACTION_HIDE_NOOP) == 0) {
+            if ((flags & BZ_ACTION_HIDE_HEADER) == 0) {
+                cork_buffer_set_string(&phase->buf, phase->message);
+                bz_mocked_print_action(&phase->buf);
+            }
+            cork_buffer_set_string(&phase->buf, "  Nothing to do!");
+            bz_mocked_print_action(&phase->buf);
+        }
     } else {
+        if ((flags & BZ_ACTION_HIDE_HEADER) == 0) {
+            cork_buffer_set_string(&phase->buf, phase->message);
+            bz_mocked_print_action(&phase->buf);
+        }
+        /* Now that we've printed out the header message, we shouldn't print it
+         * out in any recursive calls. */
+        flags |= BZ_ACTION_HIDE_HEADER;
         for (i = 0; i < cork_array_size(actions); i++) {
             struct bz_action  *action = cork_array_at(actions, i);
-            rii_check(bz_action_phase_perform_action(phase, action));
+            rii_check(bz_action_phase_perform_action(phase, action, flags));
         }
     }
     return 0;
@@ -310,7 +325,7 @@ bz_action_phase_perform_actions(struct bz_action_phase *phase,
 
 
 int
-bz_action_phase_perform(struct bz_action_phase *phase)
+bz_action_phase_perform(struct bz_action_phase *phase, unsigned int flags)
 {
     DEBUG("Counting actions for phase \"%s\"\n", phase->message);
     phase->action_count = 0;
@@ -320,7 +335,5 @@ bz_action_phase_perform(struct bz_action_phase *phase)
     phase->count_length = phase->buf.size;
 
     DEBUG("Performing actions for phase \"%s\"\n", phase->message);
-    cork_buffer_set_string(&phase->buf, phase->message);
-    bz_mocked_print_action(&phase->buf);
-    return bz_action_phase_perform_actions(phase, &phase->actions);
+    return bz_action_phase_perform_actions(phase, &phase->actions, flags);
 }

@@ -102,12 +102,20 @@ verify_commands_run(const char *expected_commands)
 
 CORK_ATTR_UNUSED
 static void
-test_action_phase(struct bz_action_phase *phase, const char *expected_actions)
+test_action_phase_flags(struct bz_action_phase *phase,
+                        const char *expected_actions, unsigned int flags)
 {
     bz_mocked_actions_clear();
-    fail_if_error(bz_action_phase_perform(phase));
+    fail_if_error(bz_action_phase_perform(phase, flags));
     fail_unless_streq("Action list", expected_actions,
                       bz_mocked_actions_run());
+}
+
+CORK_ATTR_UNUSED
+static void
+test_action_phase(struct bz_action_phase *phase, const char *expected_actions)
+{
+    test_action_phase_flags(phase, expected_actions, 0);
 }
 
 

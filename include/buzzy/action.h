@@ -56,6 +56,9 @@ bz_noop_action_new(void);
  * Phases
  */
 
+#define BZ_ACTION_HIDE_NOOP         0x0001
+#define BZ_ACTION_HIDE_HEADER       0x0002
+
 struct bz_action_phase;
 
 struct bz_action_phase *
@@ -68,7 +71,7 @@ void
 bz_action_phase_add(struct bz_action_phase *phase, struct bz_action *action);
 
 int
-bz_action_phase_perform(struct bz_action_phase *phase);
+bz_action_phase_perform(struct bz_action_phase *phase, unsigned int flags);
 
 
 #endif /* BUZZY_ACTION_H */
