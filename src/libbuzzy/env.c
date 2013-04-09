@@ -535,15 +535,31 @@ bz_var_table_as_set(struct bz_var_table *table)
  */
 
 struct bz_yaml_value_set {
+    struct cork_hash_table  values;
     yaml_document_t  doc;
     yaml_node_t  *root;
 };
+
+static enum cork_hash_table_map_result
+free_yaml_value(struct cork_hash_table_entry *entry, void *user_data)
+{
+    const char  *key = entry->key;
+    struct bz_value_provider  *value = entry->value;
+    cork_strfree(key);
+    if (value != NULL) {
+        bz_value_provider_free(value);
+    }
+    return CORK_HASH_TABLE_MAP_DELETE;
+}
 
 static void
 bz_yaml_value_set__free(void *user_data)
 {
     struct bz_yaml_value_set  *yaml_set = user_data;
+    cork_hash_table_map(&yaml_set->values, free_yaml_value, NULL);
+    cork_hash_table_done(&yaml_set->values);
     yaml_document_delete(&yaml_set->doc);
+    free(yaml_set);
 }
 
 static yaml_node_t *
@@ -596,9 +612,9 @@ bz_yaml__find_node(yaml_document_t *doc, yaml_node_t *node,
 }
 
 static struct bz_value_provider *
-bz_yaml_value_set__get(void *user_data, const char *key)
+bz_yaml_value_set__get_uncached(struct bz_yaml_value_set *yaml_set,
+                                const char *key)
 {
-    struct bz_yaml_value_set  *yaml_set = user_data;
     yaml_node_t  *value = yaml_set->root;
     const char  *curr_start = key;
     const char  *prev_end = key;
@@ -621,6 +637,22 @@ bz_yaml_value_set__get(void *user_data, const char *key)
     }
 }
 
+static struct bz_value_provider *
+bz_yaml_value_set__get(void *user_data, const char *key)
+{
+    struct bz_yaml_value_set  *yaml_set = user_data;
+    struct cork_hash_table_entry  *entry;
+    bool  is_new;
+
+    entry = cork_hash_table_get_or_create
+        (&yaml_set->values, (void *) key, &is_new);
+    if (is_new) {
+        entry->key = (void *) cork_strdup(key);
+        entry->value = bz_yaml_value_set__get_uncached(yaml_set, key);
+    }
+    return entry->value;
+}
+
 struct bz_value_set *
 bz_yaml_value_set_new(const char *name, yaml_document_t *doc)
 {
@@ -634,6 +666,7 @@ bz_yaml_value_set_new(const char *name, yaml_document_t *doc)
     }
 
     yaml_set = cork_new(struct bz_yaml_value_set);
+    cork_string_hash_table_init(&yaml_set->values, 0);
     yaml_set->doc = *doc;
     yaml_set->root = root;
     return bz_value_set_new
