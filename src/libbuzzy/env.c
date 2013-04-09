@@ -54,7 +54,7 @@ int
 bz_env_get_bool(struct bz_env *env, const char *name, bool *dest,
                 bool required)
 {
-    const char  *value = bz_env_get(env, name);
+    const char  *value = bz_env_get(env, name, NULL);
     assert(dest != NULL);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return -1;
@@ -83,7 +83,7 @@ int
 bz_env_get_long(struct bz_env *env, const char *name, long *dest,
                 bool required)
 {
-    const char  *value = bz_env_get(env, name);
+    const char  *value = bz_env_get(env, name, NULL);
     assert(dest != NULL);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return -1;
@@ -110,7 +110,8 @@ bz_env_get_long(struct bz_env *env, const char *name, long *dest,
 struct cork_path *
 bz_env_get_path(struct bz_env *env, const char *name, bool required)
 {
-    const char  *value = bz_env_get(env, name);
+    struct bz_value_set  *set;
+    const char  *value = bz_env_get(env, name, &set);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return NULL;
     } else if (value == NULL) {
@@ -119,14 +120,17 @@ bz_env_get_path(struct bz_env *env, const char *name, bool required)
         }
         return NULL;
     } else {
-        return cork_path_new(value);
+        const char  *base_path = bz_value_set_base_path(set);
+        struct cork_path  *result = cork_path_new(base_path);
+        cork_path_append(result, value);
+        return result;
     }
 }
 
 const char *
 bz_env_get_string(struct bz_env *env, const char *name, bool required)
 {
-    const char  *value = bz_env_get(env, name);
+    const char  *value = bz_env_get(env, name, NULL);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return NULL;
     } else if (value == NULL) {
@@ -142,7 +146,7 @@ bz_env_get_string(struct bz_env *env, const char *name, bool required)
 struct bz_version *
 bz_env_get_version(struct bz_env *env, const char *name, bool required)
 {
-    const char  *value = bz_env_get(env, name);
+    const char  *value = bz_env_get(env, name, NULL);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return NULL;
     } else if (value == NULL) {
@@ -197,6 +201,7 @@ bz_value_provider_get(struct bz_value_provider *provider, struct bz_env *env)
 
 struct bz_value_set {
     const char  *name;
+    const char  *base_path;
     void  *user_data;
     bz_free_f  user_data_free;
     bz_value_set_get_f  get;
@@ -208,6 +213,7 @@ bz_value_set_new(const char *name, void *user_data, bz_free_f user_data_free,
 {
     struct bz_value_set  *set = cork_new(struct bz_value_set);
     set->name = cork_strdup(name);
+    set->base_path = cork_strdup("");
     set->user_data = user_data;
     set->user_data_free = user_data_free;
     set->get = get;
@@ -218,8 +224,23 @@ void
 bz_value_set_free(struct bz_value_set *set)
 {
     cork_strfree(set->name);
+    cork_strfree(set->base_path);
     bz_user_data_free(set);
     free(set);
+}
+
+const char *
+bz_value_set_base_path(struct bz_value_set *set)
+{
+    return set->base_path;
+}
+
+void
+bz_value_set_set_base_path(struct bz_value_set *set, const char *base_path)
+{
+    assert(base_path != NULL);
+    cork_strfree(set->base_path);
+    set->base_path = cork_strdup(base_path);
 }
 
 struct bz_value_provider *
@@ -304,7 +325,8 @@ bz_env_add_backup_set(struct bz_env *env, struct bz_value_set *set)
 }
 
 struct bz_value_provider *
-bz_env_get_provider(struct bz_env *env, const char *key)
+bz_env_get_provider(struct bz_env *env, const char *key,
+                    struct bz_value_set **set_out)
 {
     size_t  i;
 
@@ -317,6 +339,9 @@ bz_env_get_provider(struct bz_env *env, const char *key)
         provider = bz_value_set_get_provider(set, key);
         if (provider != NULL) {
             DEBUG("=== FOUND %s in %s:%s\n", key, env->name, set->name);
+            if (set_out != NULL) {
+                *set_out = set;
+            }
             return provider;
         } else if (cork_error_occurred()) {
             return NULL;
@@ -330,6 +355,9 @@ bz_env_get_provider(struct bz_env *env, const char *key)
         provider = bz_value_set_get_provider(set, key);
         if (provider != NULL) {
             DEBUG("=== FOUND %s in %s:%s\n", key, env->name, set->name);
+            if (set_out != NULL) {
+                *set_out = set;
+            }
             return provider;
         } else if (cork_error_occurred()) {
             return NULL;
@@ -341,10 +369,10 @@ bz_env_get_provider(struct bz_env *env, const char *key)
 }
 
 const char *
-bz_env_get(struct bz_env *env, const char *key)
+bz_env_get(struct bz_env *env, const char *key, struct bz_value_set **set)
 {
     struct bz_value_provider  *provider;
-    rpp_check(provider = bz_env_get_provider(env, key));
+    rpp_check(provider = bz_env_get_provider(env, key, set));
     return bz_value_provider_get(provider, env);
 }
 

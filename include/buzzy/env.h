@@ -117,6 +117,14 @@ bz_value_set_new(const char *name, void *user_data, bz_free_f user_data_free,
 void
 bz_value_set_free(struct bz_value_set *set);
 
+/* Any relative paths in this value set will be interpreted relative to this
+ * base path.  Base path defaults to the current working directory. */
+const char *
+bz_value_set_base_path(struct bz_value_set *set);
+
+void
+bz_value_set_set_base_path(struct bz_value_set *set, const char *base_path);
+
 struct bz_value_provider *
 bz_value_set_get_provider(struct bz_value_set *set, const char *key);
 
@@ -147,12 +155,14 @@ bz_env_add_backup_set(struct bz_env *env, struct bz_value_set *set);
 
 /* Each of the sets in env are checked for key.  The sets added with
  * bz_env_add_set are checked first, in order, followed by the sets added with
- * bz_env_add_backup_set, in order. */
+ * bz_env_add_backup_set, in order.  If "set" is not-NULL, it will be filled in
+ * with the value set that provided the result. */
 struct bz_value_provider *
-bz_env_get_provider(struct bz_env *env, const char *key);
+bz_env_get_provider(struct bz_env *env, const char *key,
+                    struct bz_value_set **set);
 
 const char *
-bz_env_get(struct bz_env *env, const char *key);
+bz_env_get(struct bz_env *env, const char *key, struct bz_value_set **set);
 
 /* Every environment comes with one var_table set for free, which takes
  * precedence over every other value set. */
