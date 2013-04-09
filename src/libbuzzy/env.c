@@ -9,12 +9,14 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
+#include <yaml.h>
 
 #include "buzzy/callbacks.h"
 #include "buzzy/env.h"
@@ -525,6 +527,139 @@ bz_var_table_as_set(struct bz_var_table *table)
 {
     return bz_value_set_new
         (table->name, table, bz_var_table__set__free, bz_var_table__set__get);
+}
+
+
+/*-----------------------------------------------------------------------
+ * YAML file of values
+ */
+
+struct bz_yaml_value_set {
+    yaml_document_t  doc;
+    yaml_node_t  *root;
+};
+
+static void
+bz_yaml_value_set__free(void *user_data)
+{
+    struct bz_yaml_value_set  *yaml_set = user_data;
+    yaml_document_delete(&yaml_set->doc);
+}
+
+static yaml_node_t *
+bz_yaml__find_node(yaml_document_t *doc, yaml_node_t *node, const char *key)
+{
+    yaml_node_pair_t  *pair;
+
+    for (pair = node->data.mapping.pairs.start;
+         pair < node->data.mapping.pairs.top; pair++) {
+        yaml_node_t  *key_node = yaml_document_get_node(doc, pair->key);
+        const char  *curr_key;
+
+        if (CORK_LIKELY(key_node->type == YAML_SCALAR_NODE)) {
+            curr_key = (char *) key_node->data.scalar.value;
+        } else {
+            /* Skip any mapping elements whose keys aren't strings. */
+            continue;
+        }
+
+        if (strcmp(key, curr_key) == 0) {
+            /* We've found the node we need. */
+            return yaml_document_get_node(doc, pair->value);
+        }
+    }
+
+    return NULL;
+}
+
+static struct bz_value_provider *
+bz_yaml_value_set__get(void *user_data, const char *key)
+{
+    struct bz_yaml_value_set  *yaml_set = user_data;
+    yaml_node_t  *value;
+
+    rpp_check(value = bz_yaml__find_node(&yaml_set->doc, yaml_set->root, key));
+    if (CORK_LIKELY(value->type == YAML_SCALAR_NODE)) {
+        char  *content = (char *) value->data.scalar.value;
+        return bz_interpolated_value_new(content);
+    } else {
+        bz_bad_config("\"%s\" must be a string in YAML", key);
+        return NULL;
+    }
+}
+
+struct bz_value_set *
+bz_yaml_value_set_new(const char *name, yaml_document_t *doc)
+{
+    struct bz_yaml_value_set  *yaml_set;
+    yaml_node_t  *root;
+
+    root = yaml_document_get_root_node(doc);
+    if (CORK_UNLIKELY(root->type != YAML_MAPPING_NODE)) {
+        bz_bad_config("YAML configuration file must contain a mapping");
+        return NULL;
+    }
+
+    yaml_set = cork_new(struct bz_yaml_value_set);
+    yaml_set->doc = *doc;
+    yaml_set->root = root;
+    return bz_value_set_new
+        (name, yaml_set, bz_yaml_value_set__free, bz_yaml_value_set__get);
+}
+
+struct bz_value_set *
+bz_yaml_value_set_new_from_file(const char *name, const char *path)
+{
+    FILE  *file;
+    yaml_parser_t  parser;
+    yaml_document_t  doc;
+
+    file = fopen(path, "r");
+    if (CORK_UNLIKELY(file == NULL)) {
+        cork_system_error_set();
+        return NULL;
+    }
+
+    if (CORK_UNLIKELY(yaml_parser_initialize(&parser) == 0)) {
+        fclose(file);
+        bz_bad_config("Error reading %s", path);
+        return NULL;
+    }
+
+    yaml_parser_set_input_file(&parser, file);
+    if (CORK_UNLIKELY(yaml_parser_load(&parser, &doc) == 0)) {
+        bz_bad_config("Error reading %s: %s", path, parser.problem);
+        yaml_parser_delete(&parser);
+        fclose(file);
+        return NULL;
+    }
+
+    yaml_parser_delete(&parser);
+    fclose(file);
+    return bz_yaml_value_set_new(name, &doc);
+}
+
+struct bz_value_set *
+bz_yaml_value_set_new_from_string(const char *name, const char *content)
+{
+    yaml_parser_t  parser;
+    yaml_document_t  doc;
+
+    if (CORK_UNLIKELY(yaml_parser_initialize(&parser) == 0)) {
+        bz_bad_config("Error reading YAML");
+        return NULL;
+    }
+
+    yaml_parser_set_input_string
+        (&parser, (const unsigned char *) content, strlen(content));
+    if (CORK_UNLIKELY(yaml_parser_load(&parser, &doc) == 0)) {
+        bz_bad_config("Error reading YAML: %s", parser.problem);
+        yaml_parser_delete(&parser);
+        return NULL;
+    }
+
+    yaml_parser_delete(&parser);
+    return bz_yaml_value_set_new(name, &doc);
 }
 
 
