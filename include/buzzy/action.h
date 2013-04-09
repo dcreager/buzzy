@@ -48,6 +48,10 @@ void
 bz_action_add_post(struct bz_action *action, struct bz_action *post);
 
 
+struct bz_action *
+bz_noop_action_new(void);
+
+
 /*-----------------------------------------------------------------------
  * Phases
  */

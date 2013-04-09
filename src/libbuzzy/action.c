@@ -110,6 +110,41 @@ bz_action_is_needed(struct bz_action *action)
 
 
 /*-----------------------------------------------------------------------
+ * Noop action
+ */
+
+static int
+bz_noop__message(void *user_data, struct cork_buffer *dest)
+{
+    cork_buffer_append_string(dest, "Doing nothing");
+    return 0;
+}
+
+static int
+bz_noop__is_needed(void *user_data, bool *is_needed)
+{
+    *is_needed = false;
+    return 0;
+}
+
+static int
+bz_noop__perform(void *user_data)
+{
+    return 0;
+}
+
+struct bz_action *
+bz_noop_action_new(void)
+{
+    return bz_action_new
+        (NULL, NULL,
+         bz_noop__message,
+         bz_noop__is_needed,
+         bz_noop__perform);
+}
+
+
+/*-----------------------------------------------------------------------
  * Phases
  */
 

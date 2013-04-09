@@ -55,6 +55,9 @@ bz_env_get_version(struct bz_env *env, const char *name, bool required);
 struct bz_env *
 bz_global_env(void);
 
+struct bz_env *
+bz_repo_env_new_empty(void);
+
 /* env_name is usually the same as the package name, but if you don't know the
  * package name yet, you can use something like "new package". */
 struct bz_env *
@@ -273,6 +276,9 @@ bz_define_vars__##prefix(void) \
     } while (0)
 
 #define bz_package_variable(c_name, name, default_value, short_desc, long_desc) \
+    bz_global_variable(c_name, name, default_value, short_desc, long_desc)
+
+#define bz_repo_variable(c_name, name, default_value, short_desc, long_desc) \
     bz_global_variable(c_name, name, default_value, short_desc, long_desc)
 
 

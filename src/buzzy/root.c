@@ -13,6 +13,7 @@
 
 static struct cork_command  *subcommands[] = {
     &buzzy_doc,
+    &buzzy_info,
     &buzzy_raw,
     &buzzy_vercmp,
     NULL

@@ -847,6 +847,18 @@ bz_global_env(void)
 }
 
 struct bz_env *
+bz_repo_env_new_empty(void)
+{
+    struct bz_env  *env;
+    struct bz_value_set  *global_default_set;
+    ensure_global_created();
+    env = bz_env_new("repository");
+    global_default_set = bz_global_docs_unowned_set("global defaults");
+    bz_env_add_backup_set(env, global_default_set);
+    return env;
+}
+
+struct bz_env *
 bz_package_env_new_empty(const char *env_name)
 {
     struct bz_env  *env;
@@ -919,6 +931,7 @@ bz_load_variable_definitions(void)
 {
     bz_load_variables(global);
     bz_load_variables(package);
+    bz_load_variables(repo);
 
     /* builders */
     bz_load_variables(cmake);
