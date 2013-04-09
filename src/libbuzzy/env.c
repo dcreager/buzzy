@@ -547,14 +547,24 @@ bz_yaml_value_set__free(void *user_data)
 }
 
 static yaml_node_t *
-bz_yaml__find_node(yaml_document_t *doc, yaml_node_t *node, const char *key)
+bz_yaml__find_node(yaml_document_t *doc, yaml_node_t *node,
+                   const char *node_start, const char *node_end,
+                   const char *key_start, const char *key_end)
 {
     yaml_node_pair_t  *pair;
+
+    if (CORK_UNLIKELY(node->type != YAML_MAPPING_NODE)) {
+        bz_bad_config
+            ("\"%.*s\" must be a mapping in YAML",
+             (int) (node_end - node_start), node_start);
+        return NULL;
+    }
 
     for (pair = node->data.mapping.pairs.start;
          pair < node->data.mapping.pairs.top; pair++) {
         yaml_node_t  *key_node = yaml_document_get_node(doc, pair->key);
         const char  *curr_key;
+        bool  match;
 
         if (CORK_LIKELY(key_node->type == YAML_SCALAR_NODE)) {
             curr_key = (char *) key_node->data.scalar.value;
@@ -563,8 +573,21 @@ bz_yaml__find_node(yaml_document_t *doc, yaml_node_t *node, const char *key)
             continue;
         }
 
-        if (strcmp(key, curr_key) == 0) {
-            /* We've found the node we need. */
+        /* If key_end is non-NULL, then the key that we're looking for is
+         * terminated by a '.', rather than the usual NUL.  That means we have
+         * to use memcmp instead of strcmp to compare the keys. */
+        if (key_end == NULL) {
+            match = (strcmp(curr_key, key_start) == 0);
+        } else {
+            size_t  key_size = key_end - key_start;
+            size_t  curr_key_size = strlen(curr_key);
+
+            match =
+                (key_size == curr_key_size) &&
+                (memcmp(key_start, curr_key, key_size) == 0);
+        }
+
+        if (match) {
             return yaml_document_get_node(doc, pair->value);
         }
     }
@@ -576,9 +599,19 @@ static struct bz_value_provider *
 bz_yaml_value_set__get(void *user_data, const char *key)
 {
     struct bz_yaml_value_set  *yaml_set = user_data;
-    yaml_node_t  *value;
+    yaml_node_t  *value = yaml_set->root;
+    const char  *curr_start = key;
+    const char  *prev_end = key;
+    const char  *curr_end;
 
-    rpp_check(value = bz_yaml__find_node(&yaml_set->doc, yaml_set->root, key));
+    do {
+        curr_end = strchr(curr_start, '.');
+        rpp_check(value = bz_yaml__find_node
+                  (&yaml_set->doc, value, key, prev_end, curr_start, curr_end));
+        prev_end = curr_end;
+        curr_start = curr_end + 1;
+    } while (curr_end != NULL);
+
     if (CORK_LIKELY(value->type == YAML_SCALAR_NODE)) {
         char  *content = (char *) value->data.scalar.value;
         return bz_interpolated_value_new(content);

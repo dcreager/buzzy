@@ -303,6 +303,10 @@ static const char  YAML_01[] =
     "c: ${a} ${b}\n"
     "d: ${missing}\n"
     "e: [1,2,3]\n"
+    "f:\n"
+    "  a: nested\n"
+    "  b:\n"
+    "    c: ${f.a} more\n"
     ;
 
 START_TEST(test_env_yaml_01)
@@ -319,6 +323,10 @@ START_TEST(test_env_yaml_01)
     test_env(env, "c", "hello hello world");
     test_env_error(env, "d");
     test_env_error(env, "e");
+    test_env_error(env, "a.b");
+    test_env(env, "f.a", "nested");
+    test_env_error(env, "f.b");
+    test_env(env, "f.b.c", "nested more");
     test_env_missing(env, "missing");
 
     bz_env_free(env);
