@@ -20,6 +20,7 @@ set(LIBBUZZY_RAGEL
     libbuzzy/interpolated.c.rl
     libbuzzy/version.c.rl
     libbuzzy/distro/arch.c.rl
+    libbuzzy/distro/git.c.rl
 )
 
 set_property(
@@ -67,6 +68,7 @@ set(LIBBUZZY_SRC
     libbuzzy/builders/cmake.c
     libbuzzy/builders/noop.c
     libbuzzy/distro/arch.c
+    libbuzzy/distro/git.c
     libbuzzy/distro/packager.c
     libbuzzy/distro/pdb.c
     libbuzzy/packagers/noop.c
