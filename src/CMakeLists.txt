@@ -82,13 +82,16 @@ set_target_properties(libbuzzy PROPERTIES
 # buzzy
 
 set(BUZZY_SRC
+    buzzy/build.c
     buzzy/buzzy.c
     buzzy/doc.c
     buzzy/info.c
+    buzzy/install.c
     buzzy/raw.c
     buzzy/raw-build.c
     buzzy/raw-pkg.c
     buzzy/root.c
+    buzzy/test.c
     buzzy/vercmp.c
 )
 

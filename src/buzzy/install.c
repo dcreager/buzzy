@@ -21,18 +21,19 @@
 #include "buzzy/repo.h"
 
 /*-----------------------------------------------------------------------
- * buzzy info
+ * buzzy install
  */
 
 #define SHORT_DESC \
-    "Print information about the current Buzzy repository"
+    "install a package"
 
 #define USAGE_SUFFIX \
-    ""
+    "<dependency>..."
 
 #define HELP_TEXT \
-"Prints out information about the current Buzzy repository, and any\n" \
-"packages that it defines.\n" \
+"Finds a set of packages that satisfies all of the dependencies that you\n" \
+"provide, and then installs them all.  If necessary, we build the packages\n" \
+"first, but we don't test them.\n" \
 
 static int
 parse_options(int argc, char **argv);
@@ -40,8 +41,8 @@ parse_options(int argc, char **argv);
 static void
 execute(int argc, char **argv);
 
-CORK_LOCAL struct cork_command  buzzy_info =
-    cork_leaf_command("info", SHORT_DESC, USAGE_SUFFIX, HELP_TEXT,
+CORK_LOCAL struct cork_command  buzzy_install =
+    cork_leaf_command("install", SHORT_DESC, USAGE_SUFFIX, HELP_TEXT,
                       parse_options, execute);
 
 #define SHORT_OPTS  "+"
@@ -58,7 +59,7 @@ parse_options(int argc, char **argv)
     while ((ch = getopt_long(argc, argv, SHORT_OPTS, opts, NULL)) != -1) {
         switch (ch) {
             default:
-                cork_command_show_help(&buzzy_info, NULL);
+                cork_command_show_help(&buzzy_install, NULL);
                 exit(EXIT_FAILURE);
         }
 
@@ -70,32 +71,21 @@ static void
 execute(int argc, char **argv)
 {
     size_t  i;
-    size_t  repo_count;
-    struct bz_env  *env;
-    struct cork_path  *repo_path;
-
-    if (argc != 0) {
-        cork_command_show_help(&buzzy_info, NULL);
-        exit(EXIT_FAILURE);
-    }
+    struct bz_action_phase  *phase;
 
     bz_load_repositories();
+    satisfy_dependencies(&buzzy_install, argc, argv);
 
-    repo_count = bz_repo_registry_count();
-    if (repo_count == 0) {
-        printf("No repositories found!\n");
-        exit(EXIT_SUCCESS);
+    phase = bz_action_phase_new("Install packages:");
+    for (i = 0; i < cork_array_size(&dep_packages); i++) {
+        struct bz_package  *package = cork_array_at(&dep_packages, i);
+        struct bz_action  *action;
+        rp_check_error(action = bz_package_install_action(package));
+        bz_action_phase_add(phase, action);
     }
 
-    printf("Repositories:\n");
-    for (i = 0; i < repo_count; i++) {
-        struct bz_repo  *repo = bz_repo_registry_get(i);
-        rp_check_error(env = bz_repo_env(repo));
-        rp_check_error(repo_path = bz_env_get_path
-                       (env, "repo_base_path", true));
-        printf("  %s\n", cork_path_get(repo_path));
-        cork_path_free(repo_path);
-    }
-
+    ri_check_error(bz_action_phase_perform(phase, 0));
+    bz_action_phase_free(phase);
+    free_dependencies();
     exit(EXIT_SUCCESS);
 }

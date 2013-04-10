@@ -21,12 +21,17 @@
 #include "buzzy/action.h"
 #include "buzzy/distro.h"
 #include "buzzy/env.h"
+#include "buzzy/package.h"
 #include "buzzy/repo.h"
+#include "buzzy/version.h"
 
 CORK_LOCAL extern struct cork_command  buzzy_root;
 
+CORK_LOCAL extern struct cork_command  buzzy_build;
 CORK_LOCAL extern struct cork_command  buzzy_doc;
 CORK_LOCAL extern struct cork_command  buzzy_info;
+CORK_LOCAL extern struct cork_command  buzzy_install;
+CORK_LOCAL extern struct cork_command  buzzy_test;
 CORK_LOCAL extern struct cork_command  buzzy_vercmp;
 
 CORK_LOCAL extern struct cork_command  buzzy_raw;
@@ -109,6 +114,44 @@ bz_load_repositories(void)
     bz_action_phase_add(phase, load);
     ri_check_error(bz_action_phase_perform(phase, BZ_ACTION_HIDE_NOOP));
     bz_action_phase_free(phase);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Satisfy dependencies
+ */
+
+static cork_array(struct bz_package *)  dep_packages;
+
+CORK_ATTR_UNUSED
+static void
+satisfy_dependencies(struct cork_command *cmd, int argc, char **argv)
+{
+    size_t  i;
+
+    if (argc == 0) {
+        cork_command_show_help
+            (cmd, "Must provide at least one package dependency.");
+        exit(EXIT_FAILURE);
+    }
+
+    cork_array_init(&dep_packages);
+    for (i = 0; i < argc; i++) {
+        struct bz_dependency  *dep;
+        struct bz_package  *package;
+
+        rp_check_error(dep = bz_dependency_from_string(argv[i]));
+        rp_check_error(package = bz_satisfy_dependency(dep));
+        cork_array_append(&dep_packages, package);
+        bz_dependency_free(dep);
+    }
+}
+
+CORK_ATTR_UNUSED
+static void
+free_dependencies(void)
+{
+    cork_array_done(&dep_packages);
 }
 
 
