@@ -34,6 +34,7 @@
 "Finds a set of packages that satisfies all of the dependencies that you\n" \
 "provide, and then installs them all.  If necessary, we build the packages\n" \
 "first, but we don't test them.\n" \
+GENERAL_HELP_TEXT \
 
 static int
 parse_options(int argc, char **argv);
@@ -45,9 +46,11 @@ CORK_LOCAL struct cork_command  buzzy_install =
     cork_leaf_command("install", SHORT_DESC, USAGE_SUFFIX, HELP_TEXT,
                       parse_options, execute);
 
-#define SHORT_OPTS  "+"
+#define SHORT_OPTS  "+" \
+    GENERAL_SHORT_OPTS \
 
 static struct option  opts[] = {
+    GENERAL_LONG_OPTS,
     { NULL, 0, NULL, 0 }
 };
 
@@ -57,6 +60,10 @@ parse_options(int argc, char **argv)
     int  ch;
     getopt_reset();
     while ((ch = getopt_long(argc, argv, SHORT_OPTS, opts, NULL)) != -1) {
+        if (general_parse_opt(ch, &buzzy_raw_pkg)) {
+            continue;
+        }
+
         switch (ch) {
             default:
                 cork_command_show_help(&buzzy_install, NULL);
