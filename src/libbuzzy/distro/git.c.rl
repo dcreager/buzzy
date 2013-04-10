@@ -14,6 +14,7 @@
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/error.h"
+#include "buzzy/os.h"
 #include "buzzy/version.h"
 #include "buzzy/distro/git.h"
 
@@ -152,4 +153,84 @@ bz_version_from_git_describe(const char *git_version)
     bz_version_finalize(version);
     cork_buffer_done(&buf);
     return version;
+}
+
+
+/*-----------------------------------------------------------------------
+ * git version values
+ */
+
+struct bz_git_version {
+    struct bz_version  *version;
+};
+
+static void
+bz_git_version__free(void *user_data)
+{
+    struct bz_git_version  *git = user_data;
+    if (git->version != NULL) {
+        bz_version_free(git->version);
+    }
+    free(git);
+}
+
+static const char *
+bz_git_version__provide(void *user_data, struct bz_env *env)
+{
+    struct bz_git_version  *git = user_data;
+    struct cork_buffer  out = CORK_BUFFER_INIT();
+    struct cork_buffer  dirty = CORK_BUFFER_INIT();
+
+    if (git->version == NULL) {
+        bool  successful;
+        struct cork_path  *source_path;
+        struct cork_exec  *exec;
+
+        /* Grab the base version string from "git describe" */
+        ep_check(source_path = bz_env_get_path(env, "source_path", true));
+        exec = cork_exec_new_with_params("git", "describe", NULL);
+        cork_exec_set_cwd(exec, cork_path_get(source_path));
+        cork_path_free(source_path);
+        ei_check(bz_subprocess_get_output_exec(&out, NULL, &successful, exec));
+        if (!successful) {
+            goto error;
+        }
+
+        /* Chomp the trailing newline */
+        ((char *) out.buf)[--out.size] = '\0';
+
+        /* If the working tree is dirty, append "+dirty" to the version. */
+        ep_check(source_path = bz_env_get_path(env, "source_path", true));
+        exec = cork_exec_new_with_params("git", "status", "--porcelain", NULL);
+        cork_exec_set_cwd(exec, cork_path_get(source_path));
+        cork_path_free(source_path);
+        ei_check(bz_subprocess_get_output_exec
+                 (&dirty, NULL, &successful, exec));
+        if (!successful) {
+            goto error;
+        }
+        if (dirty.size > 0) {
+            cork_buffer_append_string(&out, "-dirty");
+        }
+
+        ep_check(git->version = bz_version_from_git_describe(out.buf));
+    }
+
+    cork_buffer_done(&out);
+    cork_buffer_done(&dirty);
+    return bz_version_to_string(git->version);
+
+error:
+    cork_buffer_done(&out);
+    cork_buffer_done(&dirty);
+    return NULL;
+}
+
+struct bz_value_provider *
+bz_git_version_value_new(void)
+{
+    struct bz_git_version  *git = cork_new(struct bz_git_version);
+    git->version = NULL;
+    return bz_value_provider_new
+        (git, bz_git_version__free, bz_git_version__provide);
 }

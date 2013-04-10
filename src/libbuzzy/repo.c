@@ -18,6 +18,7 @@
 #include "buzzy/error.h"
 #include "buzzy/os.h"
 #include "buzzy/repo.h"
+#include "buzzy/distro/git.h"
 
 
 /*-----------------------------------------------------------------------
@@ -51,6 +52,13 @@ bz_define_variables(repo)
         yaml_package_file_path, "yaml_package_file_path",
         bz_interpolated_value_new("${repo_base_path}/package.yaml"),
         "The location of the YAML file defining the repository's package",
+        ""
+    );
+
+    bz_repo_variable(
+        git_path, "git_path",
+        bz_interpolated_value_new("${repo_base_path}/../.git"),
+        "The location of the .git directory in a git checkout",
         ""
     );
 }
@@ -289,10 +297,33 @@ bz_filesystem__update(void *user_data, struct bz_env *env)
 }
 
 static int
+bz_filesystem_repo_add_git_version(struct bz_filesystem_repo *repo)
+{
+    bool  exists;
+    struct cork_path  *git_path = NULL;
+
+    /* See if the repository is a git checkout. */
+    rip_check(git_path = bz_env_get_path(repo->env, "git_path", true));
+    ei_check(bz_file_exists(cork_path_get(git_path), &exists));
+    cork_path_free(git_path);
+    if (!exists) {
+        return 0;
+    }
+
+    /* If so, add a default value for the "version" variable that parses the
+     * result of "git describe". */
+    bz_env_add_backup(repo->env, "version", bz_git_version_value_new());
+    return 0;
+
+error:
+    cork_path_free(git_path);
+    return -1;
+}
+
+static int
 bz_filesystem_repo_create_default_package(struct bz_filesystem_repo *repo)
 {
     bool  exists;
-    struct bz_env  *repo_env = repo->env;
     struct cork_path  *package_path = NULL;
     struct bz_env  *package_env = NULL;
     struct bz_value_set  *package_yaml;
@@ -300,14 +331,14 @@ bz_filesystem_repo_create_default_package(struct bz_filesystem_repo *repo)
 
     /* See if the repository has a package.yaml file. */
     rip_check(package_path = bz_env_get_path
-              (repo_env, "yaml_package_file_path", true));
+              (repo->env, "yaml_package_file_path", true));
     ei_check(bz_file_exists(cork_path_get(package_path), &exists));
     if (!exists) {
         return 0;
     }
 
     /* If so, create a default package from it. */
-    ep_check(package_env = bz_package_env_new_empty(repo_env, "package"));
+    ep_check(package_env = bz_package_env_new_empty(repo->env, "package"));
     ep_check(package_yaml = bz_yaml_value_set_new_from_file
              ("package", cork_path_get(package_path)));
     bz_env_add_set(package_env, package_yaml);
@@ -358,6 +389,7 @@ bz_filesystem_repo_new(const char *path, struct bz_action *update)
         bz_env_add_set(repo->env, repo_yaml);
     }
 
+    ei_check(bz_filesystem_repo_add_git_version(repo));
     ei_check(bz_filesystem_repo_create_default_package(repo));
 
     cork_path_free(repo_path);

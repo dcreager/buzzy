@@ -12,6 +12,7 @@
 
 #include <libcork/core.h>
 
+#include "buzzy/env.h"
 #include "buzzy/version.h"
 
 
@@ -21,6 +22,9 @@
 
 struct bz_version *
 bz_version_from_git_describe(const char *git_version);
+
+struct bz_value_provider *
+bz_git_version_value_new(void);
 
 
 #endif /* BUZZY_DISTRO_GIT_H */
