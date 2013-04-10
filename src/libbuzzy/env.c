@@ -112,7 +112,7 @@ bz_env_get_long(struct bz_env *env, const char *name, long *dest,
 struct cork_path *
 bz_env_get_path(struct bz_env *env, const char *name, bool required)
 {
-    struct bz_value_set  *set;
+    struct bz_value_set  *set = NULL;
     const char  *value = bz_env_get(env, name, &set);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return NULL;
@@ -269,6 +269,7 @@ struct bz_env {
     cork_array(struct bz_value_set *)  sets;
     cork_array(struct bz_value_set *)  backup_sets;
     struct bz_var_table  *override_table;
+    struct bz_var_table  *backup_table;
 };
 
 struct bz_env *
@@ -280,11 +281,17 @@ bz_env_new(const char *name)
     cork_array_init(&env->sets);
     cork_array_init(&env->backup_sets);
 
-    /* Every environment comes with one var_table set for free, which takes
-     * precedence over every other value set. */
+    /* Every environment comes with two var_table sets for free.  The first
+     * takes precedence over every other value set, the other is overridden by
+     * every other value set. */
+
     env->override_table = bz_var_table_new(name);
     set = bz_var_table_as_set(env->override_table);
     bz_env_add_set(env, set);
+
+    env->backup_table = bz_var_table_new(name);
+    set = bz_var_table_as_set(env->backup_table);
+    bz_env_add_backup_set(env, set);
 
     return env;
 }
@@ -383,6 +390,31 @@ bz_env_add_override(struct bz_env *env, const char *key,
                     struct bz_value_provider *value)
 {
     bz_var_table_add(env->override_table, key, value);
+}
+
+void
+bz_env_add_backup(struct bz_env *env, const char *key,
+                  struct bz_value_provider *value)
+{
+    bz_var_table_add(env->backup_table, key, value);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Environments as a value set
+ */
+
+static struct bz_value_provider *
+bz_env__set__get(void *user_data, const char *key)
+{
+    struct bz_env  *env = user_data;
+    return bz_env_get_provider(env, key, NULL);
+}
+
+struct bz_value_set *
+bz_env_as_value_set(struct bz_env *env)
+{
+    return bz_value_set_new(env->name, env, NULL, bz_env__set__get);
 }
 
 
@@ -859,22 +891,27 @@ bz_repo_env_new_empty(void)
 }
 
 struct bz_env *
-bz_package_env_new_empty(const char *env_name)
+bz_package_env_new_empty(struct bz_env *repo_env, const char *env_name)
 {
     struct bz_env  *env;
     struct bz_value_set  *global_default_set;
     ensure_global_created();
     env = bz_env_new(env_name);
+    if (repo_env != NULL) {
+        struct bz_value_set  *repo_set = bz_env_as_value_set(repo_env);
+        bz_env_add_backup_set(env, repo_set);
+    }
     global_default_set = bz_global_docs_unowned_set("global defaults");
     bz_env_add_backup_set(env, global_default_set);
     return env;
 }
 
 struct bz_env *
-bz_package_env_new(const char *package_name, struct bz_version *version)
+bz_package_env_new(struct bz_env *repo_env, const char *package_name,
+                   struct bz_version *version)
 {
     const char  *version_string = bz_version_to_string(version);
-    struct bz_env  *env = bz_package_env_new_empty(package_name);
+    struct bz_env  *env = bz_package_env_new_empty(repo_env, package_name);
     bz_env_add_override(env, "name", bz_string_value_new(package_name));
     bz_env_add_override(env, "version", bz_string_value_new(version_string));
     bz_version_free(version);

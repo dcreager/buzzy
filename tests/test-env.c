@@ -365,7 +365,7 @@ START_TEST(test_package_env_01)
     struct bz_value_set  *set1 = bz_var_table_as_set(table1);
 
     bz_global_env_reset();
-    env = bz_package_env_new_empty("test");
+    env = bz_package_env_new_empty(NULL, "test");
     test_env_missing(env, "a");
     set_global_default("a", "${b} value");
     test_env_error(env, "a");

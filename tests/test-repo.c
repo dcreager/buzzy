@@ -33,6 +33,7 @@ START_TEST(test_repo_01)
     bz_mock_file_exists("/a/b/c/.buzzy", false);
     bz_mock_file_exists("/a/b/.buzzy", true);
     bz_mock_file_exists("/a/b/.buzzy/repo.yaml", false);
+    bz_mock_file_exists("/a/b/.buzzy/package.yaml", false);
     fail_if_error(repo = bz_filesystem_repo_find("/a/b/c"));
     fail_if(repo == NULL, "Cannot create repo");
 }

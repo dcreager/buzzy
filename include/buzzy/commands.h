@@ -128,14 +128,22 @@ static void
 satisfy_dependencies(struct cork_command *cmd, int argc, char **argv)
 {
     size_t  i;
+    cork_array_init(&dep_packages);
 
     if (argc == 0) {
+        if (base_repo != NULL) {
+            struct bz_package  *package = bz_repo_default_package(base_repo);
+            if (package != NULL) {
+                cork_array_append(&dep_packages, package);
+                return;
+            }
+        }
+
         cork_command_show_help
             (cmd, "Must provide at least one package dependency.");
         exit(EXIT_FAILURE);
     }
 
-    cork_array_init(&dep_packages);
     for (i = 0; i < argc; i++) {
         struct bz_dependency  *dep;
         struct bz_package  *package;
@@ -216,7 +224,7 @@ static void
 package_env_init(void)
 {
     if (package_env == NULL) {
-        package_env = bz_package_env_new_empty("new package");
+        package_env = bz_package_env_new_empty(NULL, "new package");
     }
 }
 

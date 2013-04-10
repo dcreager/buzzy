@@ -8,6 +8,7 @@
  */
 
 #include <assert.h>
+#include <string.h>
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
@@ -41,6 +42,20 @@
 
 bz_define_variables(package)
 {
+    bz_package_variable(
+        name, "name",
+        NULL,
+        "The name of the package",
+        ""
+    );
+
+    bz_package_variable(
+        version, "version",
+        NULL,
+        "The version of the package",
+        ""
+    );
+
     bz_package_variable(
         package_work_path, "package_work_path",
         bz_interpolated_value_new("${work_path}/${name}/${version}"),
@@ -127,6 +142,7 @@ bz_define_variables(package)
  */
 
 struct bz_package {
+    struct bz_env  *env;
     const char  *name;
     struct bz_version  *version;
     void  *user_data;
@@ -141,13 +157,14 @@ struct bz_package {
 
 
 struct bz_package *
-bz_package_new(const char *name, struct bz_version *version,
+bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
                void *user_data, bz_free_f user_data_free,
                bz_package_build_f build,
                bz_package_test_f test,
                bz_package_install_f install)
 {
     struct bz_package  *package = cork_new(struct bz_package);
+    package->env = env;
     package->name = cork_strdup(name);
     package->version = version;
     package->user_data = user_data;
@@ -177,6 +194,24 @@ bz_package_free(struct bz_package *package)
         bz_action_free(package->install_action);
     }
     free(package);
+}
+
+struct bz_env *
+bz_package_env(struct bz_package *package)
+{
+    return package->env;
+}
+
+const char *
+bz_package_name(struct bz_package *package)
+{
+    return package->name;
+}
+
+struct bz_version *
+bz_package_version(struct bz_package *package)
+{
+    return package->version;
 }
 
 struct bz_action *
@@ -245,6 +280,50 @@ struct bz_package *
 bz_pdb_satisfy_dependency(struct bz_pdb *pdb, struct bz_dependency *dep)
 {
     return pdb->satisfy(pdb->user_data, dep);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Single-package databases
+ */
+
+struct bz_single_package_pdb {
+    struct bz_package  *package;
+    const char  *package_name;
+    struct bz_version  *package_version;
+};
+
+static void
+bz_single_package_pdb__free(void *user_data)
+{
+    struct bz_single_package_pdb  *pdb = user_data;
+    bz_package_free(pdb->package);
+    free(pdb);
+}
+
+static struct bz_package *
+bz_single_package_pdb__satisfy(void *user_data, struct bz_dependency *dep)
+{
+    struct bz_single_package_pdb  *pdb = user_data;
+    if (strcmp(pdb->package_name, dep->package_name) == 0) {
+        if (dep->min_version == NULL ||
+            bz_version_cmp(pdb->package_version, dep->min_version) >= 0) {
+            return pdb->package;
+        }
+    }
+    return NULL;
+}
+
+struct bz_pdb *
+bz_single_package_pdb_new(const char *pdb_name, struct bz_package *package)
+{
+    struct bz_single_package_pdb  *pdb = cork_new(struct bz_single_package_pdb);
+    pdb->package = package;
+    pdb->package_name = bz_package_name(package);
+    pdb->package_version = bz_package_version(package);
+    return bz_cached_pdb_new
+        (pdb_name, pdb, bz_single_package_pdb__free,
+         bz_single_package_pdb__satisfy);
 }
 
 

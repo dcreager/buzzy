@@ -80,6 +80,7 @@ bz_subprocess_get_output_exec(struct cork_buffer *out_buf,
 {
     int  rc;
     int  exit_code;
+    const char  *program = cork_exec_program(exec);
     struct cork_stream_consumer  *out;
     struct cork_stream_consumer  *err;
 
@@ -98,7 +99,7 @@ bz_subprocess_get_output_exec(struct cork_buffer *out_buf,
 
     if (successful == NULL) {
         if (CORK_UNLIKELY(exit_code != 0)) {
-            bz_subprocess_error("%s failed", cork_exec_program(exec));
+            bz_subprocess_error("%s failed", program);
             return -1;
         }
     } else {
@@ -146,6 +147,7 @@ bz_subprocess_run_exec(bool verbose, bool *successful, struct cork_exec *exec)
 {
     int  rc;
     int  exit_code;
+    const char  *program = cork_exec_program(exec);
     struct cork_stream_consumer  *out;
     struct cork_stream_consumer  *err;
 
@@ -162,7 +164,7 @@ bz_subprocess_run_exec(bool verbose, bool *successful, struct cork_exec *exec)
 
     if (successful == NULL) {
         if (CORK_UNLIKELY(exit_code != 0)) {
-            bz_subprocess_error("%s failed", cork_exec_program(exec));
+            bz_subprocess_error("%s failed", program);
             return -1;
         }
     } else {

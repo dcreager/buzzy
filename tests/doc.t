@@ -28,12 +28,10 @@ Print out the documentation for a handful of global variables.
     Current value: /home/test/.cache/buzzy
 
 
-Then do the same for some repo-specific variables, both while in a repository
-and directory and while not in one.
+Then do the same for some repo- and package-specific variables, both while in a
+repository and directory and while not in one.
 
   $ mkdir -p not-a-repo
-  $ mkdir -p repo1/.buzzy
-
   $ cd not-a-repo
   $ buzzy doc repo_base_path
   repo_base_path
@@ -43,6 +41,7 @@ and directory and while not in one.
     The location of the YAML file defining the repository
   $ cd ..
 
+  $ mkdir -p repo1/.buzzy
   $ cd repo1
   $ buzzy doc repo_base_path
   repo_base_path
@@ -54,4 +53,37 @@ and directory and while not in one.
     The location of the YAML file defining the repository
   
     Current value: .*/doc.t/repo1/.buzzy/repo.yaml (re)
+  $ cd ..
+
+  $ mkdir -p repo2/.buzzy
+  $ cat > repo2/.buzzy/package.yaml <<EOF
+  > name: test
+  > version: 1.0~rc1
+  > EOF
+  $ cd repo2
+  $ buzzy doc repo_base_path
+  repo_base_path
+    The base path of the files defining the repository
+  
+    Current value: .*/doc.t/repo2/.buzzy (re)
+  $ buzzy doc repo_path
+  repo_path
+    The location of the YAML file defining the repository
+  
+    Current value: .*/doc.t/repo2/.buzzy/repo.yaml (re)
+  $ buzzy doc name
+  name
+    The name of the package
+  
+    Current value: test
+  $ buzzy doc version
+  version
+    The version of the package
+  
+    Current value: 1.0~rc1
+  $ buzzy doc source_path
+  source_path
+    Where the package's extracted source archive should be placed
+  
+    Current value: .*/doc.t/repo2/.buzzy/.. (re)
   $ cd ..

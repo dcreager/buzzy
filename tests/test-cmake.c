@@ -162,7 +162,7 @@ START_TEST(test_cmake_stage_package_01)
          " --target install",
          NULL, NULL, 0);
     fail_if_error(version = bz_version_from_string("2.4"));
-    fail_if_error(env = bz_package_env_new("jansson", version));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_stage_package(env, false,
         "Test actions\n"
         "[1/2] Build jansson 2.4 (cmake)\n"
@@ -207,7 +207,7 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
          " --target install",
          NULL, NULL, 0);
     fail_if_error(version = bz_version_from_string("2.4"));
-    fail_if_error(env = bz_package_env_new("jansson", version));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_stage_package(env, false,
         "Test actions\n"
         "[1/3] Install native Arch package cmake 2.6\n"
@@ -254,7 +254,7 @@ START_TEST(test_cmake_unavailable_01)
     bz_start_mocks();
     mock_cmake_unavailable();
     fail_if_error(version = bz_version_from_string("2.4"));
-    fail_if_error(env = bz_package_env_new("jansson", version));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_unavailable(env);
     verify_commands_run(
         "$ pacman -Sdp --print-format %v cmake\n"

@@ -192,15 +192,24 @@ bz_native_package_new(const char *short_distro_name,
                       bz_native_detect_f version_installed,
                       bz_native_install_f install)
 {
-    struct bz_native_package  *native = cork_new(struct bz_native_package);
+    struct bz_native_package  *native;
+    struct bz_env  *env;
+
+    native = cork_new(struct bz_native_package);
     native->short_distro_name = cork_strdup(short_distro_name);
     native->package_name = cork_strdup(package_name);
     native->native_package_name = cork_strdup(native_package_name);
     native->version = version;
     native->version_installed = version_installed;
     native->install = install;
+
+    env = bz_package_env_new_empty(NULL, package_name);
+    bz_env_add_override(env, "name", bz_string_value_new(package_name));
+    bz_env_add_override
+        (env, "version", bz_string_value_new(bz_version_to_string(version)));
+
     return bz_package_new
-        (package_name, version,
+        (package_name, version, env,
          native, bz_native_package__free,
          bz_native_package__build,
          bz_native_package__test,

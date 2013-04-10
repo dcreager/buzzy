@@ -15,6 +15,7 @@
 #include "buzzy/action.h"
 #include "buzzy/callbacks.h"
 #include "buzzy/env.h"
+#include "buzzy/package.h"
 
 
 /*-----------------------------------------------------------------------
@@ -34,7 +35,8 @@ struct bz_repo *
 bz_repo_new(struct bz_env *env,
             void *user_data, bz_free_f user_data_free,
             bz_repo_load_f load,
-            bz_repo_update_f update);
+            bz_repo_update_f update,
+            struct bz_package *default_package);
 
 void
 bz_repo_free(struct bz_repo *repo);
@@ -47,6 +49,9 @@ bz_repo_load(struct bz_repo *repo);
 
 struct bz_action *
 bz_repo_update(struct bz_repo *repo);
+
+struct bz_package *
+bz_repo_default_package(struct bz_repo *repo);
 
 
 /* Takes control of repo; it will be automatically freed for you. */

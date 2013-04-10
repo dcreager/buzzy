@@ -77,7 +77,12 @@ execute(int argc, char **argv)
     if (base_repo == NULL) {
         env = bz_global_env();
     } else {
-        env = bz_repo_env(base_repo);
+        struct bz_package  *package = bz_repo_default_package(base_repo);
+        if (package == NULL) {
+            env = bz_repo_env(base_repo);
+        } else {
+            env = bz_package_env(package);
+        }
     }
 
     rp_check_error(doc = bz_env_get_global_default(argv[0]));

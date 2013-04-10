@@ -12,6 +12,7 @@
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/action.h"
+#include "buzzy/built.h"
 #include "buzzy/callbacks.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
@@ -67,13 +68,15 @@ struct bz_repo {
     bz_repo_update_f  update;
     struct bz_action  *load_action;
     struct bz_action  *update_action;
+    struct bz_package  *default_package;
 };
 
 struct bz_repo *
 bz_repo_new(struct bz_env *env,
             void *user_data, bz_free_f user_data_free,
             bz_repo_load_f load,
-            bz_repo_update_f update)
+            bz_repo_update_f update,
+            struct bz_package *default_package)
 {
     struct bz_repo  *repo = cork_new(struct bz_repo);
     repo->env = env;
@@ -83,6 +86,7 @@ bz_repo_new(struct bz_env *env,
     repo->update = update;
     repo->load_action = NULL;
     repo->update_action = NULL;
+    repo->default_package = default_package;
     return repo;
 }
 
@@ -122,6 +126,12 @@ bz_repo_update(struct bz_repo *repo)
         repo->update_action = repo->update(repo->user_data, repo->env);
     }
     return repo->update_action;
+}
+
+struct bz_package *
+bz_repo_default_package(struct bz_repo *repo)
+{
+    return repo->default_package;
 }
 
 
@@ -208,6 +218,7 @@ struct bz_filesystem_repo {
     const char  *path;
     struct bz_env  *env;
     struct bz_action  *update;
+    struct bz_package  *default_package;
 };
 
 static void
@@ -219,10 +230,55 @@ bz_filesystem__free(void *user_data)
     free(repo);
 }
 
+static int
+bz_filesystem__single_package_pdb(struct bz_filesystem_repo *repo)
+{
+    struct bz_pdb  *pdb = NULL;
+
+    /* If there's a default package for this repository, create a single-package
+     * PDB for it. */
+    if (repo->default_package != NULL) {
+        const char  *package_name = bz_package_name(repo->default_package);
+        rip_check(pdb = bz_single_package_pdb_new
+                  (package_name, repo->default_package));
+        bz_pdb_register(pdb);
+    }
+
+    return 0;
+}
+
+static int
+bz_filesystem__load__message(void *user_data, struct cork_buffer *dest)
+{
+    struct bz_filesystem_repo  *repo = user_data;
+    cork_buffer_append_printf(dest, "Load %s", repo->path);
+    return 0;
+}
+
+static int
+bz_filesystem__load__is_needed(void *user_data, bool *is_needed)
+{
+    *is_needed = true;
+    return 0;
+}
+
+static int
+bz_filesystem__load__perform(void *user_data)
+{
+    struct bz_filesystem_repo  *repo = user_data;
+    rii_check(bz_filesystem__single_package_pdb(repo));
+    return 0;
+}
+
 static struct bz_action *
 bz_filesystem__load(void *user_data, struct bz_env *env)
 {
-    return bz_noop_action_new();
+    struct bz_filesystem_repo  *repo = user_data;
+    return bz_action_new
+        (repo, NULL,
+         bz_filesystem__load__message,
+         bz_filesystem__load__is_needed,
+         bz_filesystem__load__perform);
 }
 
 static struct bz_action *
@@ -230,6 +286,47 @@ bz_filesystem__update(void *user_data, struct bz_env *env)
 {
     struct bz_filesystem_repo  *repo = user_data;
     return repo->update;
+}
+
+static int
+bz_filesystem_repo_create_default_package(struct bz_filesystem_repo *repo)
+{
+    bool  exists;
+    struct bz_env  *repo_env = repo->env;
+    struct cork_path  *package_path = NULL;
+    struct bz_env  *package_env = NULL;
+    struct bz_value_set  *package_yaml;
+    struct bz_package  *package = NULL;
+
+    /* See if the repository has a package.yaml file. */
+    rip_check(package_path = bz_env_get_path
+              (repo_env, "yaml_package_file_path", true));
+    ei_check(bz_file_exists(cork_path_get(package_path), &exists));
+    if (!exists) {
+        return 0;
+    }
+
+    /* If so, create a default package from it. */
+    ep_check(package_env = bz_package_env_new_empty(repo_env, "package"));
+    ep_check(package_yaml = bz_yaml_value_set_new_from_file
+             ("package", cork_path_get(package_path)));
+    bz_env_add_set(package_env, package_yaml);
+    bz_env_add_backup(package_env, "source_path",
+                      bz_interpolated_value_new("${repo_base_path}/.."));
+    ep_check(repo->default_package = bz_built_package_new(package_env));
+    return 0;
+
+error:
+    if (package_path != NULL) {
+        cork_path_free(package_path);
+    }
+    if (package_env != NULL) {
+        bz_env_free(package_env);
+    }
+    if (package != NULL) {
+        bz_package_free(package);
+    }
+    return -1;
 }
 
 struct bz_repo *
@@ -246,6 +343,7 @@ bz_filesystem_repo_new(const char *path, struct bz_action *update)
     }
 
     repo = cork_new(struct bz_filesystem_repo);
+    repo->default_package = NULL;
     repo->path = cork_strdup(path);
     repo->env = bz_repo_env_new_empty();
     repo->update = (update == NULL)? bz_noop_action_new(): update;
@@ -260,11 +358,14 @@ bz_filesystem_repo_new(const char *path, struct bz_action *update)
         bz_env_add_set(repo->env, repo_yaml);
     }
 
+    ei_check(bz_filesystem_repo_create_default_package(repo));
+
     cork_path_free(repo_path);
     return bz_repo_new
         (repo->env, repo, bz_filesystem__free,
          bz_filesystem__load,
-         bz_filesystem__update);
+         bz_filesystem__update,
+         repo->default_package);
 
 error:
     if (repo_path != NULL) {
