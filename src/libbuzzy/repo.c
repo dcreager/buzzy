@@ -8,6 +8,7 @@
  */
 
 #include <libcork/core.h>
+#include <libcork/ds.h>
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/action.h"
@@ -64,6 +65,8 @@ struct bz_repo {
     bz_free_f  user_data_free;
     bz_repo_load_f  load;
     bz_repo_update_f  update;
+    struct bz_action  *load_action;
+    struct bz_action  *update_action;
 };
 
 struct bz_repo *
@@ -78,12 +81,21 @@ bz_repo_new(struct bz_env *env,
     repo->user_data_free = user_data_free;
     repo->load = load;
     repo->update = update;
+    repo->load_action = NULL;
+    repo->update_action = NULL;
     return repo;
 }
 
 void
 bz_repo_free(struct bz_repo *repo)
 {
+    if (repo->load_action != NULL) {
+        bz_action_free(repo->load_action);
+    }
+    if (repo->update_action != NULL) {
+        bz_action_free(repo->update_action);
+    }
+    bz_user_data_free(repo);
     bz_env_free(repo->env);
     free(repo);
 }
@@ -97,13 +109,94 @@ bz_repo_env(struct bz_repo *repo)
 struct bz_action *
 bz_repo_load(struct bz_repo *repo)
 {
-    return repo->load(repo->user_data, repo->env);
+    if (repo->load_action == NULL) {
+        repo->load_action = repo->load(repo->user_data, repo->env);
+    }
+    return repo->load_action;
 }
 
 struct bz_action *
 bz_repo_update(struct bz_repo *repo)
 {
-    return repo->update(repo->user_data, repo->env);
+    if (repo->update_action == NULL) {
+        repo->update_action = repo->update(repo->user_data, repo->env);
+    }
+    return repo->update_action;
+}
+
+
+/*-----------------------------------------------------------------------
+ * Repository registry
+ */
+
+static bool  first_initialization = true;
+static bool  repos_initialized = false;
+static cork_array(struct bz_repo *)  repos;
+static struct bz_action  *registry_load;
+
+static void
+repos_free(void)
+{
+    if (repos_initialized) {
+        size_t  i;
+        for (i = 0; i < cork_array_size(&repos); i++) {
+            struct bz_repo  *repo = cork_array_at(&repos, i);
+            bz_repo_free(repo);
+        }
+        cork_array_done(&repos);
+        bz_action_free(registry_load);
+        repos_initialized = false;
+    }
+}
+
+static void
+repos_init(void)
+{
+    if (!repos_initialized) {
+        cork_array_init(&repos);
+        if (first_initialization) {
+            cork_cleanup_at_exit(0, repos_free);
+            first_initialization = false;
+        }
+        registry_load = bz_noop_action_new();
+        repos_initialized = true;
+    }
+}
+
+void
+bz_repo_registry_reset(void)
+{
+    repos_free();
+    repos_init();
+}
+
+void
+bz_repo_register(struct bz_repo *repo)
+{
+    repos_init();
+    cork_array_append(&repos, repo);
+    bz_action_add_pre(registry_load, bz_repo_load(repo));
+}
+
+size_t
+bz_repo_registry_count(void)
+{
+    repos_init();
+    return cork_array_size(&repos);
+}
+
+struct bz_repo *
+bz_repo_registry_get(size_t index)
+{
+    repos_init();
+    return cork_array_at(&repos, index);
+}
+
+struct bz_action *
+bz_repo_registry_load_all(void)
+{
+    repos_init();
+    return registry_load;
 }
 
 
@@ -122,7 +215,6 @@ bz_filesystem__free(void *user_data)
 {
     struct bz_filesystem_repo  *repo = user_data;
     cork_strfree(repo->path);
-    bz_env_free(repo->env);
     bz_action_free(repo->update);
     free(repo);
 }
@@ -201,6 +293,7 @@ bz_filesystem_repo_find(const char *path_string)
             struct bz_repo  *repo;
             ep_check(repo = bz_filesystem_repo_new(cork_path_get(path), NULL));
             cork_path_free(path);
+            bz_repo_register(repo);
             return repo;
         }
 
@@ -212,7 +305,7 @@ bz_filesystem_repo_find(const char *path_string)
          * then there's nothing else to check. */
         if (strcmp(cork_path_get(path), "") == 0 ||
             strcmp(cork_path_get(path), "/") == 0) {
-            return NULL;
+            goto error;
         }
 
         /* Otherwise check the parent directory next. */

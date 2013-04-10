@@ -27,6 +27,7 @@ START_TEST(test_repo_01)
     DESCRIBE_TEST;
     struct bz_repo  *repo;
     bz_start_mocks();
+    bz_repo_registry_reset();
     bz_global_env_reset();
     fail_if_error(bz_load_variable_definitions());
     bz_mock_file_exists("/a/b/c/.buzzy", false);
@@ -34,7 +35,6 @@ START_TEST(test_repo_01)
     bz_mock_file_exists("/a/b/.buzzy/repo.yaml", false);
     fail_if_error(repo = bz_filesystem_repo_find("/a/b/c"));
     fail_if(repo == NULL, "Cannot create repo");
-    bz_repo_free(repo);
 }
 END_TEST
 
@@ -43,6 +43,7 @@ START_TEST(test_missing_repo_01)
     DESCRIBE_TEST;
     struct bz_repo  *repo;
     bz_start_mocks();
+    bz_repo_registry_reset();
     bz_global_env_reset();
     fail_if_error(bz_load_variable_definitions());
     bz_mock_file_exists("/a/b/c/.buzzy", false);

@@ -64,6 +64,7 @@ parse_options(int argc, char **argv)
 static void
 execute(int argc, char **argv)
 {
+    struct bz_env  *env;
     struct bz_var_doc  *doc;
     const char  *value;
 
@@ -72,9 +73,14 @@ execute(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    ri_check_error(bz_load_variable_definitions());
-    rp_check_error(doc = bz_env_get_global_default(argv[0]));
+    bz_load_repositories();
+    if (base_repo == NULL) {
+        env = bz_global_env();
+    } else {
+        env = bz_repo_env(base_repo);
+    }
 
+    rp_check_error(doc = bz_env_get_global_default(argv[0]));
     printf("%s\n", doc->name);
 
     if (doc->short_desc[0] != '\0') {
@@ -85,7 +91,7 @@ execute(int argc, char **argv)
         printf("\n  %s\n", doc->long_desc);
     }
 
-    value = bz_env_get(bz_global_env(), argv[0], NULL);
+    value = bz_env_get(env, argv[0], NULL);
     if (value != NULL) {
         printf("\n  Current value: %s\n", value);
     }

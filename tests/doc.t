@@ -1,9 +1,13 @@
+Reproducible directory names.
+
   $ export HOME=/home/test
   $ export XDG_RUNTIME_DIR=/run/users/test
   $ unset XDG_CACHE_HOME
   $ unset XDG_CACHE_DIRS
   $ unset XDG_DATA_HOME
   $ unset XDG_DATA_DIRS
+
+Print out the documentation for a handful of global variables.
 
   $ buzzy doc not_a_real_variable
   No variable named not_a_real_variable
@@ -22,3 +26,32 @@
     A directory for Buzzy's intermediate build products
   
     Current value: /home/test/.cache/buzzy
+
+
+Then do the same for some repo-specific variables, both while in a repository
+and directory and while not in one.
+
+  $ mkdir -p not-a-repo
+  $ mkdir -p repo1/.buzzy
+
+  $ cd not-a-repo
+  $ buzzy doc repo_base_path
+  repo_base_path
+    The base path of the files defining the repository
+  $ buzzy doc repo_path
+  repo_path
+    The location of the YAML file defining the repository
+  $ cd ..
+
+  $ cd repo1
+  $ buzzy doc repo_base_path
+  repo_base_path
+    The base path of the files defining the repository
+  
+    Current value: .*/doc.t/repo1/.buzzy (re)
+  $ buzzy doc repo_path
+  repo_path
+    The location of the YAML file defining the repository
+  
+    Current value: .*/doc.t/repo1/.buzzy/repo.yaml (re)
+  $ cd ..

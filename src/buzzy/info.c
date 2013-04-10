@@ -69,41 +69,33 @@ parse_options(int argc, char **argv)
 static void
 execute(int argc, char **argv)
 {
-    struct bz_repo  *repo;
+    size_t  i;
+    size_t  repo_count;
     struct bz_env  *env;
-    struct cork_path  *cwd;
     struct cork_path  *repo_path;
-    struct bz_action  *load;
-    struct bz_action_phase  *phase;
 
     if (argc != 0) {
         cork_command_show_help(&buzzy_doc, NULL);
         exit(EXIT_FAILURE);
     }
 
-    ri_check_error(bz_load_variable_definitions());
-    ri_check_error(bz_pdb_discover());
+    bz_load_repositories();
 
-    rp_check_error(cwd = cork_path_cwd());
-    rp_check_error(repo = bz_filesystem_repo_find(cork_path_get(cwd)));
-    cork_path_free(cwd);
-
-    if (repo == NULL) {
-        printf("No repository found!\n");
+    repo_count = bz_repo_registry_count();
+    if (repo_count == 0) {
+        printf("No repositories found!\n");
         exit(EXIT_SUCCESS);
     }
 
-    rp_check_error(load = bz_repo_load(repo));
-    phase = bz_action_phase_new("Load repositories:");
-    bz_action_phase_add(phase, load);
-    ri_check_error(bz_action_phase_perform(phase, BZ_ACTION_HIDE_NOOP));
-    bz_action_phase_free(phase);
+    printf("Repositories:\n");
+    for (i = 0; i < repo_count; i++) {
+        struct bz_repo  *repo = bz_repo_registry_get(i);
+        rp_check_error(env = bz_repo_env(repo));
+        rp_check_error(repo_path = bz_env_get_path
+                       (env, "repo_base_path", true));
+        printf("  %s\n", cork_path_get(repo_path));
+        cork_path_free(repo_path);
+    }
 
-    rp_check_error(env = bz_repo_env(repo));
-    rp_check_error(repo_path = bz_env_get_path(env, "repo_base_path", true));
-    printf("%s\n", cork_path_get(repo_path));
-    cork_path_free(repo_path);
-
-    bz_repo_free(repo);
     exit(EXIT_SUCCESS);
 }

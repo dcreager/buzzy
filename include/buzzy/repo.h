@@ -49,6 +49,23 @@ struct bz_action *
 bz_repo_update(struct bz_repo *repo);
 
 
+/* Takes control of repo; it will be automatically freed for you. */
+void
+bz_repo_register(struct bz_repo *repo);
+
+size_t
+bz_repo_registry_count(void);
+
+struct bz_repo *
+bz_repo_registry_get(size_t index);
+
+void
+bz_repo_registry_reset(void);
+
+struct bz_action *
+bz_repo_registry_load_all(void);
+
+
 /*-----------------------------------------------------------------------
  * Built-in repository types
  */
