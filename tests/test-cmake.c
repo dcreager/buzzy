@@ -155,10 +155,10 @@ START_TEST(test_cmake_stage_package_01)
          " -DCMAKE_BUILD_TYPE=RelWithDebInfo",
          NULL, NULL, 0);
     bz_mock_subprocess
-        ("cmake --build /home/test/.cache/buzzy/jansson/2.4/build",
+        ("cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build",
          NULL, NULL, 0);
     bz_mock_subprocess
-        ("cmake --build /home/test/.cache/buzzy/jansson/2.4/build"
+        ("cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build"
          " --target install",
          NULL, NULL, 0);
     fail_if_error(version = bz_version_from_string("2.4"));
@@ -171,13 +171,13 @@ START_TEST(test_cmake_stage_package_01)
     verify_commands_run(
         "$ pacman -Sdp --print-format %v cmake\n"
         "$ pacman -Q cmake\n"
-        "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/build\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
         "$ cmake /home/test/source"
             " -DCMAKE_INSTALL_PREFIX=/usr"
             " -DCMAKE_BUILD_TYPE=RelWithDebInfo\n"
-        "$ cmake --build /home/test/.cache/buzzy/jansson/2.4/build\n"
-        "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/stage\n"
-        "$ cmake --build /home/test/.cache/buzzy/jansson/2.4/build"
+        "$ cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
+        "$ cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build"
             " --target install\n"
     );
     bz_env_free(env);
@@ -192,18 +192,20 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
     struct bz_env  *env;
     bz_start_mocks();
     mock_cmake_uninstalled();
-    bz_mock_file_exists("/home/test/.cache/buzzy/jansson/2.4/.built", false);
-    bz_mock_file_exists("/home/test/.cache/buzzy/jansson/2.4/.staged", false);
+    bz_mock_file_exists
+        ("/home/test/.cache/buzzy/build/jansson/2.4/.built", false);
+    bz_mock_file_exists
+        ("/home/test/.cache/buzzy/build/jansson/2.4/.staged", false);
     bz_mock_subprocess
         ("cmake /home/test/source"
          " -DCMAKE_INSTALL_PREFIX=/usr"
          " -DCMAKE_BUILD_TYPE=RelWithDebInfo",
          NULL, NULL, 0);
     bz_mock_subprocess
-        ("cmake --build /home/test/.cache/buzzy/jansson/2.4/build",
+        ("cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build",
          NULL, NULL, 0);
     bz_mock_subprocess
-        ("cmake --build /home/test/.cache/buzzy/jansson/2.4/build"
+        ("cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build"
          " --target install",
          NULL, NULL, 0);
     fail_if_error(version = bz_version_from_string("2.4"));
@@ -218,13 +220,13 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
         "$ pacman -Sdp --print-format %v cmake\n"
         "$ pacman -Q cmake\n"
         "$ sudo pacman -S --noconfirm cmake\n"
-        "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/build\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
         "$ cmake /home/test/source"
             " -DCMAKE_INSTALL_PREFIX=/usr"
             " -DCMAKE_BUILD_TYPE=RelWithDebInfo\n"
-        "$ cmake --build /home/test/.cache/buzzy/jansson/2.4/build\n"
-        "$ mkdir -p /home/test/.cache/buzzy/jansson/2.4/stage\n"
-        "$ cmake --build /home/test/.cache/buzzy/jansson/2.4/build"
+        "$ cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
+        "$ cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build"
             " --target install\n"
     );
     bz_env_free(env);

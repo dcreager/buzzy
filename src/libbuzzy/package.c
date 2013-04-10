@@ -58,7 +58,7 @@ bz_define_variables(package)
 
     bz_package_variable(
         package_work_path, "package_work_path",
-        bz_interpolated_value_new("${work_path}/${name}/${version}"),
+        bz_interpolated_value_new("${work_path}/build/${name}/${version}"),
         "Location for artefacts created while building or installing a package",
         ""
     );
