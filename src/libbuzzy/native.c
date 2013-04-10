@@ -112,7 +112,7 @@ bz_native_package__install(void *user_data)
 struct bz_package *
 bz_native_package_new(const char *short_distro_name,
                       const char *package_name, const char *native_package_name,
-                      struct bz_version *version, struct bz_dependency *dep,
+                      struct bz_version *version,
                       bz_native_detect_f version_installed,
                       bz_native_install_f install)
 {
@@ -124,7 +124,7 @@ bz_native_package_new(const char *short_distro_name,
     native->version_installed = version_installed;
     native->install = install;
     return bz_package_new
-        (package_name, version, dep,
+        (package_name, version,
          native, bz_native_package__free,
          NULL, /* build */
          NULL, /* test */
@@ -174,7 +174,7 @@ bz_native_pdb_try_pattern(struct bz_native_pdb *pdb, const char *pattern,
     } else {
         return bz_native_package_new
             (pdb->short_distro_name,
-             dep->package_name, pdb->buf.buf, available, dep,
+             dep->package_name, pdb->buf.buf, available,
              pdb->version_installed, pdb->install);
     }
 }

@@ -37,7 +37,6 @@ typedef struct bz_action *
 /* Takes control of version, but not dep */
 struct bz_package *
 bz_package_new(const char *name, struct bz_version *version,
-               struct bz_dependency *dep,
                void *user_data, bz_free_f user_data_free,
                bz_package_build_f build,
                bz_package_test_f test,

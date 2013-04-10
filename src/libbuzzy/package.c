@@ -129,7 +129,6 @@ bz_define_variables(package)
 struct bz_package {
     const char  *name;
     struct bz_version  *version;
-    struct bz_dependency  *dep;
     void  *user_data;
     bz_free_f  user_data_free;
     bz_package_build_f  build;
@@ -143,7 +142,6 @@ struct bz_package {
 
 struct bz_package *
 bz_package_new(const char *name, struct bz_version *version,
-               struct bz_dependency *dep,
                void *user_data, bz_free_f user_data_free,
                bz_package_build_f build,
                bz_package_test_f test,
@@ -152,7 +150,6 @@ bz_package_new(const char *name, struct bz_version *version,
     struct bz_package  *package = cork_new(struct bz_package);
     package->name = cork_strdup(name);
     package->version = version;
-    package->dep = dep;
     package->user_data = user_data;
     package->user_data_free = user_data_free;
     package->build = build;
