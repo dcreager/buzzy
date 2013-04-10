@@ -29,6 +29,13 @@ bz_define_variables(cmake)
         "The CMake build type for this package",
         ""
     );
+
+    bz_package_variable(
+        install_prefix, "cmake.cmakelists",
+        bz_interpolated_value_new("${source_path}/CMakeLists.txt"),
+        "The location of the top-level CMake build script",
+        ""
+    );
 }
 
 

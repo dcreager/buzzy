@@ -88,7 +88,7 @@ bz_define_variables(package)
 
     bz_package_variable(
         builder, "builder",
-        NULL,
+        bz_builder_detector_new(),
         "What build system is used to build the package",
         ""
     );
