@@ -56,10 +56,12 @@ bz_built_package_packager(struct bz_built_package *package)
     if (package->packager == NULL) {
         struct bz_builder  *builder;
         struct bz_action  *stage;
+        struct bz_action  *pkg;
         rpp_check(builder = bz_built_package_builder(package));
         rpp_check(stage = bz_builder_stage_action(builder));
-        package->packager = bz_package_packager_new(package->env);
-        bz_packager_add_prereq(package->packager, stage);
+        rpp_check(package->packager = bz_package_packager_new(package->env));
+        rpp_check(pkg = bz_packager_package_action(package->packager));
+        bz_action_add_pre(pkg, stage);
     }
     return package->packager;
 }
