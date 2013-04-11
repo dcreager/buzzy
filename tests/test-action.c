@@ -174,6 +174,19 @@ START_TEST(test_actions_unneeded_02)
 }
 END_TEST
 
+START_TEST(test_actions_unneeded_03)
+{
+    DESCRIBE_TEST;
+    struct bz_action  *a1 = test_action_new("Alpha", false);
+    struct bz_action_phase  *phase = bz_action_phase_new("Running tests");
+    bz_start_mocks();
+    bz_action_phase_add(phase, a1);
+    test_action_phase_flags(phase, "", BZ_ACTION_HIDE_NOOP);
+    bz_action_phase_free(phase);
+    bz_action_free(a1);
+}
+END_TEST
+
 
 START_TEST(test_actions_repeated_01)
 {
@@ -227,6 +240,7 @@ test_suite()
     tcase_add_test(tc_action, test_actions_03);
     tcase_add_test(tc_action, test_actions_unneeded_01);
     tcase_add_test(tc_action, test_actions_unneeded_02);
+    tcase_add_test(tc_action, test_actions_unneeded_03);
     tcase_add_test(tc_action, test_actions_repeated_01);
     suite_add_tcase(s, tc_action);
 

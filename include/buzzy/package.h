@@ -36,8 +36,7 @@ typedef struct bz_action *
 
 /* Takes control of version, but not dep */
 struct bz_package *
-bz_package_new(const char *name, struct bz_version *version,
-               struct bz_dependency *dep,
+bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
                void *user_data, bz_free_f user_data_free,
                bz_package_build_f build,
                bz_package_test_f test,
@@ -45,6 +44,15 @@ bz_package_new(const char *name, struct bz_version *version,
 
 void
 bz_package_free(struct bz_package *package);
+
+struct bz_env *
+bz_package_env(struct bz_package *package);
+
+const char *
+bz_package_name(struct bz_package *package);
+
+struct bz_version *
+bz_package_version(struct bz_package *package);
 
 /* The package is responsible for freeing all of the following actions. */
 
@@ -79,6 +87,15 @@ bz_pdb_free(struct bz_pdb *pdb);
 
 struct bz_package *
 bz_pdb_satisfy_dependency(struct bz_pdb *pdb, struct bz_dependency *dep);
+
+
+/*-----------------------------------------------------------------------
+ * Single-package databases
+ */
+
+/* Takes control of package */
+struct bz_pdb *
+bz_single_package_pdb_new(const char *pdb_name, struct bz_package *package);
 
 
 /*-----------------------------------------------------------------------

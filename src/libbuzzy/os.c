@@ -80,6 +80,7 @@ bz_subprocess_get_output_exec(struct cork_buffer *out_buf,
 {
     int  rc;
     int  exit_code;
+    const char  *program = cork_exec_program(exec);
     struct cork_stream_consumer  *out;
     struct cork_stream_consumer  *err;
 
@@ -98,7 +99,7 @@ bz_subprocess_get_output_exec(struct cork_buffer *out_buf,
 
     if (successful == NULL) {
         if (CORK_UNLIKELY(exit_code != 0)) {
-            bz_subprocess_error("%s failed", cork_exec_program(exec));
+            bz_subprocess_error("%s failed", program);
             return -1;
         }
     } else {
@@ -146,11 +147,18 @@ bz_subprocess_run_exec(bool verbose, bool *successful, struct cork_exec *exec)
 {
     int  rc;
     int  exit_code;
-    struct cork_stream_consumer  *out;
-    struct cork_stream_consumer  *err;
+    const char  *program = cork_exec_program(exec);
+    struct cork_buffer  out_buf = CORK_BUFFER_INIT();
+    struct cork_buffer  err_buf = CORK_BUFFER_INIT();
+    struct cork_stream_consumer  *out = NULL;
+    struct cork_stream_consumer  *err = NULL;
 
-    out = verbose? NULL: &drop_consumer;
-    err = verbose? NULL: &drop_consumer;
+    if (!verbose) {
+        cork_buffer_ensure_size(&out_buf, 16);
+        cork_buffer_ensure_size(&err_buf, 16);
+        out = cork_buffer_to_stream_consumer(&out_buf);
+        err = cork_buffer_to_stream_consumer(&err_buf);
+    }
     rc = bz_mocked_exec(exec, out, err, &exit_code);
     if (out != NULL) {
         cork_stream_consumer_free(out);
@@ -162,14 +170,27 @@ bz_subprocess_run_exec(bool verbose, bool *successful, struct cork_exec *exec)
 
     if (successful == NULL) {
         if (CORK_UNLIKELY(exit_code != 0)) {
-            bz_subprocess_error("%s failed", cork_exec_program(exec));
-            return -1;
+            if (verbose) {
+                bz_subprocess_error("%s failed", program);
+            } else {
+                bz_subprocess_error
+                    ("%s failed\n\nstdout:\n%s\nstderr:\n%s",
+                     program, (char *) out_buf.buf, (char *) err_buf.buf);
+            }
+            goto error;
         }
     } else {
         *successful = (exit_code == 0);
     }
 
+    cork_buffer_done(&out_buf);
+    cork_buffer_done(&err_buf);
     return 0;
+
+error:
+    cork_buffer_done(&out_buf);
+    cork_buffer_done(&err_buf);
+    return -1;
 }
 
 int

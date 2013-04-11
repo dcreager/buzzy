@@ -172,3 +172,42 @@ bz_package_builder_new(struct bz_env *env)
     bz_bad_config("Unknown builder \"%s\"", builder_name);
     return NULL;
 }
+
+
+/*-----------------------------------------------------------------------
+ * Builder detection
+ */
+
+static int
+bz_builder_is_cmake(struct bz_env *env, bool *dest)
+{
+    struct cork_path  *path;
+    rip_check(path = bz_env_get_path(env, "cmake.cmakelists", true));
+    ei_check(bz_file_exists(cork_path_get(path), dest));
+    cork_path_free(path);
+    return 0;
+
+error:
+    cork_path_free(path);
+    return -1;
+}
+
+static const char *
+bz_builder__detect(void *user_data, struct bz_env *env)
+{
+    bool  is_cmake;
+
+    rpi_check(bz_builder_is_cmake(env, &is_cmake));
+    if (is_cmake) {
+        return "cmake";
+    }
+
+    bz_bad_config("Don't know what builder to use for this package");
+    return NULL;
+}
+
+struct bz_value_provider *
+bz_builder_detector_new(void)
+{
+    return bz_value_provider_new(NULL, NULL, bz_builder__detect);
+}

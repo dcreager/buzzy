@@ -104,7 +104,7 @@ bz_var_ref_element__render(void *user_data, struct bz_env *env,
                            struct cork_buffer *dest)
 {
     const char  *var_name = user_data;
-    const char  *value = bz_env_get(env, var_name);
+    const char  *value = bz_env_get(env, var_name, NULL);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return -1;
     } else if (CORK_UNLIKELY(value == NULL)) {

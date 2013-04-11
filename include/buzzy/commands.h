@@ -16,14 +16,22 @@
 #include <libcork/core.h>
 #include <libcork/cli.h>
 #include <libcork/ds.h>
+#include <libcork/os.h>
 
+#include "buzzy/action.h"
 #include "buzzy/distro.h"
 #include "buzzy/env.h"
+#include "buzzy/package.h"
+#include "buzzy/repo.h"
+#include "buzzy/version.h"
 
 CORK_LOCAL extern struct cork_command  buzzy_root;
 
+CORK_LOCAL extern struct cork_command  buzzy_build;
 CORK_LOCAL extern struct cork_command  buzzy_doc;
-
+CORK_LOCAL extern struct cork_command  buzzy_info;
+CORK_LOCAL extern struct cork_command  buzzy_install;
+CORK_LOCAL extern struct cork_command  buzzy_test;
 CORK_LOCAL extern struct cork_command  buzzy_vercmp;
 
 CORK_LOCAL extern struct cork_command  buzzy_raw;
@@ -81,7 +89,7 @@ getopt_reset(void)
 
 
 /*-----------------------------------------------------------------------
- * Common options: general selection
+ * Common options: general
  */
 
 CORK_ATTR_UNUSED
@@ -141,7 +149,7 @@ static void
 package_env_init(void)
 {
     if (package_env == NULL) {
-        package_env = bz_package_env_new_empty("new package");
+        package_env = bz_package_env_new_empty(NULL, "new package");
     }
 }
 
@@ -175,6 +183,97 @@ package_env_parse_opt(int ch, struct cork_command *cmd)
     }
 
     return false;
+}
+
+
+/*-----------------------------------------------------------------------
+ * Load repositories
+ */
+
+static struct bz_repo  *base_repo = NULL;
+
+CORK_ATTR_UNUSED
+static void
+bz_load_repositories(void)
+{
+    struct cork_path  *cwd;
+    struct bz_action  *load;
+    struct bz_action_phase  *phase;
+
+    ri_check_error(bz_load_variable_definitions());
+    ri_check_error(bz_pdb_discover());
+
+    rp_check_error(cwd = cork_path_cwd());
+    rp_check_error(base_repo = bz_filesystem_repo_find(cork_path_get(cwd)));
+    cork_path_free(cwd);
+
+    rp_check_error(load = bz_repo_registry_load_all());
+    phase = bz_action_phase_new("Load repositories:");
+    bz_action_phase_add(phase, load);
+    ri_check_error(bz_action_phase_perform(phase, BZ_ACTION_HIDE_NOOP));
+    bz_action_phase_free(phase);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Satisfy dependencies
+ */
+
+static cork_array(struct bz_package *)  dep_packages;
+
+CORK_ATTR_UNUSED
+static void
+satisfy_dependencies(struct cork_command *cmd, int argc, char **argv)
+{
+    size_t  i;
+    struct bz_env  *global;
+    cork_array_init(&dep_packages);
+
+    /* We assume that the users wants verbose output for the packages specified
+     * on the command line, but not for any prereqs.  This can be adjusted with
+     * -v and -q, of course. */
+    global = bz_global_env();
+    bz_env_add_override
+        (global, "verbose", bz_string_value_new((verbosity > 0)? "1": "0"));
+
+    if (argc == 0) {
+        if (base_repo != NULL) {
+            struct bz_package  *package = bz_repo_default_package(base_repo);
+            if (package != NULL) {
+                struct bz_env  *env = bz_package_env(package);
+                bz_env_add_override
+                    (env, "verbose",
+                     bz_string_value_new((verbosity >= 0)? "1": "0"));
+                cork_array_append(&dep_packages, package);
+                return;
+            }
+        }
+
+        cork_command_show_help
+            (cmd, "Must provide at least one package dependency.");
+        exit(EXIT_FAILURE);
+    }
+
+    for (i = 0; i < argc; i++) {
+        struct bz_dependency  *dep;
+        struct bz_package  *package;
+        struct bz_env  *env;
+
+        rp_check_error(dep = bz_dependency_from_string(argv[i]));
+        rp_check_error(package = bz_satisfy_dependency(dep));
+        env = bz_package_env(package);
+        bz_env_add_override
+            (env, "verbose", bz_string_value_new((verbosity >= 0)? "1": "0"));
+        cork_array_append(&dep_packages, package);
+        bz_dependency_free(dep);
+    }
+}
+
+CORK_ATTR_UNUSED
+static void
+free_dependencies(void)
+{
+    cork_array_done(&dep_packages);
 }
 
 

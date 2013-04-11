@@ -12,6 +12,7 @@
 
 #include <libcork/core.h>
 #include <libcork/os.h>
+#include <yaml.h>
 
 #include "buzzy/callbacks.h"
 
@@ -54,14 +55,18 @@ bz_env_get_version(struct bz_env *env, const char *name, bool required);
 struct bz_env *
 bz_global_env(void);
 
+struct bz_env *
+bz_repo_env_new_empty(void);
+
 /* env_name is usually the same as the package name, but if you don't know the
  * package name yet, you can use something like "new package". */
 struct bz_env *
-bz_package_env_new_empty(const char *env_name);
+bz_package_env_new_empty(struct bz_env *repo_env, const char *env_name);
 
 /* Takes control of version */
 struct bz_env *
-bz_package_env_new(const char *package_name, struct bz_version *version);
+bz_package_env_new(struct bz_env *repo_env, const char *package_name,
+                   struct bz_version *version);
 
 /* Every global and package-specific environment will use these default values
  * for any variables that aren't explicitly defined. */
@@ -117,6 +122,14 @@ bz_value_set_new(const char *name, void *user_data, bz_free_f user_data_free,
 void
 bz_value_set_free(struct bz_value_set *set);
 
+/* Any relative paths in this value set will be interpreted relative to this
+ * base path.  Base path defaults to the current working directory. */
+const char *
+bz_value_set_base_path(struct bz_value_set *set);
+
+void
+bz_value_set_set_base_path(struct bz_value_set *set, const char *base_path);
+
 struct bz_value_provider *
 bz_value_set_get_provider(struct bz_value_set *set, const char *key);
 
@@ -147,18 +160,33 @@ bz_env_add_backup_set(struct bz_env *env, struct bz_value_set *set);
 
 /* Each of the sets in env are checked for key.  The sets added with
  * bz_env_add_set are checked first, in order, followed by the sets added with
- * bz_env_add_backup_set, in order. */
+ * bz_env_add_backup_set, in order.  If "set" is not-NULL, it will be filled in
+ * with the value set that provided the result. */
 struct bz_value_provider *
-bz_env_get_provider(struct bz_env *env, const char *key);
+bz_env_get_provider(struct bz_env *env, const char *key,
+                    struct bz_value_set **set);
 
 const char *
-bz_env_get(struct bz_env *env, const char *key);
+bz_env_get(struct bz_env *env, const char *key, struct bz_value_set **set);
 
-/* Every environment comes with one var_table set for free, which takes
- * precedence over every other value set. */
+/* Every environment comes with two var_table sets for free.  The first takes
+ * precedence over every other value set, the other is overridden by every other
+ * value set. */
+
 void
 bz_env_add_override(struct bz_env *env, const char *key,
                     struct bz_value_provider *value);
+
+void
+bz_env_add_backup(struct bz_env *env, const char *key,
+                  struct bz_value_provider *value);
+
+
+/* A value set that tries to find variables in env.  This lets you "nest" env
+ * inside of some other environment.  We do not take control of env; it's your
+ * responsibility to make sure that it's valid whenever this set is used. */
+struct bz_value_set *
+bz_env_as_value_set(struct bz_env *env);
 
 
 /*-----------------------------------------------------------------------
@@ -208,6 +236,21 @@ bz_var_table_as_set(struct bz_var_table *table);
 
 
 /*-----------------------------------------------------------------------
+ * YAML file of values
+ */
+
+/* Takes control of doc */
+struct bz_value_set *
+bz_yaml_value_set_new(const char *name, yaml_document_t *doc);
+
+struct bz_value_set *
+bz_yaml_value_set_new_from_file(const char *name, const char *path);
+
+struct bz_value_set *
+bz_yaml_value_set_new_from_string(const char *name, const char *content);
+
+
+/*-----------------------------------------------------------------------
  * Documenting variables
  */
 
@@ -247,6 +290,9 @@ bz_define_vars__##prefix(void) \
     } while (0)
 
 #define bz_package_variable(c_name, name, default_value, short_desc, long_desc) \
+    bz_global_variable(c_name, name, default_value, short_desc, long_desc)
+
+#define bz_repo_variable(c_name, name, default_value, short_desc, long_desc) \
     bz_global_variable(c_name, name, default_value, short_desc, long_desc)
 
 

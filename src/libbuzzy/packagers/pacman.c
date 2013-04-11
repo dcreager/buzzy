@@ -201,8 +201,9 @@ bz_pacman__package__perform(void *user_data)
         return -1;
     }
 
-    /* Create a temporary directory */
+    /* Create the temporary directory and the packaging destination */
     rii_check(bz_create_directory(pkg_path));
+    rii_check(bz_create_directory(package_path));
 
     /* Create a PKGBUILD file for this package */
     cork_buffer_append_printf(&buf, "pkgname='%s'\n", package_name);

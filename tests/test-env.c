@@ -178,21 +178,21 @@ static void
 test_env(struct bz_env *env, const char *key, const char *expected)
 {
     const char  *actual;
-    fail_if_error(actual = bz_env_get(env, key));
+    fail_if_error(actual = bz_env_get_string(env, key, true));
     fail_unless_streq("Environment variable values", expected, actual);
 }
 
 static void
 test_env_error(struct bz_env *env, const char *key)
 {
-    fail_unless_error(bz_env_get(env, key));
+    fail_unless_error(bz_env_get_string(env, key, true));
 }
 
 static void
 test_env_missing(struct bz_env *env, const char *key)
 {
     const char  *actual;
-    fail_if_error(actual = bz_env_get(env, key));
+    fail_if_error(actual = bz_env_get_string(env, key, false));
     fail_unless(actual == NULL, "Unexpected value for %s", key);
 }
 
@@ -259,6 +259,82 @@ END_TEST
 
 
 static void
+test_env_path(struct bz_env *env, const char *key, const char *expected)
+{
+    struct cork_path  *path;
+    const char  *actual;
+    fail_if_error(path = bz_env_get_path(env, key, true));
+    actual = cork_path_get(path);
+    fail_unless_streq("Environment variable values", expected, actual);
+    cork_path_free(path);
+}
+
+START_TEST(test_env_path_01)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env = bz_env_new("test");
+    struct bz_var_table  *table1 = bz_var_table_new("test1");
+    struct bz_value_set  *set1 = bz_var_table_as_set(table1);
+    struct bz_var_table  *table2 = bz_var_table_new("test2");
+    struct bz_value_set  *set2 = bz_var_table_as_set(table2);
+
+    bz_env_add_set(env, set1);
+    bz_env_add_set(env, set2);
+    bz_value_set_set_base_path(set2, "/base/path");
+
+    var_table_add_string(table1, "path1", "a/b");
+    var_table_add_string(table2, "path2", "a/b");
+    var_table_add_string(table2, "path3", "/absolute/a/b");
+    test_env(env, "path1", "a/b");
+    test_env_path(env, "path1", "a/b");
+    test_env(env, "path2", "a/b");
+    test_env_path(env, "path2", "/base/path/a/b");
+    test_env(env, "path3", "/absolute/a/b");
+    test_env_path(env, "path3", "/absolute/a/b");
+
+    bz_env_free(env);
+}
+END_TEST
+
+
+static const char  YAML_01[] =
+    "a: hello\n"
+    "b: ${a} world\n"
+    "c: ${a} ${b}\n"
+    "d: ${missing}\n"
+    "e: [1,2,3]\n"
+    "f:\n"
+    "  a: nested\n"
+    "  b:\n"
+    "    c: ${f.a} more\n"
+    ;
+
+START_TEST(test_env_yaml_01)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env = bz_env_new("test");
+    struct bz_value_set  *set1;
+
+    fail_if_error(set1 = bz_yaml_value_set_new_from_string("yaml1", YAML_01));
+    bz_env_add_set(env, set1);
+
+    test_env(env, "a", "hello");
+    test_env(env, "b", "hello world");
+    test_env(env, "c", "hello hello world");
+    test_env_error(env, "d");
+    test_env_error(env, "e");
+    test_env_error(env, "a.b");
+    test_env(env, "f.a", "nested");
+    test_env_error(env, "f.b");
+    test_env(env, "f.b.c", "nested more");
+    test_env_missing(env, "missing");
+
+    bz_env_free(env);
+}
+END_TEST
+
+
+static void
 set_global_default(const char *key, const char *template_value)
 {
     struct bz_value_provider  *provider;
@@ -289,7 +365,7 @@ START_TEST(test_package_env_01)
     struct bz_value_set  *set1 = bz_var_table_as_set(table1);
 
     bz_global_env_reset();
-    env = bz_package_env_new_empty("test");
+    env = bz_package_env_new_empty(NULL, "test");
     test_env_missing(env, "a");
     set_global_default("a", "${b} value");
     test_env_error(env, "a");
@@ -345,6 +421,8 @@ test_suite()
     TCase  *tc_env = tcase_create("env");
     tcase_add_test(tc_env, test_env_01);
     tcase_add_test(tc_env, test_env_02);
+    tcase_add_test(tc_env, test_env_path_01);
+    tcase_add_test(tc_env, test_env_yaml_01);
     tcase_add_test(tc_env, test_global_env_01);
     tcase_add_test(tc_env, test_package_env_01);
     suite_add_tcase(s, tc_env);

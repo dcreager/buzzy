@@ -20,6 +20,7 @@ set(LIBBUZZY_RAGEL
     libbuzzy/interpolated.c.rl
     libbuzzy/version.c.rl
     libbuzzy/distro/arch.c.rl
+    libbuzzy/distro/git.c.rl
 )
 
 set_property(
@@ -52,6 +53,7 @@ endforeach(RAGEL_INPUT)
 set(LIBBUZZY_SRC
     libbuzzy/action.c
     libbuzzy/builder.c
+    libbuzzy/built.c
     libbuzzy/dependency.c
     libbuzzy/env.c
     libbuzzy/global-vars.c
@@ -61,10 +63,12 @@ set(LIBBUZZY_SRC
     libbuzzy/os.c
     libbuzzy/package.c
     libbuzzy/packager.c
+    libbuzzy/repo.c
     libbuzzy/version.c
     libbuzzy/builders/cmake.c
     libbuzzy/builders/noop.c
     libbuzzy/distro/arch.c
+    libbuzzy/distro/git.c
     libbuzzy/distro/packager.c
     libbuzzy/distro/pdb.c
     libbuzzy/packagers/noop.c
@@ -81,12 +85,16 @@ set_target_properties(libbuzzy PROPERTIES
 # buzzy
 
 set(BUZZY_SRC
+    buzzy/build.c
     buzzy/buzzy.c
     buzzy/doc.c
+    buzzy/info.c
+    buzzy/install.c
     buzzy/raw.c
     buzzy/raw-build.c
     buzzy/raw-pkg.c
     buzzy/root.c
+    buzzy/test.c
     buzzy/vercmp.c
 )
 

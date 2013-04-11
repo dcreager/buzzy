@@ -32,7 +32,7 @@ typedef int
 struct bz_package *
 bz_native_package_new(const char *short_distro_name,
                       const char *package_name, const char *native_package_name,
-                      struct bz_version *version, struct bz_dependency *dep,
+                      struct bz_version *version,
                       bz_native_detect_f version_installed,
                       bz_native_install_f install);
 

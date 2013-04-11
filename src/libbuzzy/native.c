@@ -58,6 +58,82 @@ bz_native_package__free(void *user_data)
 
 
 static int
+bz_native_package__build__message(void *user_data, struct cork_buffer *dest)
+{
+    struct bz_native_package  *native = user_data;
+    cork_buffer_append_printf
+        (dest, "Build native %s package %s %s",
+         native->short_distro_name,
+         native->native_package_name,
+         bz_version_to_string(native->version));
+    return 0;
+}
+
+static int
+bz_native_package__build__is_needed(void *user_data, bool *is_needed)
+{
+    /* Native packages never need to be built. */
+    *is_needed = false;
+    return 0;
+}
+
+static int
+bz_native_package__build__perform(void *user_data)
+{
+    return 0;
+}
+
+static struct bz_action *
+bz_native_package__build(void *user_data)
+{
+    struct bz_native_package  *native = user_data;
+    return bz_action_new
+        (native, NULL,
+         bz_native_package__build__message,
+         bz_native_package__build__is_needed,
+         bz_native_package__build__perform);
+}
+
+
+static int
+bz_native_package__test__message(void *user_data, struct cork_buffer *dest)
+{
+    struct bz_native_package  *native = user_data;
+    cork_buffer_append_printf
+        (dest, "test native %s package %s %s",
+         native->short_distro_name,
+         native->native_package_name,
+         bz_version_to_string(native->version));
+    return 0;
+}
+
+static int
+bz_native_package__test__is_needed(void *user_data, bool *is_needed)
+{
+    /* Native packages never need to be tested. */
+    *is_needed = false;
+    return 0;
+}
+
+static int
+bz_native_package__test__perform(void *user_data)
+{
+    return 0;
+}
+
+static struct bz_action *
+bz_native_package__test(void *user_data)
+{
+    struct bz_native_package  *native = user_data;
+    return bz_action_new
+        (native, NULL,
+         bz_native_package__test__message,
+         bz_native_package__test__is_needed,
+         bz_native_package__test__perform);
+}
+
+
+static int
 bz_native_package__install__message(void *user_data, struct cork_buffer *dest)
 {
     struct bz_native_package  *native = user_data;
@@ -112,22 +188,31 @@ bz_native_package__install(void *user_data)
 struct bz_package *
 bz_native_package_new(const char *short_distro_name,
                       const char *package_name, const char *native_package_name,
-                      struct bz_version *version, struct bz_dependency *dep,
+                      struct bz_version *version,
                       bz_native_detect_f version_installed,
                       bz_native_install_f install)
 {
-    struct bz_native_package  *native = cork_new(struct bz_native_package);
+    struct bz_native_package  *native;
+    struct bz_env  *env;
+
+    native = cork_new(struct bz_native_package);
     native->short_distro_name = cork_strdup(short_distro_name);
     native->package_name = cork_strdup(package_name);
     native->native_package_name = cork_strdup(native_package_name);
     native->version = version;
     native->version_installed = version_installed;
     native->install = install;
+
+    env = bz_package_env_new_empty(NULL, package_name);
+    bz_env_add_override(env, "name", bz_string_value_new(package_name));
+    bz_env_add_override
+        (env, "version", bz_string_value_new(bz_version_to_string(version)));
+
     return bz_package_new
-        (package_name, version, dep,
+        (package_name, version, env,
          native, bz_native_package__free,
-         NULL, /* build */
-         NULL, /* test */
+         bz_native_package__build,
+         bz_native_package__test,
          bz_native_package__install);
 }
 
@@ -174,7 +259,7 @@ bz_native_pdb_try_pattern(struct bz_native_pdb *pdb, const char *pattern,
     } else {
         return bz_native_package_new
             (pdb->short_distro_name,
-             dep->package_name, pdb->buf.buf, available, dep,
+             dep->package_name, pdb->buf.buf, available,
              pdb->version_installed, pdb->install);
     }
 }

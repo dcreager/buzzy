@@ -9,12 +9,14 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
+#include <yaml.h>
 
 #include "buzzy/callbacks.h"
 #include "buzzy/env.h"
@@ -54,7 +56,7 @@ int
 bz_env_get_bool(struct bz_env *env, const char *name, bool *dest,
                 bool required)
 {
-    const char  *value = bz_env_get(env, name);
+    const char  *value = bz_env_get(env, name, NULL);
     assert(dest != NULL);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return -1;
@@ -83,7 +85,7 @@ int
 bz_env_get_long(struct bz_env *env, const char *name, long *dest,
                 bool required)
 {
-    const char  *value = bz_env_get(env, name);
+    const char  *value = bz_env_get(env, name, NULL);
     assert(dest != NULL);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return -1;
@@ -110,7 +112,8 @@ bz_env_get_long(struct bz_env *env, const char *name, long *dest,
 struct cork_path *
 bz_env_get_path(struct bz_env *env, const char *name, bool required)
 {
-    const char  *value = bz_env_get(env, name);
+    struct bz_value_set  *set = NULL;
+    const char  *value = bz_env_get(env, name, &set);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return NULL;
     } else if (value == NULL) {
@@ -119,14 +122,17 @@ bz_env_get_path(struct bz_env *env, const char *name, bool required)
         }
         return NULL;
     } else {
-        return cork_path_new(value);
+        const char  *base_path = bz_value_set_base_path(set);
+        struct cork_path  *result = cork_path_new(base_path);
+        cork_path_append(result, value);
+        return result;
     }
 }
 
 const char *
 bz_env_get_string(struct bz_env *env, const char *name, bool required)
 {
-    const char  *value = bz_env_get(env, name);
+    const char  *value = bz_env_get(env, name, NULL);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return NULL;
     } else if (value == NULL) {
@@ -142,7 +148,7 @@ bz_env_get_string(struct bz_env *env, const char *name, bool required)
 struct bz_version *
 bz_env_get_version(struct bz_env *env, const char *name, bool required)
 {
-    const char  *value = bz_env_get(env, name);
+    const char  *value = bz_env_get(env, name, NULL);
     if (CORK_UNLIKELY(cork_error_occurred())) {
         return NULL;
     } else if (value == NULL) {
@@ -197,6 +203,7 @@ bz_value_provider_get(struct bz_value_provider *provider, struct bz_env *env)
 
 struct bz_value_set {
     const char  *name;
+    const char  *base_path;
     void  *user_data;
     bz_free_f  user_data_free;
     bz_value_set_get_f  get;
@@ -208,6 +215,7 @@ bz_value_set_new(const char *name, void *user_data, bz_free_f user_data_free,
 {
     struct bz_value_set  *set = cork_new(struct bz_value_set);
     set->name = cork_strdup(name);
+    set->base_path = cork_strdup("");
     set->user_data = user_data;
     set->user_data_free = user_data_free;
     set->get = get;
@@ -218,8 +226,23 @@ void
 bz_value_set_free(struct bz_value_set *set)
 {
     cork_strfree(set->name);
+    cork_strfree(set->base_path);
     bz_user_data_free(set);
     free(set);
+}
+
+const char *
+bz_value_set_base_path(struct bz_value_set *set)
+{
+    return set->base_path;
+}
+
+void
+bz_value_set_set_base_path(struct bz_value_set *set, const char *base_path)
+{
+    assert(base_path != NULL);
+    cork_strfree(set->base_path);
+    set->base_path = cork_strdup(base_path);
 }
 
 struct bz_value_provider *
@@ -246,6 +269,7 @@ struct bz_env {
     cork_array(struct bz_value_set *)  sets;
     cork_array(struct bz_value_set *)  backup_sets;
     struct bz_var_table  *override_table;
+    struct bz_var_table  *backup_table;
 };
 
 struct bz_env *
@@ -257,11 +281,17 @@ bz_env_new(const char *name)
     cork_array_init(&env->sets);
     cork_array_init(&env->backup_sets);
 
-    /* Every environment comes with one var_table set for free, which takes
-     * precedence over every other value set. */
+    /* Every environment comes with two var_table sets for free.  The first
+     * takes precedence over every other value set, the other is overridden by
+     * every other value set. */
+
     env->override_table = bz_var_table_new(name);
     set = bz_var_table_as_set(env->override_table);
     bz_env_add_set(env, set);
+
+    env->backup_table = bz_var_table_new(name);
+    set = bz_var_table_as_set(env->backup_table);
+    bz_env_add_backup_set(env, set);
 
     return env;
 }
@@ -304,7 +334,8 @@ bz_env_add_backup_set(struct bz_env *env, struct bz_value_set *set)
 }
 
 struct bz_value_provider *
-bz_env_get_provider(struct bz_env *env, const char *key)
+bz_env_get_provider(struct bz_env *env, const char *key,
+                    struct bz_value_set **set_out)
 {
     size_t  i;
 
@@ -317,6 +348,9 @@ bz_env_get_provider(struct bz_env *env, const char *key)
         provider = bz_value_set_get_provider(set, key);
         if (provider != NULL) {
             DEBUG("=== FOUND %s in %s:%s\n", key, env->name, set->name);
+            if (set_out != NULL) {
+                *set_out = set;
+            }
             return provider;
         } else if (cork_error_occurred()) {
             return NULL;
@@ -330,6 +364,9 @@ bz_env_get_provider(struct bz_env *env, const char *key)
         provider = bz_value_set_get_provider(set, key);
         if (provider != NULL) {
             DEBUG("=== FOUND %s in %s:%s\n", key, env->name, set->name);
+            if (set_out != NULL) {
+                *set_out = set;
+            }
             return provider;
         } else if (cork_error_occurred()) {
             return NULL;
@@ -341,10 +378,10 @@ bz_env_get_provider(struct bz_env *env, const char *key)
 }
 
 const char *
-bz_env_get(struct bz_env *env, const char *key)
+bz_env_get(struct bz_env *env, const char *key, struct bz_value_set **set)
 {
     struct bz_value_provider  *provider;
-    rpp_check(provider = bz_env_get_provider(env, key));
+    rpp_check(provider = bz_env_get_provider(env, key, set));
     return bz_value_provider_get(provider, env);
 }
 
@@ -353,6 +390,31 @@ bz_env_add_override(struct bz_env *env, const char *key,
                     struct bz_value_provider *value)
 {
     bz_var_table_add(env->override_table, key, value);
+}
+
+void
+bz_env_add_backup(struct bz_env *env, const char *key,
+                  struct bz_value_provider *value)
+{
+    bz_var_table_add(env->backup_table, key, value);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Environments as a value set
+ */
+
+static struct bz_value_provider *
+bz_env__set__get(void *user_data, const char *key)
+{
+    struct bz_env  *env = user_data;
+    return bz_env_get_provider(env, key, NULL);
+}
+
+struct bz_value_set *
+bz_env_as_value_set(struct bz_env *env)
+{
+    return bz_value_set_new(env->name, env, NULL, bz_env__set__get);
 }
 
 
@@ -501,6 +563,205 @@ bz_var_table_as_set(struct bz_var_table *table)
 
 
 /*-----------------------------------------------------------------------
+ * YAML file of values
+ */
+
+struct bz_yaml_value_set {
+    struct cork_hash_table  values;
+    yaml_document_t  doc;
+    yaml_node_t  *root;
+};
+
+static enum cork_hash_table_map_result
+free_yaml_value(struct cork_hash_table_entry *entry, void *user_data)
+{
+    const char  *key = entry->key;
+    struct bz_value_provider  *value = entry->value;
+    cork_strfree(key);
+    if (value != NULL) {
+        bz_value_provider_free(value);
+    }
+    return CORK_HASH_TABLE_MAP_DELETE;
+}
+
+static void
+bz_yaml_value_set__free(void *user_data)
+{
+    struct bz_yaml_value_set  *yaml_set = user_data;
+    cork_hash_table_map(&yaml_set->values, free_yaml_value, NULL);
+    cork_hash_table_done(&yaml_set->values);
+    yaml_document_delete(&yaml_set->doc);
+    free(yaml_set);
+}
+
+static yaml_node_t *
+bz_yaml__find_node(yaml_document_t *doc, yaml_node_t *node,
+                   const char *node_start, const char *node_end,
+                   const char *key_start, const char *key_end)
+{
+    yaml_node_pair_t  *pair;
+
+    if (CORK_UNLIKELY(node->type != YAML_MAPPING_NODE)) {
+        bz_bad_config
+            ("\"%.*s\" must be a mapping in YAML",
+             (int) (node_end - node_start), node_start);
+        return NULL;
+    }
+
+    for (pair = node->data.mapping.pairs.start;
+         pair < node->data.mapping.pairs.top; pair++) {
+        yaml_node_t  *key_node = yaml_document_get_node(doc, pair->key);
+        const char  *curr_key;
+        bool  match;
+
+        if (CORK_LIKELY(key_node->type == YAML_SCALAR_NODE)) {
+            curr_key = (char *) key_node->data.scalar.value;
+        } else {
+            /* Skip any mapping elements whose keys aren't strings. */
+            continue;
+        }
+
+        /* If key_end is non-NULL, then the key that we're looking for is
+         * terminated by a '.', rather than the usual NUL.  That means we have
+         * to use memcmp instead of strcmp to compare the keys. */
+        if (key_end == NULL) {
+            match = (strcmp(curr_key, key_start) == 0);
+        } else {
+            size_t  key_size = key_end - key_start;
+            size_t  curr_key_size = strlen(curr_key);
+
+            match =
+                (key_size == curr_key_size) &&
+                (memcmp(key_start, curr_key, key_size) == 0);
+        }
+
+        if (match) {
+            return yaml_document_get_node(doc, pair->value);
+        }
+    }
+
+    return NULL;
+}
+
+static struct bz_value_provider *
+bz_yaml_value_set__get_uncached(struct bz_yaml_value_set *yaml_set,
+                                const char *key)
+{
+    yaml_node_t  *value = yaml_set->root;
+    const char  *curr_start = key;
+    const char  *prev_end = key;
+    const char  *curr_end;
+
+    do {
+        curr_end = strchr(curr_start, '.');
+        rpp_check(value = bz_yaml__find_node
+                  (&yaml_set->doc, value, key, prev_end, curr_start, curr_end));
+        prev_end = curr_end;
+        curr_start = curr_end + 1;
+    } while (curr_end != NULL);
+
+    if (CORK_LIKELY(value->type == YAML_SCALAR_NODE)) {
+        char  *content = (char *) value->data.scalar.value;
+        return bz_interpolated_value_new(content);
+    } else {
+        bz_bad_config("\"%s\" must be a string in YAML", key);
+        return NULL;
+    }
+}
+
+static struct bz_value_provider *
+bz_yaml_value_set__get(void *user_data, const char *key)
+{
+    struct bz_yaml_value_set  *yaml_set = user_data;
+    struct cork_hash_table_entry  *entry;
+    bool  is_new;
+
+    entry = cork_hash_table_get_or_create
+        (&yaml_set->values, (void *) key, &is_new);
+    if (is_new) {
+        entry->key = (void *) cork_strdup(key);
+        entry->value = bz_yaml_value_set__get_uncached(yaml_set, key);
+    }
+    return entry->value;
+}
+
+struct bz_value_set *
+bz_yaml_value_set_new(const char *name, yaml_document_t *doc)
+{
+    struct bz_yaml_value_set  *yaml_set;
+    yaml_node_t  *root;
+
+    root = yaml_document_get_root_node(doc);
+    if (CORK_UNLIKELY(root->type != YAML_MAPPING_NODE)) {
+        bz_bad_config("YAML configuration file must contain a mapping");
+        return NULL;
+    }
+
+    yaml_set = cork_new(struct bz_yaml_value_set);
+    cork_string_hash_table_init(&yaml_set->values, 0);
+    yaml_set->doc = *doc;
+    yaml_set->root = root;
+    return bz_value_set_new
+        (name, yaml_set, bz_yaml_value_set__free, bz_yaml_value_set__get);
+}
+
+struct bz_value_set *
+bz_yaml_value_set_new_from_file(const char *name, const char *path)
+{
+    FILE  *file;
+    yaml_parser_t  parser;
+    yaml_document_t  doc;
+
+    file = fopen(path, "r");
+    if (CORK_UNLIKELY(file == NULL)) {
+        cork_system_error_set();
+        return NULL;
+    }
+
+    if (CORK_UNLIKELY(yaml_parser_initialize(&parser) == 0)) {
+        fclose(file);
+        bz_bad_config("Error reading %s", path);
+        return NULL;
+    }
+
+    yaml_parser_set_input_file(&parser, file);
+    if (CORK_UNLIKELY(yaml_parser_load(&parser, &doc) == 0)) {
+        bz_bad_config("Error reading %s: %s", path, parser.problem);
+        yaml_parser_delete(&parser);
+        fclose(file);
+        return NULL;
+    }
+
+    yaml_parser_delete(&parser);
+    fclose(file);
+    return bz_yaml_value_set_new(name, &doc);
+}
+
+struct bz_value_set *
+bz_yaml_value_set_new_from_string(const char *name, const char *content)
+{
+    yaml_parser_t  parser;
+    yaml_document_t  doc;
+
+    if (CORK_UNLIKELY(yaml_parser_initialize(&parser) == 0)) {
+        bz_bad_config("Error reading YAML");
+        return NULL;
+    }
+
+    yaml_parser_set_input_string
+        (&parser, (const unsigned char *) content, strlen(content));
+    if (CORK_UNLIKELY(yaml_parser_load(&parser, &doc) == 0)) {
+        bz_bad_config("Error reading YAML: %s", parser.problem);
+        yaml_parser_delete(&parser);
+        return NULL;
+    }
+
+    yaml_parser_delete(&parser);
+    return bz_yaml_value_set_new(name, &doc);
+}
+
+
+/*-----------------------------------------------------------------------
  * Global and package-specific environments
  */
 
@@ -618,22 +879,39 @@ bz_global_env(void)
 }
 
 struct bz_env *
-bz_package_env_new_empty(const char *env_name)
+bz_repo_env_new_empty(void)
 {
     struct bz_env  *env;
     struct bz_value_set  *global_default_set;
     ensure_global_created();
-    env = bz_env_new(env_name);
+    env = bz_env_new("repository");
     global_default_set = bz_global_docs_unowned_set("global defaults");
     bz_env_add_backup_set(env, global_default_set);
     return env;
 }
 
 struct bz_env *
-bz_package_env_new(const char *package_name, struct bz_version *version)
+bz_package_env_new_empty(struct bz_env *repo_env, const char *env_name)
+{
+    struct bz_env  *env;
+    struct bz_value_set  *global_default_set;
+    ensure_global_created();
+    env = bz_env_new(env_name);
+    if (repo_env != NULL) {
+        struct bz_value_set  *repo_set = bz_env_as_value_set(repo_env);
+        bz_env_add_backup_set(env, repo_set);
+    }
+    global_default_set = bz_global_docs_unowned_set("global defaults");
+    bz_env_add_backup_set(env, global_default_set);
+    return env;
+}
+
+struct bz_env *
+bz_package_env_new(struct bz_env *repo_env, const char *package_name,
+                   struct bz_version *version)
 {
     const char  *version_string = bz_version_to_string(version);
-    struct bz_env  *env = bz_package_env_new_empty(package_name);
+    struct bz_env  *env = bz_package_env_new_empty(repo_env, package_name);
     bz_env_add_override(env, "name", bz_string_value_new(package_name));
     bz_env_add_override(env, "version", bz_string_value_new(version_string));
     bz_version_free(version);
@@ -690,6 +968,7 @@ bz_load_variable_definitions(void)
 {
     bz_load_variables(global);
     bz_load_variables(package);
+    bz_load_variables(repo);
 
     /* builders */
     bz_load_variables(cmake);

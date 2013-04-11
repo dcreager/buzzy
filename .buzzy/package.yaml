@@ -1,0 +1,4 @@
+name: buzzy
+build_dependencies:
+  - check
+license: BSD
