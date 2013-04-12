@@ -234,7 +234,6 @@ bz_filesystem__free(void *user_data)
 {
     struct bz_filesystem_repo  *repo = user_data;
     cork_strfree(repo->path);
-    bz_action_free(repo->update);
     free(repo);
 }
 

@@ -95,6 +95,7 @@ set(BUZZY_SRC
     buzzy/raw-pkg.c
     buzzy/root.c
     buzzy/test.c
+    buzzy/update.c
     buzzy/vercmp.c
 )
 
