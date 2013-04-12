@@ -44,11 +44,15 @@ repository and directory and while not in one.
   $ mkdir -p repo1/.buzzy
   $ cd repo1
   $ buzzy doc repo_base_path
+  Load repositories:
+  \[1/1] Load .*/doc.t/repo1/.buzzy (re)
   repo_base_path
     The base path of the files defining the repository
   
     Current value: .*/doc.t/repo1/.buzzy (re)
   $ buzzy doc repo_path
+  Load repositories:
+  \[1/1] Load .*/doc.t/repo1/.buzzy (re)
   repo_path
     The location of the YAML file defining the repository
   
@@ -62,26 +66,36 @@ repository and directory and while not in one.
   > EOF
   $ cd repo2
   $ buzzy doc repo_base_path
+  Load repositories:
+  \[1/1] Load .*/doc.t/repo2/.buzzy (re)
   repo_base_path
     The base path of the files defining the repository
   
     Current value: .*/doc.t/repo2/.buzzy (re)
   $ buzzy doc repo_path
+  Load repositories:
+  \[1/1] Load .*/doc.t/repo2/.buzzy (re)
   repo_path
     The location of the YAML file defining the repository
   
     Current value: .*/doc.t/repo2/.buzzy/repo.yaml (re)
   $ buzzy doc name
+  Load repositories:
+  \[1/1] Load .*/doc.t/repo2/.buzzy (re)
   name
     The name of the package
   
     Current value: test
   $ buzzy doc version
+  Load repositories:
+  \[1/1] Load .*/doc.t/repo2/.buzzy (re)
   version
     The version of the package
   
     Current value: 1.0~rc1
   $ buzzy doc source_path
+  Load repositories:
+  \[1/1] Load .*/doc.t/repo2/.buzzy (re)
   source_path
     Where the package's extracted source archive should be placed
   

@@ -35,7 +35,7 @@ START_TEST(test_repo_01)
     bz_mock_file_exists("/a/b/.buzzy/repo.yaml", false);
     bz_mock_file_exists("/a/b/.buzzy/package.yaml", false);
     bz_mock_file_exists("/a/b/.buzzy/../.git", false);
-    fail_if_error(repo = bz_filesystem_repo_find("/a/b/c"));
+    fail_if_error(repo = bz_local_filesystem_repo_find("/a/b/c"));
     fail_if(repo == NULL, "Cannot create repo");
 }
 END_TEST
@@ -52,7 +52,7 @@ START_TEST(test_missing_repo_01)
     bz_mock_file_exists("/a/b/.buzzy", false);
     bz_mock_file_exists("/a/.buzzy", false);
     bz_mock_file_exists("/.buzzy", false);
-    fail_if_error(repo = bz_filesystem_repo_find("/a/b/c"));
+    fail_if_error(repo = bz_local_filesystem_repo_find("/a/b/c"));
     fail_unless(repo == NULL, "Shouldn't be able to find missing repo");
 }
 END_TEST

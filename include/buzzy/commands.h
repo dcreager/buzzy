@@ -198,19 +198,17 @@ static void
 bz_load_repositories(void)
 {
     struct cork_path  *cwd;
-    struct bz_action  *load;
     struct bz_action_phase  *phase;
 
     ri_check_error(bz_load_variable_definitions());
     ri_check_error(bz_pdb_discover());
 
     rp_check_error(cwd = cork_path_cwd());
-    rp_check_error(base_repo = bz_filesystem_repo_find(cork_path_get(cwd)));
+    rp_check_error(base_repo =
+                   bz_local_filesystem_repo_find(cork_path_get(cwd)));
     cork_path_free(cwd);
 
-    rp_check_error(load = bz_repo_registry_load_all());
-    phase = bz_action_phase_new("Load repositories:");
-    bz_action_phase_add(phase, load);
+    rp_check_error(phase = bz_repo_registry_load_all());
     ri_check_error(bz_action_phase_perform(phase, BZ_ACTION_HIDE_NOOP));
     bz_action_phase_free(phase);
 }

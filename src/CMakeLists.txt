@@ -73,6 +73,8 @@ set(LIBBUZZY_SRC
     libbuzzy/distro/pdb.c
     libbuzzy/packagers/noop.c
     libbuzzy/packagers/pacman.c
+    libbuzzy/repos/filesystem.c
+    libbuzzy/repos/local.c
 )
 
 add_library(libbuzzy STATIC ${LIBBUZZY_SRC})
