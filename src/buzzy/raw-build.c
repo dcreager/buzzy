@@ -91,7 +91,7 @@ parse_options(int argc, char **argv)
 static void
 execute(int argc, char **argv)
 {
-    struct cork_path  *source_path;
+    struct cork_path  *source_dir;
     struct bz_builder  *builder;
     struct bz_action  *action;
     struct bz_action_phase  *phase;
@@ -106,10 +106,10 @@ execute(int argc, char **argv)
     ri_check_error(bz_pdb_discover());
     package_env_init();
 
-    rp_check_error(source_path = cork_path_new("."));
-    ri_check_error(cork_path_set_absolute(source_path));
-    rp_check_error(value = bz_path_value_new(source_path));
-    bz_env_add_override(package_env, "source_path", value);
+    rp_check_error(source_dir = cork_path_new("."));
+    ri_check_error(cork_path_set_absolute(source_dir));
+    rp_check_error(value = bz_path_value_new(source_dir));
+    bz_env_add_override(package_env, "source_dir", value);
 
     rp_check_error(value = bz_string_value_new(force? "1": "0"));
     bz_env_add_override(package_env, "force", value);

@@ -92,7 +92,7 @@ bz_local_filesystem_repo_new(const char *path)
     repo = cork_new(struct bz_local_filesystem_repo);
     repo->path = cork_strdup(path);
     repo_env = bz_repo_env_new_empty();
-    bz_env_add_override(repo_env, "repo_base_path", bz_string_value_new(path));
+    bz_env_add_override(repo_env, "repo.base_dir", bz_string_value_new(path));
 
     repo->repo = bz_repo_new
         (repo_env, repo, bz_local_filesystem__free,
@@ -114,8 +114,10 @@ bz_local_filesystem_repo_find(const char *path_string)
     do {
         bool  exists;
         cork_path_append(path, ".buzzy");
-
         ei_check(bz_file_exists(cork_path_get(path), &exists));
+
+        /* Remove ".buzzy" from the path. */
+        cork_path_set_dirname(path);
         if (exists) {
             struct bz_repo  *repo;
             ep_check(repo = bz_local_filesystem_repo_new(cork_path_get(path)));
@@ -123,10 +125,6 @@ bz_local_filesystem_repo_find(const char *path_string)
             bz_repo_register(repo);
             return repo;
         }
-
-        /* Remove ".buzzy" from the path. */
-        /* Otherwise check the parent directory next. */
-        cork_path_set_dirname(path);
 
         /* If we just checked the root directory or current working directory,
          * then there's nothing else to check. */

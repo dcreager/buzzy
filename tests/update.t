@@ -20,7 +20,7 @@ run "buzzy update" in each of them.
   $ cd repo1
   $ buzzy update
   Load repositories:
-  \[1/1] Load .*/update.t/repo1/.buzzy (re)
+  \[1/1] Load .*/update.t/repo1 (re)
   Update repositories:
     Nothing to do!
   $ cd ..

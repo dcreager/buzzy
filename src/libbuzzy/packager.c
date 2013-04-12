@@ -95,7 +95,8 @@ bz_packager_add_prereq(struct bz_packager *packager, struct bz_action *action)
 }
 
 int
-bz_packager_add_prereq_package(struct bz_packager *packager, const char *dep_string)
+bz_packager_add_prereq_package(struct bz_packager *packager,
+                               const char *dep_string)
 {
     struct bz_action  *prereq;
     rip_check(prereq = bz_install_dependency_string(dep_string));

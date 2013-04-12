@@ -361,8 +361,8 @@ static void
 test_create_package(struct bz_env *env, bool force,
                     const char *expected_actions)
 {
-    struct cork_path  *package_path = cork_path_new(".");
-    struct cork_path  *staging_path = cork_path_new("/tmp/staging");
+    struct cork_path  *binary_package_dir = cork_path_new(".");
+    struct cork_path  *staging_dir = cork_path_new("/tmp/staging");
     struct bz_pdb  *pdb;
     struct bz_packager  *packager;
     struct bz_action  *action;
@@ -375,9 +375,10 @@ test_create_package(struct bz_env *env, bool force,
 
     mock_available_package("pacman", "4.0.3-7");
     mock_installed_package("pacman", "4.0.3-7");
-    bz_mock_file_exists(cork_path_get(staging_path), true);
-    bz_env_add_override(env, "package_path", bz_path_value_new(package_path));
-    bz_env_add_override(env, "staging_path", bz_path_value_new(staging_path));
+    bz_mock_file_exists(cork_path_get(staging_dir), true);
+    bz_env_add_override(env, "binary_package_dir",
+                        bz_path_value_new(binary_package_dir));
+    bz_env_add_override(env, "staging_dir", bz_path_value_new(staging_dir));
     bz_env_add_override(env, "force", bz_string_value_new(force? "1": "0"));
     bz_env_add_override(env, "verbose", bz_string_value_new("0"));
     fail_if_error(packager = bz_pacman_packager_new(env));

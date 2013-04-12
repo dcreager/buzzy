@@ -183,14 +183,14 @@ bz_git_version__provide(void *user_data, struct bz_env *env)
 
     if (git->version == NULL) {
         bool  successful;
-        struct cork_path  *source_path;
+        struct cork_path  *source_dir;
         struct cork_exec  *exec;
 
         /* Grab the base version string from "git describe" */
-        ep_check(source_path = bz_env_get_path(env, "source_path", true));
+        ep_check(source_dir = bz_env_get_path(env, "source_dir", true));
         exec = cork_exec_new_with_params("git", "describe", NULL);
-        cork_exec_set_cwd(exec, cork_path_get(source_path));
-        cork_path_free(source_path);
+        cork_exec_set_cwd(exec, cork_path_get(source_dir));
+        cork_path_free(source_dir);
         ei_check(bz_subprocess_get_output_exec(&out, NULL, &successful, exec));
         if (!successful) {
             goto error;
@@ -200,10 +200,10 @@ bz_git_version__provide(void *user_data, struct bz_env *env)
         ((char *) out.buf)[--out.size] = '\0';
 
         /* If the working tree is dirty, append "+dirty" to the version. */
-        ep_check(source_path = bz_env_get_path(env, "source_path", true));
+        ep_check(source_dir = bz_env_get_path(env, "source_dir", true));
         exec = cork_exec_new_with_params("git", "status", "--porcelain", NULL);
-        cork_exec_set_cwd(exec, cork_path_get(source_path));
-        cork_path_free(source_path);
+        cork_exec_set_cwd(exec, cork_path_get(source_dir));
+        cork_path_free(source_dir);
         ei_check(bz_subprocess_get_output_exec
                  (&dirty, NULL, &successful, exec));
         if (!successful) {

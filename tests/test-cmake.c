@@ -121,7 +121,7 @@ static void
 test_stage_package(struct bz_env *env, bool force,
                    const char *expected_actions)
 {
-    struct cork_path  *source_path = cork_path_new("/home/test/source");
+    struct cork_path  *source_dir = cork_path_new("/home/test/source");
     struct bz_pdb  *pdb;
     struct bz_builder  *builder;
     struct bz_action  *action;
@@ -132,8 +132,8 @@ test_stage_package(struct bz_env *env, bool force,
     fail_if_error(pdb = bz_arch_native_pdb());
     bz_pdb_register(pdb);
 
-    bz_mock_file_exists(cork_path_get(source_path), true);
-    bz_env_add_override(env, "source_path", bz_path_value_new(source_path));
+    bz_mock_file_exists(cork_path_get(source_dir), true);
+    bz_env_add_override(env, "source_dir", bz_path_value_new(source_dir));
     bz_env_add_override(env, "force", bz_string_value_new(force? "1": "0"));
     bz_env_add_override(env, "verbose", bz_string_value_new("0"));
     fail_if_error(builder = bz_cmake_builder_new(env));

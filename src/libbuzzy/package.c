@@ -57,8 +57,8 @@ bz_define_variables(package)
     );
 
     bz_package_variable(
-        package_work_path, "package_work_path",
-        bz_interpolated_value_new("${work_path}/build/${name}/${version}"),
+        package_work_dir, "package_work_dir",
+        bz_interpolated_value_new("${work_dir}/build/${name}/${version}"),
         "Location for artefacts created while building or installing a package",
         ""
     );
@@ -108,29 +108,29 @@ bz_define_variables(package)
     );
 
     bz_package_variable(
-        build_path, "build_path",
-        bz_interpolated_value_new("${package_work_path}/build"),
+        build_dir, "build_dir",
+        bz_interpolated_value_new("${package_work_dir}/build"),
         "Where the package's build artefacts should be placed",
         ""
     );
 
     bz_package_variable(
-        pkg_path, "pkg_path",
-        bz_interpolated_value_new("${package_work_path}/pkg"),
+        package_build_dir, "package_build_dir",
+        bz_interpolated_value_new("${package_work_dir}/pkg"),
         "Temporary directory while building a binary package",
         ""
     );
 
     bz_package_variable(
-        source_path, "source_path",
-        bz_interpolated_value_new("${package_work_path}/source"),
+        source_dir, "source_dir",
+        bz_interpolated_value_new("${package_work_dir}/source"),
         "Where the package's extracted source archive should be placed",
         ""
     );
 
     bz_package_variable(
-        staging_path, "staging_path",
-        bz_interpolated_value_new("${package_work_path}/stage"),
+        staging_dir, "staging_dir",
+        bz_interpolated_value_new("${package_work_dir}/stage"),
         "Where a package's staged installation should be placed",
         ""
     );

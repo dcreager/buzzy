@@ -24,36 +24,43 @@
 bz_define_variables(repo)
 {
     bz_repo_variable(
-        repo_base_path, "repo_base_path",
+        repo_base_dir, "repo.base_dir",
         NULL,
         "The base path of the files defining the repository",
         ""
     );
 
     bz_repo_variable(
-        repo_path, "repo_path",
-        bz_interpolated_value_new("${repo_base_path}/repo.yaml"),
+        repo_config_dir, "repo.config_dir",
+        bz_interpolated_value_new("${repo.base_dir}/.buzzy"),
+        "The base path of the files defining the repository",
+        ""
+    );
+
+    bz_repo_variable(
+        repo_yaml, "repo.repo_yaml",
+        bz_interpolated_value_new("${repo.config_dir}/repo.yaml"),
         "The location of the YAML file defining the repository",
         ""
     );
 
     bz_repo_variable(
-        repo_links_path, "repo_links_path",
-        bz_interpolated_value_new("${repo_base_path}/links.yaml"),
+        repo_links_path, "repo.links_yaml",
+        bz_interpolated_value_new("${repo.config_dir}/links.yaml"),
         "The location of the YAML file defining linked repositories",
         ""
     );
 
     bz_repo_variable(
-        yaml_package_file_path, "yaml_package_file_path",
-        bz_interpolated_value_new("${repo_base_path}/package.yaml"),
+        repo_package_yaml, "repo.package_yaml",
+        bz_interpolated_value_new("${repo.config_dir}/package.yaml"),
         "The location of the YAML file defining the repository's package",
         ""
     );
 
     bz_repo_variable(
-        git_path, "git_path",
-        bz_interpolated_value_new("${repo_base_path}/../.git"),
+        repo_git_dir, "repo.git_dir",
+        bz_interpolated_value_new("${repo.base_dir}/.git"),
         "The location of the .git directory in a git checkout",
         ""
     );
@@ -235,7 +242,7 @@ bz_repo_registry_update_all(void)
     struct bz_action_phase  *phase;
 
     repos_init();
-    phase = bz_action_phase_new("update repositories:");
+    phase = bz_action_phase_new("Update repositories:");
     for (i = 0; i < cork_array_size(&repos); i++) {
         struct bz_repo  *repo = cork_array_at(&repos, i);
         struct bz_action  *action;

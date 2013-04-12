@@ -83,17 +83,17 @@ bz_repo_registry_update_all(void);
 /* Any repository that eventually places a standard repository directory layout
  * in the local filesystem should use this function in its load action to
  * actually load in the contents of the repository directory.  The repository's
- * environment should make sure that "repo_base_path" points at the repository
- * directory (i.e., the directory with the YAML files). */
+ * environment should make sure that "repo.base_path" points at the repository
+ * directory. */
 int
 bz_filesystem_repo_load(struct bz_repo *repo);
 
 
 /* A repository that already exists on the filesystem.  We won't ever try to
  * update it, since we don't know how.  "path" should point at the repository
- * directory (usually called ".buzzy").  We assume that the repository is
- * embedded in some source checkout (so the "source_path" should be the parent
- * of "path"). */
+ * directory (which should contain a directory called ".buzzy").  We assume that
+ * the repository is embedded in some source checkout (so the "source_dir"
+ * should also be set to "path"). */
 struct bz_repo *
 bz_local_filesystem_repo_new(const char *path);
 

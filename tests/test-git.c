@@ -85,7 +85,7 @@ test_git_version_value(const char *git, const char *buzzy)
     bz_mock_subprocess("git status --porcelain", NULL, NULL, 0);
     fail_if_error(provider = bz_git_version_value_new());
     bz_env_add_override(env, "version", provider);
-    bz_env_add_override(env, "source_path", bz_string_value_new("."));
+    bz_env_add_override(env, "source_dir", bz_string_value_new("."));
     fail_if_error(actual = bz_env_get_string(env, "version", true));
     fail_unless_streq("Versions", buzzy, actual);
     bz_env_free(env);
