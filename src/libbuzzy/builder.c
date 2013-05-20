@@ -68,8 +68,11 @@ struct bz_builder {
     const char  *builder_name;
     void  *user_data;
     cork_free_f  free_user_data;
+    bz_package_is_needed_f  build_needed;
     bz_package_step_f  build;
+    bz_package_is_needed_f  test_needed;
     bz_package_step_f  test;
+    bz_package_is_needed_f  stage_needed;
     bz_package_step_f  stage;
     bool  built;
     bool  tested;
@@ -80,8 +83,11 @@ struct bz_builder {
 struct bz_builder *
 bz_builder_new(struct bz_env *env, const char *builder_name,
                void *user_data, cork_free_f free_user_data,
+               bz_package_is_needed_f build_needed,
                bz_package_step_f build,
+               bz_package_is_needed_f test_needed,
                bz_package_step_f test,
+               bz_package_is_needed_f stage_needed,
                bz_package_step_f stage)
 {
     struct bz_builder  *builder = cork_new(struct bz_builder);
@@ -89,8 +95,11 @@ bz_builder_new(struct bz_env *env, const char *builder_name,
     builder->builder_name = cork_strdup(builder_name);
     builder->user_data = user_data;
     builder->free_user_data = free_user_data;
+    builder->build_needed = build_needed;
     builder->build = build;
+    builder->test_needed = test_needed;
     builder->test = test;
+    builder->stage_needed = stage_needed;
     builder->stage = stage;
     builder->built = false;
     builder->tested = false;
@@ -111,35 +120,44 @@ int
 bz_builder_build(struct bz_builder *builder)
 {
     if (!builder->built) {
+        bool  is_needed;
         builder->built = true;
-        return builder->build(builder->user_data);
-    } else {
-        return 0;
+        rii_check(builder->build_needed(builder->user_data, &is_needed));
+        if (is_needed) {
+            return builder->build(builder->user_data);
+        }
     }
+    return 0;
 }
 
 int
 bz_builder_test(struct bz_builder *builder)
 {
-    rii_check(bz_builder_build(builder));
     if (!builder->tested) {
+        bool  is_needed;
         builder->tested = true;
-        return builder->test(builder->user_data);
-    } else {
-        return 0;
+        rii_check(builder->test_needed(builder->user_data, &is_needed));
+        if (is_needed) {
+            rii_check(bz_builder_build(builder));
+            return builder->test(builder->user_data);
+        }
     }
+    return 0;
 }
 
 int
 bz_builder_stage(struct bz_builder *builder)
 {
-    rii_check(bz_builder_build(builder));
     if (!builder->staged) {
+        bool  is_needed;
         builder->staged = true;
-        return builder->stage(builder->user_data);
-    } else {
-        return 0;
+        rii_check(builder->stage_needed(builder->user_data, &is_needed));
+        if (is_needed) {
+            rii_check(bz_builder_build(builder));
+            return builder->stage(builder->user_data);
+        }
     }
+    return 0;
 }
 
 

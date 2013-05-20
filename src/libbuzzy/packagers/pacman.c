@@ -133,8 +133,9 @@ bz_define_variables(pacman)
  */
 
 static int
-bz_pacman__package__is_needed(struct bz_env *env, bool *is_needed)
+bz_pacman__package__is_needed(void *user_data, bool *is_needed)
 {
+    struct bz_env  *env = user_data;
     bool  force = false;
 
     rii_check(bz_env_get_bool(env, "force", &force, false));
@@ -166,19 +167,12 @@ bz_pacman__package(void *user_data)
     const char  *pkgext;
     const char  *architecture;
     const char  *license;
-    bool  is_needed;
     bool  verbose = false;
 
     struct cork_env  *exec_env;
     struct cork_exec  *exec;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
     bool  staging_exists;
-
-    /* Has the package already been created? */
-    rii_check(bz_pacman__package__is_needed(env, &is_needed));
-    if (!is_needed) {
-        return 0;
-    }
 
     rii_check(bz_install_dependency_string("pacman"));
     rii_check(bz_package_message(env, "pacman"));
@@ -242,10 +236,12 @@ error:
 
 
 static int
-bz_pacman__install__is_needed(struct bz_env *env, bool *is_needed)
+bz_pacman__install__is_needed(void *user_data, bool *is_needed)
 {
+    struct bz_env  *env = user_data;
     bool  force = false;
 
+    rii_check(bz_install_dependency_string("pacman"));
     rii_check(bz_env_get_bool(env, "force", &force, false));
 
     if (force) {
@@ -283,15 +279,7 @@ bz_pacman__install(void *user_data)
 {
     struct bz_env  *env = user_data;
     const char  *package_file;
-    bool  is_needed;
 
-    /* Has the package already been installed? */
-    rii_check(bz_pacman__install__is_needed(env, &is_needed));
-    if (!is_needed) {
-        return 0;
-    }
-
-    rii_check(bz_install_dependency_string("pacman"));
     rii_check(bz_install_message(env, "pacman"));
 
     rip_check(package_file = bz_env_get_string
@@ -306,5 +294,7 @@ struct bz_packager *
 bz_pacman_packager_new(struct bz_env *env)
 {
     return bz_packager_new
-        (env, "pacman", env, NULL, bz_pacman__package, bz_pacman__install);
+        (env, "pacman", env, NULL,
+         bz_pacman__package__is_needed, bz_pacman__package,
+         bz_pacman__install__is_needed, bz_pacman__install);
 }

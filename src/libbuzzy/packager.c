@@ -55,9 +55,13 @@ bz_install_message(struct bz_env *env, const char *packager_name)
 struct bz_packager {
     struct bz_env  *env;
     const char  *packager_name;
+    struct bz_builder  *builder;
+
     void  *user_data;
     cork_free_f  free_user_data;
+    bz_package_is_needed_f  package_needed;
     bz_package_step_f  package;
+    bz_package_is_needed_f  install_needed;
     bz_package_step_f  install;
     bool  packaged;
     bool  installed;
@@ -67,15 +71,20 @@ struct bz_packager {
 struct bz_packager *
 bz_packager_new(struct bz_env *env, const char *packager_name,
                 void *user_data, cork_free_f free_user_data,
+                bz_package_is_needed_f package_needed,
                 bz_package_step_f package,
+                bz_package_is_needed_f install_needed,
                 bz_package_step_f install)
 {
     struct bz_packager  *packager = cork_new(struct bz_packager);
     packager->env = env;
     packager->packager_name = cork_strdup(packager_name);
+    packager->builder = NULL;
     packager->user_data = user_data;
     packager->free_user_data = free_user_data;
+    packager->package_needed = package_needed;
     packager->package = package;
+    packager->install_needed = install_needed;
     packager->install = install;
     packager->packaged = false;
     packager->installed = false;
@@ -91,15 +100,29 @@ bz_packager_free(struct bz_packager *packager)
 }
 
 
+void
+bz_packager_set_builder(struct bz_packager *packager,
+                        struct bz_builder *builder)
+{
+    packager->builder = builder;
+}
+
+
 int
 bz_packager_package(struct bz_packager *packager)
 {
     if (!packager->packaged) {
+        bool  is_needed;
         packager->packaged = true;
-        return packager->package(packager->user_data);
-    } else {
-        return 0;
+        rii_check(packager->package_needed(packager->user_data, &is_needed));
+        if (is_needed) {
+            if (packager->builder != NULL) {
+                rii_check(bz_builder_stage(packager->builder));
+            }
+            return packager->package(packager->user_data);
+        }
     }
+    return 0;
 }
 
 int
@@ -107,11 +130,15 @@ bz_packager_install(struct bz_packager *packager)
 {
     rii_check(bz_packager_package(packager));
     if (!packager->installed) {
+        bool  is_needed;
         packager->installed = true;
-        return packager->install(packager->user_data);
-    } else {
-        return 0;
+        rii_check(packager->install_needed(packager->user_data, &is_needed));
+        if (is_needed) {
+            rii_check(bz_packager_package(packager));
+            return packager->install(packager->user_data);
+        }
     }
+    return 0;
 }
 
 

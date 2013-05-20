@@ -23,6 +23,9 @@
 struct bz_package;
 
 typedef int
+(*bz_package_is_needed_f)(void *user_data, bool *is_needed);
+
+typedef int
 (*bz_package_step_f)(void *user_data);
 
 

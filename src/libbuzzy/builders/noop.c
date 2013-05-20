@@ -21,6 +21,13 @@
  */
 
 static int
+bz_noop__is_needed(void *user_data, bool *is_needed)
+{
+    *is_needed = true;
+    return 0;
+}
+
+static int
 bz_noop__build(void *user_data)
 {
     struct bz_env  *env = user_data;
@@ -54,5 +61,7 @@ bz_noop_builder_new(struct bz_env *env)
 {
     return bz_builder_new
         (env, "noop", env, NULL,
-         bz_noop__build, bz_noop__test, bz_noop__stage);
+         bz_noop__is_needed, bz_noop__build,
+         bz_noop__is_needed, bz_noop__test,
+         bz_noop__is_needed, bz_noop__stage);
 }

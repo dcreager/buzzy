@@ -73,11 +73,9 @@ bz_native_package__test(void *user_data)
 }
 
 static int
-bz_native_package__install(void *user_data)
+bz_native_package__is_needed(struct bz_native_package *native, bool *is_needed)
 {
-    struct bz_native_package  *native = user_data;
     struct bz_version  *installed;
-    bool  is_needed = false;
 
     installed = native->version_installed(native->native_package_name);
     if (CORK_UNLIKELY(cork_error_occurred())) {
@@ -85,12 +83,22 @@ bz_native_package__install(void *user_data)
     }
 
     if (installed == NULL) {
-        is_needed = true;
+        *is_needed = true;
     } else {
-        is_needed = (bz_version_cmp(installed, native->version) < 0);
+        *is_needed = (bz_version_cmp(installed, native->version) < 0);
         bz_version_free(installed);
     }
 
+    return 0;
+}
+
+static int
+bz_native_package__install(void *user_data)
+{
+    struct bz_native_package  *native = user_data;
+    bool  is_needed;
+
+    rii_check(bz_native_package__is_needed(native, &is_needed));
     if (is_needed) {
         bz_log_action
             ("Install native %s package %s %s",
@@ -98,9 +106,9 @@ bz_native_package__install(void *user_data)
              native->native_package_name,
              bz_version_to_string(native->version));
         return native->install(native->native_package_name, native->version);
-    } else {
-        return 0;
     }
+
+    return 0;
 }
 
 

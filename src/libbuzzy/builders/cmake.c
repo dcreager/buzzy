@@ -43,6 +43,14 @@ bz_define_variables(cmake)
  */
 
 static int
+bz_cmake__is_needed(void *user_data, bool *is_needed)
+{
+    /* We always let CMake built, test, and stage the package. */
+    *is_needed = true;
+    return 0;
+}
+
+static int
 bz_cmake__build(void *user_data)
 {
     struct bz_env  *env = user_data;
@@ -156,5 +164,7 @@ bz_cmake_builder_new(struct bz_env *env)
 {
     return bz_builder_new
         (env, "cmake", env, NULL,
-         bz_cmake__build, bz_cmake__test, bz_cmake__stage);
+         bz_cmake__is_needed, bz_cmake__build,
+         bz_cmake__is_needed, bz_cmake__test,
+         bz_cmake__is_needed, bz_cmake__stage);
 }

@@ -53,7 +53,10 @@ static struct bz_packager *
 bz_built_package_packager(struct bz_built_package *package)
 {
     if (package->packager == NULL) {
+        struct bz_builder  *builder;
+        rpp_check(builder = bz_built_package_builder(package));
         package->packager = bz_package_packager_new(package->env);
+        bz_packager_set_builder(package->packager, builder);
     }
     return package->packager;
 }
@@ -80,11 +83,8 @@ static int
 bz_built_package__install(void *user_data)
 {
     struct bz_built_package  *package = user_data;
-    struct bz_builder  *builder;
     struct bz_packager  *packager;
-    rip_check(builder = bz_built_package_builder(package));
     rip_check(packager = bz_built_package_packager(package));
-    rii_check(bz_builder_stage(builder));
     return bz_packager_install(packager);
 }
 

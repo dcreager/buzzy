@@ -61,8 +61,11 @@ struct bz_builder;
 struct bz_builder *
 bz_builder_new(struct bz_env *env, const char *builder_name,
                void *user_data, cork_free_f free_user_data,
+               bz_package_is_needed_f build_needed,
                bz_package_step_f build,
+               bz_package_is_needed_f test_needed,
                bz_package_step_f test,
+               bz_package_is_needed_f stage_needed,
                bz_package_step_f stage);
 
 void
@@ -91,11 +94,17 @@ struct bz_packager;
 struct bz_packager *
 bz_packager_new(struct bz_env *env, const char *packager_name,
                 void *user_data, cork_free_f free_user_data,
+                bz_package_is_needed_f package_needed,
                 bz_package_step_f package,
+                bz_package_is_needed_f install_needed,
                 bz_package_step_f install);
 
 void
 bz_packager_free(struct bz_packager *packager);
+
+void
+bz_packager_set_builder(struct bz_packager *packager,
+                        struct bz_builder *builder);
 
 int
 bz_packager_package(struct bz_packager *packager);
