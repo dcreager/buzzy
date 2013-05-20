@@ -75,6 +75,7 @@ set(LIBBUZZY_SRC
     libbuzzy/packagers/noop.c
     libbuzzy/packagers/pacman.c
     libbuzzy/repos/filesystem.c
+    libbuzzy/repos/git.c
     libbuzzy/repos/local.c
     libbuzzy/repos/url.c
 )

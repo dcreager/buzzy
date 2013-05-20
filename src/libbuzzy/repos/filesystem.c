@@ -115,6 +115,7 @@ bz_filesystem_repo__create_default_package(struct bz_repo *repo)
               (repo_env, "repo.package_yaml", true));
     ei_check(bz_file_exists(cork_path_get(package_file), &exists));
     if (!exists) {
+        cork_path_free(package_file);
         return 0;
     }
 

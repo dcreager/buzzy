@@ -46,6 +46,47 @@ START_TEST(test_repo_01)
 }
 END_TEST
 
+START_TEST(test_git_repo_01)
+{
+    DESCRIBE_TEST;
+    struct bz_repo  *repo;
+    bz_start_mocks();
+    bz_repo_registry_reset();
+    bz_global_env_reset();
+    fail_if_error(bz_load_variable_definitions());
+    /* The repo directory itself is mocked to not exist, so that we perform the
+     * clone. */
+    bz_mock_file_exists
+        ("/home/test/.cache/buzzy/repos/buzzy-test-d7ce6615", false);
+    bz_mock_file_exists
+        ("/home/test/.cache/buzzy/repos/buzzy-test-d7ce6615/"
+         ".buzzy/repo.yaml", false);
+    bz_mock_file_exists
+        ("/home/test/.cache/buzzy/repos/buzzy-test-d7ce6615/"
+         ".buzzy/links.yaml", false);
+    bz_mock_file_exists
+        ("/home/test/.cache/buzzy/repos/buzzy-test-d7ce6615/"
+         ".buzzy/package.yaml", false);
+    bz_mock_file_exists
+        ("/home/test/.cache/buzzy/repos/buzzy-test-d7ce6615/"
+         ".git", false);
+    bz_mock_subprocess
+        ("git clone --recursive --branch master "
+         "git://github.com/redjack/buzzy-test.git "
+         "/home/test/.cache/buzzy/repos/buzzy-test-d7ce6615",
+         NULL, NULL, 0);
+    fail_if_error(repo = bz_git_repo_new
+                  ("git://github.com/redjack/buzzy-test.git", "master"));
+    fail_if(repo == NULL, "Cannot create repo");
+    fail_if_error(bz_repo_load(repo));
+    test_actions(
+        "[1] Clone git://github.com/redjack/buzzy-test.git (master)\n"
+        "[2] Load git://github.com/redjack/buzzy-test.git (master)\n"
+    );
+    bz_repo_free(repo);
+}
+END_TEST
+
 START_TEST(test_missing_repo_01)
 {
     DESCRIBE_TEST;
@@ -75,6 +116,7 @@ test_suite()
 
     TCase  *tc_repo = tcase_create("repo");
     tcase_add_test(tc_repo, test_repo_01);
+    tcase_add_test(tc_repo, test_git_repo_01);
     tcase_add_test(tc_repo, test_missing_repo_01);
     suite_add_tcase(s, tc_repo);
 

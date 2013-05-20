@@ -305,11 +305,13 @@ bz_env_free(struct bz_env *env)
         struct bz_value_set  *set = cork_array_at(&env->sets, i);
         bz_value_set_free(set);
     }
+    cork_array_done(&env->sets);
 
     for (i = 0; i < cork_array_size(&env->backup_sets); i++) {
         struct bz_value_set  *set = cork_array_at(&env->backup_sets, i);
         bz_value_set_free(set);
     }
+    cork_array_done(&env->backup_sets);
 
     cork_strfree(env->name);
     free(env);
