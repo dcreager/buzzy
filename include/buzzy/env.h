@@ -242,6 +242,9 @@ struct bz_value_set *
 bz_yaml_value_set_new(const char *name, yaml_document_t *doc);
 
 struct bz_value_set *
+bz_yaml_value_set_new_from_env_var(struct bz_env *env, const char *var_name);
+
+struct bz_value_set *
 bz_yaml_value_set_new_from_file(const char *name, const char *path);
 
 struct bz_value_set *

@@ -65,6 +65,7 @@ set(LIBBUZZY_SRC
     libbuzzy/packager.c
     libbuzzy/repo.c
     libbuzzy/version.c
+    libbuzzy/yaml.c
     libbuzzy/builders/cmake.c
     libbuzzy/builders/noop.c
     libbuzzy/distro/arch.c
@@ -75,6 +76,7 @@ set(LIBBUZZY_SRC
     libbuzzy/packagers/pacman.c
     libbuzzy/repos/filesystem.c
     libbuzzy/repos/local.c
+    libbuzzy/repos/url.c
 )
 
 add_library(libbuzzy STATIC ${LIBBUZZY_SRC})

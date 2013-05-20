@@ -72,6 +72,8 @@ bz_define_variables(repo)
 struct bz_repo {
     struct bz_env  *env;
     struct bz_package  *default_package;
+    cork_array(struct bz_repo *)  links;
+
     void  *user_data;
     cork_free_f  free_user_data;
     bz_repo_load_f  load;
@@ -89,6 +91,7 @@ bz_repo_new(struct bz_env *env,
     struct bz_repo  *repo = cork_new(struct bz_repo);
     repo->env = env;
     repo->default_package = NULL;
+    cork_array_init(&repo->links);
     repo->user_data = user_data;
     repo->free_user_data = free_user_data;
     repo->load = load;
@@ -110,6 +113,24 @@ struct bz_env *
 bz_repo_env(struct bz_repo *repo)
 {
     return repo->env;
+}
+
+size_t
+bz_repo_link_count(struct bz_repo *repo)
+{
+    return cork_array_size(&repo->links);
+}
+
+struct bz_repo *
+bz_repo_link(struct bz_repo *repo, size_t index)
+{
+    return cork_array_at(&repo->links, index);
+}
+
+void
+bz_repo_add_link(struct bz_repo *repo, struct bz_repo *other)
+{
+    cork_array_append(&repo->links, other);
 }
 
 int

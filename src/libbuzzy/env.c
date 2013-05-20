@@ -21,6 +21,7 @@
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/version.h"
+#include "buzzy/yaml.h"
 
 
 #if !defined(BZ_DEBUG_ENV)
@@ -707,55 +708,16 @@ bz_yaml_value_set_new(const char *name, yaml_document_t *doc)
 struct bz_value_set *
 bz_yaml_value_set_new_from_file(const char *name, const char *path)
 {
-    FILE  *file;
-    yaml_parser_t  parser;
     yaml_document_t  doc;
-
-    file = fopen(path, "r");
-    if (CORK_UNLIKELY(file == NULL)) {
-        cork_system_error_set();
-        return NULL;
-    }
-
-    if (CORK_UNLIKELY(yaml_parser_initialize(&parser) == 0)) {
-        fclose(file);
-        bz_bad_config("Error reading %s", path);
-        return NULL;
-    }
-
-    yaml_parser_set_input_file(&parser, file);
-    if (CORK_UNLIKELY(yaml_parser_load(&parser, &doc) == 0)) {
-        bz_bad_config("Error reading %s: %s", path, parser.problem);
-        yaml_parser_delete(&parser);
-        fclose(file);
-        return NULL;
-    }
-
-    yaml_parser_delete(&parser);
-    fclose(file);
+    rpi_check(bz_load_yaml_file(&doc, path));
     return bz_yaml_value_set_new(name, &doc);
 }
 
 struct bz_value_set *
 bz_yaml_value_set_new_from_string(const char *name, const char *content)
 {
-    yaml_parser_t  parser;
     yaml_document_t  doc;
-
-    if (CORK_UNLIKELY(yaml_parser_initialize(&parser) == 0)) {
-        bz_bad_config("Error reading YAML");
-        return NULL;
-    }
-
-    yaml_parser_set_input_string
-        (&parser, (const unsigned char *) content, strlen(content));
-    if (CORK_UNLIKELY(yaml_parser_load(&parser, &doc) == 0)) {
-        bz_bad_config("Error reading YAML: %s", parser.problem);
-        yaml_parser_delete(&parser);
-        return NULL;
-    }
-
-    yaml_parser_delete(&parser);
+    rpi_check(bz_load_yaml_string(&doc, content));
     return bz_yaml_value_set_new(name, &doc);
 }
 

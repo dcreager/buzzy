@@ -51,6 +51,29 @@ error:
 }
 
 static int
+bz_filesystem_repo__load_links_yaml(struct bz_repo *repo)
+{
+    bool  exists;
+    struct bz_env  *repo_env = bz_repo_env(repo);
+    struct cork_path  *links_yaml_file;
+
+    rip_check(links_yaml_file =
+              bz_env_get_path(repo_env, "repo.links_yaml", true));
+    ei_check(bz_file_exists(cork_path_get(links_yaml_file), &exists));
+    if (exists) {
+        const char  *links_yaml_file_string = cork_path_get(links_yaml_file);
+        ei_check(bz_repo_parse_yaml_links(repo, links_yaml_file_string));
+    }
+
+    cork_path_free(links_yaml_file);
+    return 0;
+
+error:
+    cork_path_free(links_yaml_file);
+    return -1;
+}
+
+static int
 bz_filesystem_repo__add_git_version(struct bz_repo *repo)
 {
     bool  exists;
@@ -131,6 +154,7 @@ int
 bz_filesystem_repo_load(struct bz_repo *repo)
 {
     rii_check(bz_filesystem_repo__load_repo_yaml(repo));
+    rii_check(bz_filesystem_repo__load_links_yaml(repo));
     rii_check(bz_filesystem_repo__add_git_version(repo));
     rii_check(bz_filesystem_repo__create_default_package(repo));
     return 0;

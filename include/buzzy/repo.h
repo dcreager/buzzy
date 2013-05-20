@@ -11,6 +11,7 @@
 #define BUZZY_REPO_H
 
 #include <libcork/core.h>
+#include <yaml.h>
 
 #include "buzzy/env.h"
 #include "buzzy/package.h"
@@ -40,6 +41,15 @@ bz_repo_free(struct bz_repo *repo);
 
 struct bz_env *
 bz_repo_env(struct bz_repo *repo);
+
+size_t
+bz_repo_link_count(struct bz_repo *repo);
+
+struct bz_repo *
+bz_repo_link(struct bz_repo *repo, size_t index);
+
+void
+bz_repo_add_link(struct bz_repo *repo, struct bz_repo *other);
 
 int
 bz_repo_load(struct bz_repo *repo);
@@ -74,6 +84,10 @@ int
 bz_repo_registry_update_all(void);
 
 
+int
+bz_repo_parse_yaml_links(struct bz_repo *repo, const char *path);
+
+
 /*-----------------------------------------------------------------------
  * Built-in repository types
  */
@@ -99,6 +113,20 @@ bz_local_filesystem_repo_new(const char *path);
  * directories. */
 struct bz_repo *
 bz_local_filesystem_repo_find(const char *path);
+
+/* Creates a repository for the given URL.  These repos will be cached, so that
+ * the same bz_repo instance is returned if you request the same URL multiple
+ * times. */
+struct bz_repo *
+bz_url_repo_new(const char *url);
+
+/* Creates a repository for the given YAML configuration.  The YAML node must be
+ * a mapping containing a `url` entry.  (Other entries are allowed, if those are
+ * needed to configure the repository.)  These repos will be cached, so that the
+ * same bz_repo instance is returned if you request the same URL multiple times.
+ * */
+struct bz_repo *
+bz_yaml_repo_new(yaml_document_t *doc, int node_id);
 
 
 #endif /* BUZZY_REPO_H */
