@@ -18,7 +18,7 @@
 
 
 /*-----------------------------------------------------------------------
- * YAML helpers
+ * Parsers
  */
 
 int
@@ -71,5 +71,119 @@ bz_load_yaml_string(yaml_document_t *doc, const char *content)
     }
 
     yaml_parser_delete(&parser);
+    return 0;
+}
+
+
+/*-----------------------------------------------------------------------
+ * Getters
+ */
+
+int
+bz_yaml_get_scalar(yaml_document_t *doc, int node_id,
+                   const char **content, size_t *size,
+                   const char *context_name)
+{
+    yaml_node_t  *node = yaml_document_get_node(doc, node_id);
+    if (CORK_LIKELY(node->type == YAML_SCALAR_NODE)) {
+        *content = (const char *) node->data.scalar.value;
+        *size = node->data.scalar.length;
+        return 0;
+    } else {
+        bz_bad_config("Expected a scalar value for %s", context_name);
+        return -1;
+    }
+}
+
+const char *
+bz_yaml_get_string(yaml_document_t *doc, int node_id, const char *context_name)
+{
+    const char  *content;
+    size_t  size;
+    rpi_check(bz_yaml_get_scalar(doc, node_id, &content, &size, context_name));
+    return content;
+}
+
+
+static int
+bz_yaml_process_mapping(yaml_document_t *doc, yaml_node_t *node,
+                        struct bz_yaml_mapping_element *elements,
+                        bool strict, const char *context_name)
+{
+    yaml_node_pair_t  *pair;
+
+    /* If the node is a mapping, loop through all of the elements, pulling out
+     * the ones that were requested. */
+    for (pair = node->data.mapping.pairs.start;
+         pair < node->data.mapping.pairs.top; pair++) {
+        yaml_node_t  *key_node = yaml_document_get_node(doc, pair->key);
+        const char  *key;
+        bool  requested = false;
+        size_t  i;
+
+        if (CORK_LIKELY(key_node->type == YAML_SCALAR_NODE)) {
+            key = (char *) key_node->data.scalar.value;
+        } else {
+            bz_bad_config("Mapping key must be a string in %s", context_name);
+            return -1;
+        }
+
+        for (i = 0; elements[i].field_name != NULL; i++) {
+            if (strcmp(elements[i].field_name, key) == 0) {
+                /* The caller requested this field. */
+                elements[i].value_id = pair->value;
+                requested = true;
+                break;
+            }
+        }
+
+        if (CORK_UNLIKELY(strict && !requested)) {
+            bz_bad_config("Unknown field \"%s\" in %s", key, context_name);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+int
+bz_yaml_get_mapping_elements(yaml_document_t *doc, int node_id,
+                             struct bz_yaml_mapping_element *elements,
+                             bool strict, const char *context_name)
+{
+    yaml_node_t  *node = yaml_document_get_node(doc, node_id);
+    size_t  i;
+
+    /* Start by assuming that each requested field is not present in the
+     * mapping. */
+    for (i = 0; elements[i].field_name != NULL; i++) {
+        elements[i].value_id = -1;
+    }
+
+    /* If the node is null, treat that as an empty mapping. */
+    if (node->type == YAML_MAPPING_NODE) {
+        rii_check(bz_yaml_process_mapping
+                  (doc, node, elements, strict, context_name));
+    } else if (node->type == YAML_SCALAR_NODE) {
+        /* A missing mapping is parsed as an empty scalar string.  Let's treat
+         * that as an empty mapping. */
+        if (node->data.scalar.length != 0) {
+            bz_bad_config("Expected a mapping value for %s", context_name);
+            return -1;
+        }
+    } else {
+        bz_bad_config("Expected a mapping value for %s", context_name);
+        return -1;
+    }
+
+    /* Verify that each required field was present in the mapping. */
+    for (i = 0; elements[i].field_name != NULL; i++) {
+        if (CORK_UNLIKELY(elements[i].required && elements[i].value_id == -1)) {
+            bz_bad_config("Missing field \"%s\" in %s",
+                          elements[i].field_name, context_name);
+            return -1;
+        }
+    }
+
     return 0;
 }
