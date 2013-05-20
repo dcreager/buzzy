@@ -394,8 +394,8 @@ START_TEST(test_builtin_vars_01)
     bz_global_env_reset();
     fail_if_error(bz_load_variable_definitions());
     env = bz_global_env();
-    test_env(env, "cache_path", "/home/test/.cache");
-    test_env(env, "work_path", "/home/test/.cache/buzzy");
+    test_env(env, "cache_dir", "/home/test/.cache");
+    test_env(env, "work_dir", "/home/test/.cache/buzzy");
 }
 END_TEST
 

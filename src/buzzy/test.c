@@ -15,7 +15,6 @@
 #include <libcork/helpers/errors.h>
 #include <libcork/helpers/posix.h>
 
-#include "buzzy/action.h"
 #include "buzzy/commands.h"
 #include "buzzy/env.h"
 #include "buzzy/repo.h"
@@ -78,21 +77,15 @@ static void
 execute(int argc, char **argv)
 {
     size_t  i;
-    struct bz_action_phase  *phase;
 
     bz_load_repositories();
     satisfy_dependencies(&buzzy_test, argc, argv);
 
-    phase = bz_action_phase_new("Test packages:");
     for (i = 0; i < cork_array_size(&dep_packages); i++) {
         struct bz_package  *package = cork_array_at(&dep_packages, i);
-        struct bz_action  *action;
-        rp_check_error(action = bz_package_test_action(package));
-        bz_action_phase_add(phase, action);
+        ri_check_error(bz_package_test(package));
     }
 
-    ri_check_error(bz_action_phase_perform(phase, 0));
-    bz_action_phase_free(phase);
     free_dependencies();
     exit(EXIT_SUCCESS);
 }

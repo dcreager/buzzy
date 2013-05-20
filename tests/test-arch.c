@@ -13,7 +13,6 @@
 
 #include <check.h>
 
-#include "buzzy/action.h"
 #include "buzzy/built.h"
 #include "buzzy/os.h"
 #include "buzzy/package.h"
@@ -225,11 +224,11 @@ test_arch_pdb_dep(struct bz_pdb *pdb, const char *dep_str,
 {
     struct bz_dependency  *dep;
     struct bz_package  *package;
-    struct bz_action  *action;
+    bz_mocked_actions_clear();
     fail_if_error(dep = bz_dependency_from_string(dep_str));
     fail_if_error(package = bz_pdb_satisfy_dependency(pdb, dep));
-    fail_if_error(action = bz_package_install_action(package));
-    test_action(action, expected_actions);
+    fail_if_error(bz_package_install(package));
+    test_actions(expected_actions);
     bz_dependency_free(dep);
 }
 
@@ -259,13 +258,11 @@ START_TEST(test_arch_pdb_uninstalled_native_package_01)
     fail_if_error(pdb = bz_arch_native_pdb());
 
     test_arch_pdb_dep(pdb, "jansson",
-        "Test actions\n"
-        "[1/1] Install native Arch package jansson 2.4\n"
+        "[1] Install native Arch package jansson 2.4\n"
     );
 
     test_arch_pdb_dep(pdb, "jansson >= 2.4",
-        "Test actions\n"
-        "[1/1] Install native Arch package jansson 2.4\n"
+        "[1] Install native Arch package jansson 2.4\n"
     );
 
     bz_pdb_free(pdb);
@@ -287,14 +284,10 @@ START_TEST(test_arch_pdb_uninstalled_native_package_02)
     fail_if_error(pdb = bz_arch_native_pdb());
 
     test_arch_pdb_dep(pdb, "jansson",
-        "Test actions\n"
-        "[1/1] Install native Arch package jansson 2.4\n"
+        "[1] Install native Arch package jansson 2.4\n"
     );
 
-    test_arch_pdb_dep(pdb, "jansson",
-        "Test actions\n"
-        "  Nothing to do!\n"
-    );
+    test_arch_pdb_dep(pdb, "jansson", "");
 
     bz_pdb_free(pdb);
 }
@@ -313,15 +306,8 @@ START_TEST(test_arch_pdb_installed_native_package_01)
 
     fail_if_error(pdb = bz_arch_native_pdb());
 
-    test_arch_pdb_dep(pdb, "jansson",
-        "Test actions\n"
-        "  Nothing to do!\n"
-    );
-
-    test_arch_pdb_dep(pdb, "jansson >= 2.4",
-        "Test actions\n"
-        "  Nothing to do!\n"
-    );
+    test_arch_pdb_dep(pdb, "jansson", "");
+    test_arch_pdb_dep(pdb, "jansson >= 2.4", "");
 
     bz_pdb_free(pdb);
 }
@@ -361,13 +347,13 @@ static void
 test_create_package(struct bz_env *env, bool force,
                     const char *expected_actions)
 {
-    struct cork_path  *package_path = cork_path_new(".");
-    struct cork_path  *staging_path = cork_path_new("/tmp/staging");
+    struct cork_path  *binary_package_dir = cork_path_new(".");
+    struct cork_path  *staging_dir = cork_path_new("/tmp/staging");
     struct bz_pdb  *pdb;
     struct bz_packager  *packager;
-    struct bz_action  *action;
 
     bz_global_env_reset();
+    bz_mocked_actions_clear();
     fail_if_error(bz_load_variable_definitions());
     bz_pdb_registry_clear();
     fail_if_error(pdb = bz_arch_native_pdb());
@@ -375,14 +361,15 @@ test_create_package(struct bz_env *env, bool force,
 
     mock_available_package("pacman", "4.0.3-7");
     mock_installed_package("pacman", "4.0.3-7");
-    bz_mock_file_exists(cork_path_get(staging_path), true);
-    bz_env_add_override(env, "package_path", bz_path_value_new(package_path));
-    bz_env_add_override(env, "staging_path", bz_path_value_new(staging_path));
+    bz_mock_file_exists(cork_path_get(staging_dir), true);
+    bz_env_add_override(env, "binary_package_dir",
+                        bz_path_value_new(binary_package_dir));
+    bz_env_add_override(env, "staging_dir", bz_path_value_new(staging_dir));
     bz_env_add_override(env, "force", bz_string_value_new(force? "1": "0"));
     bz_env_add_override(env, "verbose", bz_string_value_new("0"));
     fail_if_error(packager = bz_pacman_packager_new(env));
-    fail_if_error(action = bz_packager_package_action(packager));
-    test_action(action, expected_actions);
+    fail_if_error(bz_packager_package(packager));
+    test_actions(expected_actions);
     bz_packager_free(packager);
 }
 
@@ -398,13 +385,12 @@ START_TEST(test_arch_create_package_01)
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_create_package(env, false,
-        "Test actions\n"
-        "[1/1] Package jansson 2.4 (pacman)\n"
+        "[1] Package jansson 2.4 (pacman)\n"
     );
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v pacman\n"
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
+        "$ pacman -Sdp --print-format %v pacman\n"
         "$ pacman -Q pacman\n"
         "$ uname -m\n"
         "$ [ -f /tmp/staging ]\n"
@@ -442,13 +428,12 @@ START_TEST(test_arch_create_package_license_01)
     fail_if_error(bz_env_add_override
                   (env, "license", bz_string_value_new("MIT")));
     test_create_package(env, false,
-        "Test actions\n"
-        "[1/1] Package jansson 2.4 (pacman)\n"
+        "[1] Package jansson 2.4 (pacman)\n"
     );
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v pacman\n"
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
+        "$ pacman -Sdp --print-format %v pacman\n"
         "$ pacman -Q pacman\n"
         "$ uname -m\n"
         "$ [ -f /tmp/staging ]\n"
@@ -483,12 +468,8 @@ START_TEST(test_arch_create_existing_package_01)
     bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", true);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
-    test_create_package(env, false,
-        "Test actions\n"
-        "  Nothing to do!\n"
-    );
+    test_create_package(env, false, "");
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v pacman\n"
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
     );
@@ -508,8 +489,7 @@ START_TEST(test_arch_create_existing_package_02)
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_create_package(env, true,
-        "Test actions\n"
-        "[1/1] Package jansson 2.4 (pacman)\n"
+        "[1] Package jansson 2.4 (pacman)\n"
     );
     verify_commands_run(
         "$ pacman -Sdp --print-format %v pacman\n"

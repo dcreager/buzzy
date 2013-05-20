@@ -15,7 +15,6 @@
 #include <libcork/helpers/errors.h>
 #include <libcork/helpers/posix.h>
 
-#include "buzzy/action.h"
 #include "buzzy/commands.h"
 #include "buzzy/env.h"
 #include "buzzy/repo.h"
@@ -72,7 +71,6 @@ execute(int argc, char **argv)
     size_t  i;
     size_t  repo_count;
     struct bz_env  *env;
-    struct cork_path  *repo_path;
 
     if (argc != 0) {
         cork_command_show_help(&buzzy_info, NULL);
@@ -90,11 +88,12 @@ execute(int argc, char **argv)
     printf("Repositories:\n");
     for (i = 0; i < repo_count; i++) {
         struct bz_repo  *repo = bz_repo_registry_get(i);
+        struct cork_path  *repo_dir;
         rp_check_error(env = bz_repo_env(repo));
-        rp_check_error(repo_path = bz_env_get_path
-                       (env, "repo_base_path", true));
-        printf("  %s\n", cork_path_get(repo_path));
-        cork_path_free(repo_path);
+        rp_check_error(repo_dir = bz_env_get_path
+                       (env, "repo.base_dir", true));
+        printf("  %s\n", cork_path_get(repo_dir));
+        cork_path_free(repo_dir);
     }
 
     exit(EXIT_SUCCESS);

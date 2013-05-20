@@ -91,10 +91,8 @@ parse_options(int argc, char **argv)
 static void
 execute(int argc, char **argv)
 {
-    struct cork_path  *source_path;
+    struct cork_path  *source_dir;
     struct bz_builder  *builder;
-    struct bz_action  *action;
-    struct bz_action_phase  *phase;
     struct bz_value_provider  *value;
 
     if (argc > 0) {
@@ -106,10 +104,10 @@ execute(int argc, char **argv)
     ri_check_error(bz_pdb_discover());
     package_env_init();
 
-    rp_check_error(source_path = cork_path_new("."));
-    ri_check_error(cork_path_set_absolute(source_path));
-    rp_check_error(value = bz_path_value_new(source_path));
-    bz_env_add_override(package_env, "source_path", value);
+    rp_check_error(source_dir = cork_path_new("."));
+    ri_check_error(cork_path_set_absolute(source_dir));
+    rp_check_error(value = bz_path_value_new(source_dir));
+    bz_env_add_override(package_env, "source_dir", value);
 
     rp_check_error(value = bz_string_value_new(force? "1": "0"));
     bz_env_add_override(package_env, "force", value);
@@ -118,13 +116,8 @@ execute(int argc, char **argv)
     bz_env_add_override(package_env, "verbose", value);
 
     rp_check_error(builder = bz_package_builder_new(package_env));
-    rp_check_error(action = bz_builder_build_action(builder));
+    ri_check_error(bz_builder_build(builder));
 
-    phase = bz_action_phase_new("Build package:");
-    bz_action_phase_add(phase, action);
-    ri_check_error(bz_action_phase_perform(phase, 0));
-
-    bz_action_phase_free(phase);
     bz_builder_free(builder);
     package_env_done();
     exit(EXIT_SUCCESS);

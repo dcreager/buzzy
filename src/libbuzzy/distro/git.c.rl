@@ -14,7 +14,9 @@
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/error.h"
+#include "buzzy/logging.h"
 #include "buzzy/os.h"
+#include "buzzy/package.h"
 #include "buzzy/version.h"
 #include "buzzy/distro/git.h"
 
@@ -183,14 +185,14 @@ bz_git_version__provide(void *user_data, struct bz_env *env)
 
     if (git->version == NULL) {
         bool  successful;
-        struct cork_path  *source_path;
+        struct cork_path  *source_dir;
         struct cork_exec  *exec;
 
         /* Grab the base version string from "git describe" */
-        ep_check(source_path = bz_env_get_path(env, "source_path", true));
+        ep_check(source_dir = bz_env_get_path(env, "source_dir", true));
         exec = cork_exec_new_with_params("git", "describe", NULL);
-        cork_exec_set_cwd(exec, cork_path_get(source_path));
-        cork_path_free(source_path);
+        cork_exec_set_cwd(exec, cork_path_get(source_dir));
+        cork_path_free(source_dir);
         ei_check(bz_subprocess_get_output_exec(&out, NULL, &successful, exec));
         if (!successful) {
             goto error;
@@ -200,10 +202,10 @@ bz_git_version__provide(void *user_data, struct bz_env *env)
         ((char *) out.buf)[--out.size] = '\0';
 
         /* If the working tree is dirty, append "+dirty" to the version. */
-        ep_check(source_path = bz_env_get_path(env, "source_path", true));
+        ep_check(source_dir = bz_env_get_path(env, "source_dir", true));
         exec = cork_exec_new_with_params("git", "status", "--porcelain", NULL);
-        cork_exec_set_cwd(exec, cork_path_get(source_path));
-        cork_path_free(source_path);
+        cork_exec_set_cwd(exec, cork_path_get(source_dir));
+        cork_path_free(source_dir);
         ei_check(bz_subprocess_get_output_exec
                  (&dirty, NULL, &successful, exec));
         if (!successful) {
@@ -233,4 +235,93 @@ bz_git_version_value_new(void)
     git->version = NULL;
     return bz_value_provider_new
         (git, bz_git_version__free, bz_git_version__provide);
+}
+
+
+/*-----------------------------------------------------------------------
+ * git repository actions
+ */
+
+static int
+bz_git_perform_clone(const char *url, const char *commit,
+                     struct cork_path *dest_dir)
+{
+    struct cork_path  *parent;
+
+    /* Create the parent directory of our clone. */
+    parent = cork_path_dirname(dest_dir);
+    ei_check(bz_create_directory(cork_path_get(parent)));
+    cork_path_free(parent);
+
+    return bz_subprocess_run
+        (false, NULL,
+         "git", "clone", "--recursive",
+         "--branch", commit,
+         url,
+         cork_path_get(dest_dir),
+         NULL);
+
+error:
+    cork_path_free(parent);
+    return -1;
+}
+
+static int
+bz_git_perform_update(const char *url, const char *commit,
+                      struct cork_path *dest_dir)
+{
+    /* Otherwise perform a fetch + reset.  Assume that we've already checked out
+     * the right branch. */
+    struct cork_buffer  remote_commit = CORK_BUFFER_INIT();
+    cork_buffer_printf(&remote_commit, "origin/%s", commit);
+    ei_check(bz_subprocess_run
+             (false, NULL,
+              "git", "--git-dir", cork_path_get(dest_dir),
+              "fetch", "origin",
+              NULL));
+    ei_check(bz_subprocess_run
+             (false, NULL,
+              "git", "--git-dir", cork_path_get(dest_dir),
+              "reset", "--hard", remote_commit.buf,
+              NULL));
+    cork_buffer_done(&remote_commit);
+    return 0;
+
+error:
+    cork_buffer_done(&remote_commit);
+    return -1;
+}
+
+
+int
+bz_git_clone(const char *url, const char *commit, struct cork_path *dest_dir)
+{
+    bool  exists;
+
+    /* If the target directory already exists, there's nothing to clone. */
+    rii_check(bz_file_exists(cork_path_get(dest_dir), &exists));
+    if (exists) {
+        return 0;
+    } else {
+        bz_log_action("Clone %s (%s)", url, commit);
+        return bz_git_perform_clone(url, commit, dest_dir);
+    }
+}
+
+int
+bz_git_update(const char *url, const char *commit, struct cork_path *dest_dir)
+{
+    bool  exists;
+
+    /* If the destination directory doesn't exist yet, perform a clone instead
+     * of an update. */
+    rii_check(bz_file_exists(cork_path_get(dest_dir), &exists));
+    if (exists) {
+        bz_log_action("Update %s (%s)", url, commit);
+        return bz_git_perform_update(url, commit, dest_dir);
+    } else {
+        bz_log_action("Clone %s (%s)", url, commit);
+        return bz_git_perform_clone(url, commit, dest_dir);
+    }
+
 }

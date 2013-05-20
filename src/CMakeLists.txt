@@ -51,13 +51,13 @@ foreach(RAGEL_INPUT ${LIBBUZZY_RAGEL})
 endforeach(RAGEL_INPUT)
 
 set(LIBBUZZY_SRC
-    libbuzzy/action.c
     libbuzzy/builder.c
     libbuzzy/built.c
     libbuzzy/dependency.c
     libbuzzy/env.c
     libbuzzy/global-vars.c
     libbuzzy/interpolated.c
+    libbuzzy/logging.c
     libbuzzy/mock.c
     libbuzzy/native.c
     libbuzzy/os.c
@@ -65,6 +65,7 @@ set(LIBBUZZY_SRC
     libbuzzy/packager.c
     libbuzzy/repo.c
     libbuzzy/version.c
+    libbuzzy/yaml.c
     libbuzzy/builders/cmake.c
     libbuzzy/builders/noop.c
     libbuzzy/distro/arch.c
@@ -73,6 +74,9 @@ set(LIBBUZZY_SRC
     libbuzzy/distro/pdb.c
     libbuzzy/packagers/noop.c
     libbuzzy/packagers/pacman.c
+    libbuzzy/repos/filesystem.c
+    libbuzzy/repos/local.c
+    libbuzzy/repos/url.c
 )
 
 add_library(libbuzzy STATIC ${LIBBUZZY_SRC})
@@ -95,6 +99,7 @@ set(BUZZY_SRC
     buzzy/raw-pkg.c
     buzzy/root.c
     buzzy/test.c
+    buzzy/update.c
     buzzy/vercmp.c
 )
 

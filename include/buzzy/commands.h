@@ -18,7 +18,6 @@
 #include <libcork/ds.h>
 #include <libcork/os.h>
 
-#include "buzzy/action.h"
 #include "buzzy/distro.h"
 #include "buzzy/env.h"
 #include "buzzy/package.h"
@@ -32,6 +31,7 @@ CORK_LOCAL extern struct cork_command  buzzy_doc;
 CORK_LOCAL extern struct cork_command  buzzy_info;
 CORK_LOCAL extern struct cork_command  buzzy_install;
 CORK_LOCAL extern struct cork_command  buzzy_test;
+CORK_LOCAL extern struct cork_command  buzzy_update;
 CORK_LOCAL extern struct cork_command  buzzy_vercmp;
 
 CORK_LOCAL extern struct cork_command  buzzy_raw;
@@ -197,21 +197,16 @@ static void
 bz_load_repositories(void)
 {
     struct cork_path  *cwd;
-    struct bz_action  *load;
-    struct bz_action_phase  *phase;
 
     ri_check_error(bz_load_variable_definitions());
     ri_check_error(bz_pdb_discover());
 
     rp_check_error(cwd = cork_path_cwd());
-    rp_check_error(base_repo = bz_filesystem_repo_find(cork_path_get(cwd)));
+    rp_check_error(base_repo =
+                   bz_local_filesystem_repo_find(cork_path_get(cwd)));
     cork_path_free(cwd);
 
-    rp_check_error(load = bz_repo_registry_load_all());
-    phase = bz_action_phase_new("Load repositories:");
-    bz_action_phase_add(phase, load);
-    ri_check_error(bz_action_phase_perform(phase, BZ_ACTION_HIDE_NOOP));
-    bz_action_phase_free(phase);
+    ri_check_error(bz_repo_registry_load_all());
 }
 
 

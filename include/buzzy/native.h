@@ -12,7 +12,6 @@
 
 #include <libcork/core.h>
 
-#include "buzzy/action.h"
 #include "buzzy/package.h"
 #include "buzzy/version.h"
 

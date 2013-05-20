@@ -7,21 +7,24 @@
  * ----------------------------------------------------------------------
  */
 
-#ifndef BUZZY_CALLBACKS_H
-#define BUZZY_CALLBACKS_H
+#ifndef BUZZY_YAML_H
+#define BUZZY_YAML_H
 
 #include <libcork/core.h>
+#include <yaml.h>
+
+#include "buzzy/env.h"
 
 
-typedef void
-(*bz_free_f)(void *user_data);
+/*-----------------------------------------------------------------------
+ * YAML helpers
+ */
 
-#define bz_user_data_free(obj) \
-    do { \
-        if ((obj)->user_data_free != NULL) { \
-            (obj)->user_data_free((obj)->user_data); \
-        } \
-    } while (0)
+int
+bz_load_yaml_file(yaml_document_t *doc, const char *path);
+
+int
+bz_load_yaml_string(yaml_document_t *doc, const char *content);
 
 
-#endif /* BUZZY_CALLBACKS_H */
+#endif /* BUZZY_YAML_H */

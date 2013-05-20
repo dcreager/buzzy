@@ -14,8 +14,6 @@
 #include <libcork/os.h>
 #include <yaml.h>
 
-#include "buzzy/callbacks.h"
-
 
 struct bz_env;
 struct bz_value_provider;
@@ -97,7 +95,7 @@ typedef const char *
 (*bz_provide_value_f)(void *user_data, struct bz_env *env);
 
 struct bz_value_provider *
-bz_value_provider_new(void *user_data, bz_free_f user_data_free,
+bz_value_provider_new(void *user_data, cork_free_f free_user_data,
                       bz_provide_value_f provide_value);
 
 void
@@ -116,7 +114,7 @@ typedef struct bz_value_provider *
 (*bz_value_set_get_f)(void *user_data, const char *key);
 
 struct bz_value_set *
-bz_value_set_new(const char *name, void *user_data, bz_free_f user_data_free,
+bz_value_set_new(const char *name, void *user_data, cork_free_f free_user_data,
                  bz_value_set_get_f get);
 
 void
@@ -242,6 +240,9 @@ bz_var_table_as_set(struct bz_var_table *table);
 /* Takes control of doc */
 struct bz_value_set *
 bz_yaml_value_set_new(const char *name, yaml_document_t *doc);
+
+struct bz_value_set *
+bz_yaml_value_set_new_from_env_var(struct bz_env *env, const char *var_name);
 
 struct bz_value_set *
 bz_yaml_value_set_new_from_file(const char *name, const char *path);

@@ -27,4 +27,15 @@ struct bz_value_provider *
 bz_git_version_value_new(void);
 
 
+/*-----------------------------------------------------------------------
+ * git repository actions
+ */
+
+int
+bz_git_clone(const char *url, const char *commit, struct cork_path *dest_dir);
+
+int
+bz_git_update(const char *url, const char *commit, struct cork_path *dest_dir);
+
+
 #endif /* BUZZY_DISTRO_GIT_H */

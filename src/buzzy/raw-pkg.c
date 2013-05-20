@@ -93,11 +93,9 @@ parse_options(int argc, char **argv)
 static void
 execute(int argc, char **argv)
 {
-    struct cork_path  *package_path;
-    struct cork_path  *staging_path;
+    struct cork_path  *binary_package_dir;
+    struct cork_path  *staging_dir;
     struct bz_packager  *packager;
-    struct bz_action  *action;
-    struct bz_action_phase  *phase;
     struct bz_value_provider  *value;
 
     if (argc == 0) {
@@ -112,15 +110,15 @@ execute(int argc, char **argv)
     ri_check_error(bz_pdb_discover());
     package_env_init();
 
-    rp_check_error(package_path = cork_path_new("."));
-    ri_check_error(cork_path_set_absolute(package_path));
-    rp_check_error(value = bz_path_value_new(package_path));
-    bz_env_add_override(package_env, "package_path", value);
+    rp_check_error(binary_package_dir = cork_path_new("."));
+    ri_check_error(cork_path_set_absolute(binary_package_dir));
+    rp_check_error(value = bz_path_value_new(binary_package_dir));
+    bz_env_add_override(package_env, "binary_package_dir", value);
 
-    rp_check_error(staging_path = cork_path_new(argv[0]));
-    ri_check_error(cork_path_set_absolute(staging_path));
-    rp_check_error(value = bz_path_value_new(staging_path));
-    bz_env_add_override(package_env, "staging_path", value);
+    rp_check_error(staging_dir = cork_path_new(argv[0]));
+    ri_check_error(cork_path_set_absolute(staging_dir));
+    rp_check_error(value = bz_path_value_new(staging_dir));
+    bz_env_add_override(package_env, "staging_dir", value);
 
     rp_check_error(value = bz_string_value_new(force? "1": "0"));
     bz_env_add_override(package_env, "force", value);
@@ -129,13 +127,8 @@ execute(int argc, char **argv)
     bz_env_add_override(package_env, "verbose", value);
 
     rp_check_error(packager = bz_package_packager_new(package_env));
-    rp_check_error(action = bz_packager_package_action(packager));
+    ri_check_error(bz_packager_package(packager));
 
-    phase = bz_action_phase_new("Create package:");
-    bz_action_phase_add(phase, action);
-    ri_check_error(bz_action_phase_perform(phase, 0));
-
-    bz_action_phase_free(phase);
     bz_packager_free(packager);
     package_env_done();
     exit(EXIT_SUCCESS);

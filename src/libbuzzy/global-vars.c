@@ -15,7 +15,7 @@
 bz_define_variables(global)
 {
     bz_global_variable(
-        cache_path, "cache_path",
+        cache_dir, "cache_dir",
         bz_path_value_new(cork_path_user_cache_path()),
         "A directory for user-specific nonessential data files",
         "On POSIX systems, this defaults to the value of the $XDG_CACHE_HOME "
@@ -25,15 +25,15 @@ bz_define_variables(global)
     );
 
     bz_global_variable(
-        work_path, "work_path",
-        bz_interpolated_value_new("${cache_path}/buzzy"),
+        work_dir, "work_dir",
+        bz_interpolated_value_new("${cache_dir}/buzzy"),
         "A directory for Buzzy's intermediate build products",
         ""
     );
 
     bz_global_variable(
-        package_path, "package_path",
-        bz_interpolated_value_new("${cache_path}/buzzy/packages"),
+        binary_package_dir, "binary_package_dir",
+        bz_interpolated_value_new("${work_dir}/packages"),
         "Where new binary packages should be placed",
         ""
     );

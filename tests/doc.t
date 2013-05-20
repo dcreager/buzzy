@@ -13,16 +13,16 @@ Print out the documentation for a handful of global variables.
   No variable named not_a_real_variable
   [1]
 
-  $ buzzy doc cache_path
-  cache_path
+  $ buzzy doc cache_dir
+  cache_dir
     A directory for user-specific nonessential data files
   
     On POSIX systems, this defaults to the value of the $XDG_CACHE_HOME environment variable, or $HOME/.cache if that's not defined.  Note that this is not a Buzzy-specific directory; this should refer to the root of the current user's cache directory.
   
     Current value: /home/test/.cache
 
-  $ buzzy doc work_path
-  work_path
+  $ buzzy doc work_dir
+  work_dir
     A directory for Buzzy's intermediate build products
   
     Current value: /home/test/.cache/buzzy
@@ -33,23 +33,25 @@ repository and directory and while not in one.
 
   $ mkdir -p not-a-repo
   $ cd not-a-repo
-  $ buzzy doc repo_base_path
-  repo_base_path
+  $ buzzy doc repo.base_dir
+  repo.base_dir
     The base path of the files defining the repository
-  $ buzzy doc repo_path
-  repo_path
+  $ buzzy doc repo.repo_yaml
+  repo.repo_yaml
     The location of the YAML file defining the repository
   $ cd ..
 
   $ mkdir -p repo1/.buzzy
   $ cd repo1
-  $ buzzy doc repo_base_path
-  repo_base_path
+  $ buzzy doc repo.base_dir
+  \[1] Load .*/doc.t/repo1 (re)
+  repo.base_dir
     The base path of the files defining the repository
   
-    Current value: .*/doc.t/repo1/.buzzy (re)
-  $ buzzy doc repo_path
-  repo_path
+    Current value: .*/doc.t/repo1 (re)
+  $ buzzy doc repo.repo_yaml
+  \[1] Load .*/doc.t/repo1 (re)
+  repo.repo_yaml
     The location of the YAML file defining the repository
   
     Current value: .*/doc.t/repo1/.buzzy/repo.yaml (re)
@@ -61,29 +63,34 @@ repository and directory and while not in one.
   > version: 1.0~rc1
   > EOF
   $ cd repo2
-  $ buzzy doc repo_base_path
-  repo_base_path
+  $ buzzy doc repo.base_dir
+  \[1] Load .*/doc.t/repo2 (re)
+  repo.base_dir
     The base path of the files defining the repository
   
-    Current value: .*/doc.t/repo2/.buzzy (re)
-  $ buzzy doc repo_path
-  repo_path
+    Current value: .*/doc.t/repo2 (re)
+  $ buzzy doc repo.repo_yaml
+  \[1] Load .*/doc.t/repo2 (re)
+  repo.repo_yaml
     The location of the YAML file defining the repository
   
     Current value: .*/doc.t/repo2/.buzzy/repo.yaml (re)
   $ buzzy doc name
+  \[1] Load .*/doc.t/repo2 (re)
   name
     The name of the package
   
     Current value: test
   $ buzzy doc version
+  \[1] Load .*/doc.t/repo2 (re)
   version
     The version of the package
   
     Current value: 1.0~rc1
-  $ buzzy doc source_path
-  source_path
+  $ buzzy doc source_dir
+  \[1] Load .*/doc.t/repo2 (re)
+  source_dir
     Where the package's extracted source archive should be placed
   
-    Current value: .*/doc.t/repo2/.buzzy/.. (re)
+    Current value: .*/doc.t/repo2 (re)
   $ cd ..

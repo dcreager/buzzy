@@ -11,6 +11,7 @@
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/error.h"
+#include "buzzy/logging.h"
 #include "buzzy/mock.h"
 
 
@@ -293,6 +294,7 @@ bz_start_mocks(void)
     /* Free any existing mocks first. */
     free_mocks();
 
+    bz_reset_action_count();
     cork_string_hash_table_init(&mocks, 0);
     cork_buffer_init(&actions_run);
     cork_buffer_append(&actions_run, "", 0);
@@ -305,6 +307,7 @@ bz_start_mocks(void)
 void
 bz_mocked_actions_clear(void)
 {
+    bz_reset_action_count();
     cork_buffer_clear(&actions_run);
 }
 

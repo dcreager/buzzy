@@ -20,7 +20,6 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/action.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/native.h"

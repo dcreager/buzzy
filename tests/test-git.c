@@ -85,7 +85,7 @@ test_git_version_value(const char *git, const char *buzzy)
     bz_mock_subprocess("git status --porcelain", NULL, NULL, 0);
     fail_if_error(provider = bz_git_version_value_new());
     bz_env_add_override(env, "version", provider);
-    bz_env_add_override(env, "source_path", bz_string_value_new("."));
+    bz_env_add_override(env, "source_dir", bz_string_value_new("."));
     fail_if_error(actual = bz_env_get_string(env, "version", true));
     fail_unless_streq("Versions", buzzy, actual);
     bz_env_free(env);
@@ -110,6 +110,103 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * git repositories
+ */
+
+START_TEST(test_git_clone)
+{
+    DESCRIBE_TEST;
+    const char  *url = "git://github.com/redjack/git-repo.git";
+    const char  *commit = "master";
+    struct cork_path  *path = cork_path_new("/test/git-repo");
+    bz_start_mocks();
+    bz_mock_file_exists("/test/git-repo", false);
+    bz_mock_subprocess
+        ("git clone --recursive --branch master "
+         "git://github.com/redjack/git-repo.git /test/git-repo",
+         NULL, NULL, 0);
+    fail_if_error(bz_git_clone(url, commit, path));
+    test_actions(
+        "[1] Clone git://github.com/redjack/git-repo.git (master)\n"
+    );
+    verify_commands_run(
+        "$ [ -f /test/git-repo ]\n"
+        "$ mkdir -p /test\n"
+        "$ git clone --recursive --branch master "
+            "git://github.com/redjack/git-repo.git /test/git-repo\n"
+    );
+}
+END_TEST
+
+START_TEST(test_git_clone_unneeded)
+{
+    DESCRIBE_TEST;
+    const char  *url = "git://github.com/redjack/git-repo.git";
+    const char  *commit = "master";
+    struct cork_path  *path = cork_path_new("/test/git-repo");
+    bz_start_mocks();
+    bz_mock_file_exists("/test/git-repo", true);
+    fail_if_error(bz_git_clone(url, commit, path));
+    test_actions("");
+    verify_commands_run(
+        "$ [ -f /test/git-repo ]\n"
+    );
+}
+END_TEST
+
+START_TEST(test_git_update)
+{
+    DESCRIBE_TEST;
+    const char  *url = "git://github.com/redjack/git-repo.git";
+    const char  *commit = "master";
+    struct cork_path  *path = cork_path_new("/test/git-repo");
+    bz_start_mocks();
+    bz_mock_file_exists("/test/git-repo", true);
+    bz_mock_subprocess
+        ("git --git-dir /test/git-repo fetch origin",
+         NULL, NULL, 0);
+    bz_mock_subprocess
+        ("git --git-dir /test/git-repo reset --hard origin/master",
+         NULL, NULL, 0);
+    fail_if_error(bz_git_update(url, commit, path));
+    test_actions(
+        "[1] Update git://github.com/redjack/git-repo.git (master)\n"
+    );
+    verify_commands_run(
+        "$ [ -f /test/git-repo ]\n"
+        "$ git --git-dir /test/git-repo fetch origin\n"
+        "$ git --git-dir /test/git-repo reset --hard origin/master\n"
+    );
+}
+END_TEST
+
+START_TEST(test_git_update_new)
+{
+    DESCRIBE_TEST;
+    const char  *url = "git://github.com/redjack/git-repo.git";
+    const char  *commit = "master";
+    struct cork_path  *path = cork_path_new("/test/git-repo");
+    bz_start_mocks();
+    bz_mock_file_exists("/test/git-repo", false);
+    bz_mock_subprocess
+        ("git clone --recursive --branch master "
+         "git://github.com/redjack/git-repo.git /test/git-repo",
+         NULL, NULL, 0);
+    fail_if_error(bz_git_update(url, commit, path));
+    test_actions(
+        "[1] Clone git://github.com/redjack/git-repo.git (master)\n"
+    );
+    verify_commands_run(
+        "$ [ -f /test/git-repo ]\n"
+        "$ mkdir -p /test\n"
+        "$ git clone --recursive --branch master "
+            "git://github.com/redjack/git-repo.git /test/git-repo\n"
+    );
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Testing harness
  */
 
@@ -121,6 +218,10 @@ test_suite()
     TCase  *tc_git = tcase_create("git");
     tcase_add_test(tc_git, test_git_versions);
     tcase_add_test(tc_git, test_git_version_values);
+    tcase_add_test(tc_git, test_git_clone);
+    tcase_add_test(tc_git, test_git_clone_unneeded);
+    tcase_add_test(tc_git, test_git_update);
+    tcase_add_test(tc_git, test_git_update_new);
     suite_add_tcase(s, tc_git);
 
     return s;

@@ -18,10 +18,10 @@
 #include <libcork/helpers/errors.h>
 #include <yaml.h>
 
-#include "buzzy/callbacks.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/version.h"
+#include "buzzy/yaml.h"
 
 
 #if !defined(BZ_DEBUG_ENV)
@@ -168,17 +168,17 @@ bz_env_get_version(struct bz_env *env, const char *name, bool required)
 
 struct bz_value_provider {
     void  *user_data;
-    bz_free_f  user_data_free;
+    cork_free_f  free_user_data;
     bz_provide_value_f  provide_value;
 };
 
 struct bz_value_provider *
-bz_value_provider_new(void *user_data, bz_free_f user_data_free,
+bz_value_provider_new(void *user_data, cork_free_f free_user_data,
                       bz_provide_value_f provide_value)
 {
     struct bz_value_provider  *provider = cork_new(struct bz_value_provider);
     provider->user_data = user_data;
-    provider->user_data_free = user_data_free;
+    provider->free_user_data = free_user_data;
     provider->provide_value = provide_value;
     return provider;
 }
@@ -186,7 +186,7 @@ bz_value_provider_new(void *user_data, bz_free_f user_data_free,
 void
 bz_value_provider_free(struct bz_value_provider *provider)
 {
-    bz_user_data_free(provider);
+    cork_free_user_data(provider);
     free(provider);
 }
 
@@ -205,19 +205,19 @@ struct bz_value_set {
     const char  *name;
     const char  *base_path;
     void  *user_data;
-    bz_free_f  user_data_free;
+    cork_free_f  free_user_data;
     bz_value_set_get_f  get;
 };
 
 struct bz_value_set *
-bz_value_set_new(const char *name, void *user_data, bz_free_f user_data_free,
+bz_value_set_new(const char *name, void *user_data, cork_free_f free_user_data,
                  bz_value_set_get_f get)
 {
     struct bz_value_set  *set = cork_new(struct bz_value_set);
     set->name = cork_strdup(name);
     set->base_path = cork_strdup("");
     set->user_data = user_data;
-    set->user_data_free = user_data_free;
+    set->free_user_data = free_user_data;
     set->get = get;
     return set;
 }
@@ -227,7 +227,7 @@ bz_value_set_free(struct bz_value_set *set)
 {
     cork_strfree(set->name);
     cork_strfree(set->base_path);
-    bz_user_data_free(set);
+    cork_free_user_data(set);
     free(set);
 }
 
@@ -708,55 +708,16 @@ bz_yaml_value_set_new(const char *name, yaml_document_t *doc)
 struct bz_value_set *
 bz_yaml_value_set_new_from_file(const char *name, const char *path)
 {
-    FILE  *file;
-    yaml_parser_t  parser;
     yaml_document_t  doc;
-
-    file = fopen(path, "r");
-    if (CORK_UNLIKELY(file == NULL)) {
-        cork_system_error_set();
-        return NULL;
-    }
-
-    if (CORK_UNLIKELY(yaml_parser_initialize(&parser) == 0)) {
-        fclose(file);
-        bz_bad_config("Error reading %s", path);
-        return NULL;
-    }
-
-    yaml_parser_set_input_file(&parser, file);
-    if (CORK_UNLIKELY(yaml_parser_load(&parser, &doc) == 0)) {
-        bz_bad_config("Error reading %s: %s", path, parser.problem);
-        yaml_parser_delete(&parser);
-        fclose(file);
-        return NULL;
-    }
-
-    yaml_parser_delete(&parser);
-    fclose(file);
+    rpi_check(bz_load_yaml_file(&doc, path));
     return bz_yaml_value_set_new(name, &doc);
 }
 
 struct bz_value_set *
 bz_yaml_value_set_new_from_string(const char *name, const char *content)
 {
-    yaml_parser_t  parser;
     yaml_document_t  doc;
-
-    if (CORK_UNLIKELY(yaml_parser_initialize(&parser) == 0)) {
-        bz_bad_config("Error reading YAML");
-        return NULL;
-    }
-
-    yaml_parser_set_input_string
-        (&parser, (const unsigned char *) content, strlen(content));
-    if (CORK_UNLIKELY(yaml_parser_load(&parser, &doc) == 0)) {
-        bz_bad_config("Error reading YAML: %s", parser.problem);
-        yaml_parser_delete(&parser);
-        return NULL;
-    }
-
-    yaml_parser_delete(&parser);
+    rpi_check(bz_load_yaml_string(&doc, content));
     return bz_yaml_value_set_new(name, &doc);
 }
 

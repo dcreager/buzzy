@@ -20,19 +20,19 @@
 #include "buzzy/repo.h"
 
 /*-----------------------------------------------------------------------
- * buzzy install
+ * buzzy update
  */
 
 #define SHORT_DESC \
-    "install a package"
+    "Update the current repository and its dependencies"
 
 #define USAGE_SUFFIX \
-    "<dependency>..."
+    ""
 
 #define HELP_TEXT \
-"Finds a set of packages that satisfies all of the dependencies that you\n" \
-"provide, and then installs them all.  If necessary, we build the packages\n" \
-"first, but we don't test them.\n" \
+"If the current repository, or any of the repositories that it depends on,\n" \
+"come from a remote source, we will contact the remote source to make sure\n" \
+"that our local copies are up-to-date.\n" \
 GENERAL_HELP_TEXT \
 
 static int
@@ -41,8 +41,8 @@ parse_options(int argc, char **argv);
 static void
 execute(int argc, char **argv);
 
-CORK_LOCAL struct cork_command  buzzy_install =
-    cork_leaf_command("install", SHORT_DESC, USAGE_SUFFIX, HELP_TEXT,
+CORK_LOCAL struct cork_command  buzzy_update =
+    cork_leaf_command("update", SHORT_DESC, USAGE_SUFFIX, HELP_TEXT,
                       parse_options, execute);
 
 #define SHORT_OPTS  "+" \
@@ -65,7 +65,7 @@ parse_options(int argc, char **argv)
 
         switch (ch) {
             default:
-                cork_command_show_help(&buzzy_install, NULL);
+                cork_command_show_help(&buzzy_update, NULL);
                 exit(EXIT_FAILURE);
         }
 
@@ -77,15 +77,19 @@ static void
 execute(int argc, char **argv)
 {
     size_t  i;
+    size_t  repo_count;
 
     bz_load_repositories();
-    satisfy_dependencies(&buzzy_install, argc, argv);
-
-    for (i = 0; i < cork_array_size(&dep_packages); i++) {
-        struct bz_package  *package = cork_array_at(&dep_packages, i);
-        ri_check_error(bz_package_install(package));
+    repo_count = bz_repo_registry_count();
+    if (repo_count == 0) {
+        printf("No repositories found!\n");
+        exit(EXIT_SUCCESS);
     }
 
-    free_dependencies();
+    for (i = 0; i < repo_count; i++) {
+        struct bz_repo  *repo = bz_repo_registry_get(i);
+        ri_check_error(bz_repo_update(repo));
+    }
+
     exit(EXIT_SUCCESS);
 }

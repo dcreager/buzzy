@@ -13,10 +13,10 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/action.h"
 #include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
+#include "buzzy/logging.h"
 #include "buzzy/os.h"
 #include "buzzy/package.h"
 
@@ -26,41 +26,35 @@
  */
 
 int
-bz_build_message(struct cork_buffer *dest, struct bz_env *env,
-                 const char *builder_name)
+bz_build_message(struct bz_env *env, const char *builder_name)
 {
     const char  *package_name;
     const char  *version;
     rip_check(package_name = bz_env_get_string(env, "name", true));
     rip_check(version = bz_env_get_string(env, "version", true));
-    cork_buffer_append_printf
-        (dest, "Build %s %s (%s)", package_name, version, builder_name);
+    bz_log_action("Build %s %s (%s)", package_name, version, builder_name);
     return 0;
 }
 
 int
-bz_test_message(struct cork_buffer *dest, struct bz_env *env,
-                const char *builder_name)
+bz_test_message(struct bz_env *env, const char *builder_name)
 {
     const char  *package_name;
     const char  *version;
     rip_check(package_name = bz_env_get_string(env, "name", true));
     rip_check(version = bz_env_get_string(env, "version", true));
-    cork_buffer_append_printf
-        (dest, "Test %s %s (%s)", package_name, version, builder_name);
+    bz_log_action("Test %s %s (%s)", package_name, version, builder_name);
     return 0;
 }
 
 int
-bz_stage_message(struct cork_buffer *dest, struct bz_env *env,
-                 const char *builder_name)
+bz_stage_message(struct bz_env *env, const char *builder_name)
 {
     const char  *package_name;
     const char  *version;
     rip_check(package_name = bz_env_get_string(env, "name", true));
     rip_check(version = bz_env_get_string(env, "version", true));
-    cork_buffer_append_printf
-        (dest, "Stage %s %s (%s)", package_name, version, builder_name);
+    bz_log_action("Stage %s %s (%s)", package_name, version, builder_name);
     return 0;
 }
 
@@ -72,26 +66,35 @@ bz_stage_message(struct cork_buffer *dest, struct bz_env *env,
 struct bz_builder {
     struct bz_env  *env;
     const char  *builder_name;
-    struct bz_action  *build;
-    struct bz_action  *test;
-    struct bz_action  *stage;
+    void  *user_data;
+    cork_free_f  free_user_data;
+    bz_package_step_f  build;
+    bz_package_step_f  test;
+    bz_package_step_f  stage;
+    bool  built;
+    bool  tested;
+    bool  staged;
 };
 
 
 struct bz_builder *
 bz_builder_new(struct bz_env *env, const char *builder_name,
-               struct bz_action *build,
-               struct bz_action *test,
-               struct bz_action *stage)
+               void *user_data, cork_free_f free_user_data,
+               bz_package_step_f build,
+               bz_package_step_f test,
+               bz_package_step_f stage)
 {
     struct bz_builder  *builder = cork_new(struct bz_builder);
     builder->env = env;
     builder->builder_name = cork_strdup(builder_name);
+    builder->user_data = user_data;
+    builder->free_user_data = free_user_data;
     builder->build = build;
     builder->test = test;
     builder->stage = stage;
-    bz_action_add_pre(builder->test, builder->build);
-    bz_action_add_pre(builder->stage, builder->build);
+    builder->built = false;
+    builder->tested = false;
+    builder->staged = false;
     return builder;
 }
 
@@ -99,46 +102,44 @@ void
 bz_builder_free(struct bz_builder *builder)
 {
     cork_strfree(builder->builder_name);
-    bz_action_free(builder->build);
-    bz_action_free(builder->test);
-    bz_action_free(builder->stage);
+    cork_free_user_data(builder);
     free(builder);
 }
 
-void
-bz_builder_add_prereq(struct bz_builder *builder, struct bz_action *action)
+
+int
+bz_builder_build(struct bz_builder *builder)
 {
-    bz_action_add_pre(builder->build, action);
-    bz_action_add_pre(builder->test, action);
-    bz_action_add_pre(builder->stage, action);
+    if (!builder->built) {
+        builder->built = true;
+        return builder->build(builder->user_data);
+    } else {
+        return 0;
+    }
 }
 
 int
-bz_builder_add_prereq_package(struct bz_builder *builder, const char *dep_string)
+bz_builder_test(struct bz_builder *builder)
 {
-    struct bz_action  *prereq;
-    rip_check(prereq = bz_install_dependency_string(dep_string));
-    bz_builder_add_prereq(builder, prereq);
-    return 0;
+    rii_check(bz_builder_build(builder));
+    if (!builder->tested) {
+        builder->tested = true;
+        return builder->test(builder->user_data);
+    } else {
+        return 0;
+    }
 }
 
-
-struct bz_action *
-bz_builder_build_action(struct bz_builder *builder)
+int
+bz_builder_stage(struct bz_builder *builder)
 {
-    return builder->build;
-}
-
-struct bz_action *
-bz_builder_test_action(struct bz_builder *builder)
-{
-    return builder->test;
-}
-
-struct bz_action *
-bz_builder_stage_action(struct bz_builder *builder)
-{
-    return builder->stage;
+    rii_check(bz_builder_build(builder));
+    if (!builder->staged) {
+        builder->staged = true;
+        return builder->stage(builder->user_data);
+    } else {
+        return 0;
+    }
 }
 
 

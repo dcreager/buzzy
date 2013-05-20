@@ -1,5 +1,6 @@
 Reproducible directory names.
 
+  $ TEST_TMP=$PWD
   $ export HOME=/home/test
   $ export XDG_RUNTIME_DIR=/run/users/test
   $ unset XDG_CACHE_HOME
@@ -19,6 +20,21 @@ run "buzzy info" in each of them.
   $ mkdir -p repo1/.buzzy
   $ cd repo1
   $ buzzy info
+  \[1] Load .*/info.t/repo1 (re)
   Repositories:
-    .*/info.t/repo1/.buzzy (re)
+    .*/info.t/repo1 (re)
+  $ cd ..
+
+  $ mkdir -p repo1/.buzzy
+  $ cat > repo1/.buzzy/links.yaml <<EOF
+  > - $TEST_TMP/repo2
+  > EOF
+  $ mkdir -p repo2/.buzzy
+  $ cd repo1
+  $ buzzy info
+  \[1] Load .*/info.t/repo1 (re)
+  \[2] Load .*/info.t/repo2 (re)
+  Repositories:
+    .*/info.t/repo1 (re)
+    .*/info.t/repo2 (re)
   $ cd ..
