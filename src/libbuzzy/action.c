@@ -42,7 +42,7 @@ typedef int  tribool;
 
 struct bz_action {
     void  *user_data;
-    bz_free_f  user_data_free;
+    cork_free_f  free_user_data;
     bz_action_message_f  message;
     bz_action_is_needed_f  is_needed;
     bz_action_perform_f  perform;
@@ -54,14 +54,14 @@ struct bz_action {
 };
 
 struct bz_action *
-bz_action_new(void *user_data, bz_free_f user_data_free,
+bz_action_new(void *user_data, cork_free_f free_user_data,
               bz_action_message_f message,
               bz_action_is_needed_f is_needed,
               bz_action_perform_f perform)
 {
     struct bz_action  *action = cork_new(struct bz_action);
     action->user_data = user_data;
-    action->user_data_free = user_data_free;
+    action->free_user_data = free_user_data;
     action->message = message;
     action->is_needed = is_needed;
     action->perform = perform;
@@ -76,7 +76,7 @@ bz_action_new(void *user_data, bz_free_f user_data_free,
 void
 bz_action_free(struct bz_action *action)
 {
-    bz_user_data_free(action);
+    cork_free_user_data(action);
     cork_array_done(&action->pre_actions);
     cork_array_done(&action->post_actions);
     free(action);

@@ -12,7 +12,6 @@
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/action.h"
-#include "buzzy/callbacks.h"
 #include "buzzy/env.h"
 #include "buzzy/repo.h"
 
@@ -74,7 +73,7 @@ bz_define_variables(repo)
 struct bz_repo {
     struct bz_env  *env;
     void  *user_data;
-    bz_free_f  user_data_free;
+    cork_free_f  free_user_data;
     bz_repo_load_f  load;
     bz_repo_update_f  update;
     struct bz_action  *load_action;
@@ -84,14 +83,14 @@ struct bz_repo {
 
 struct bz_repo *
 bz_repo_new(struct bz_env *env,
-            void *user_data, bz_free_f user_data_free,
+            void *user_data, cork_free_f free_user_data,
             bz_repo_load_f load,
             bz_repo_update_f update)
 {
     struct bz_repo  *repo = cork_new(struct bz_repo);
     repo->env = env;
     repo->user_data = user_data;
-    repo->user_data_free = user_data_free;
+    repo->free_user_data = free_user_data;
     repo->load = load;
     repo->update = update;
     repo->load_action = NULL;
@@ -109,7 +108,7 @@ bz_repo_free(struct bz_repo *repo)
     if (repo->update_action != NULL) {
         bz_action_free(repo->update_action);
     }
-    bz_user_data_free(repo);
+    cork_free_user_data(repo);
     bz_env_free(repo->env);
     free(repo);
 }

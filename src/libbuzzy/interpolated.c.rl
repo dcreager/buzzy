@@ -11,7 +11,6 @@
 #include <libcork/ds.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/callbacks.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 
@@ -26,18 +25,18 @@ typedef int
 
 struct bz_interpolated_element {
     void  *user_data;
-    bz_free_f  user_data_free;
+    cork_free_f  free_user_data;
     bz_render_element_f  render;
 };
 
 static struct bz_interpolated_element *
-bz_interpolated_element_new(void *user_data, bz_free_f user_data_free,
+bz_interpolated_element_new(void *user_data, cork_free_f free_user_data,
                             bz_render_element_f render)
 {
     struct bz_interpolated_element  *element =
         cork_new(struct bz_interpolated_element);
     element->user_data = user_data;
-    element->user_data_free = user_data_free;
+    element->free_user_data = free_user_data;
     element->render = render;
     return element;
 }
@@ -45,7 +44,7 @@ bz_interpolated_element_new(void *user_data, bz_free_f user_data_free,
 static void
 bz_interpolated_element_free(struct bz_interpolated_element *element)
 {
-    bz_user_data_free(element);
+    cork_free_user_data(element);
     free(element);
 }
 

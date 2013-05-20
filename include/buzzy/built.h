@@ -12,7 +12,6 @@
 
 #include <libcork/core.h>
 
-#include "buzzy/callbacks.h"
 #include "buzzy/env.h"
 #include "buzzy/package.h"
 

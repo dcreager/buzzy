@@ -14,8 +14,6 @@
 #include <libcork/os.h>
 #include <yaml.h>
 
-#include "buzzy/callbacks.h"
-
 
 struct bz_env;
 struct bz_value_provider;
@@ -97,7 +95,7 @@ typedef const char *
 (*bz_provide_value_f)(void *user_data, struct bz_env *env);
 
 struct bz_value_provider *
-bz_value_provider_new(void *user_data, bz_free_f user_data_free,
+bz_value_provider_new(void *user_data, cork_free_f free_user_data,
                       bz_provide_value_f provide_value);
 
 void
@@ -116,7 +114,7 @@ typedef struct bz_value_provider *
 (*bz_value_set_get_f)(void *user_data, const char *key);
 
 struct bz_value_set *
-bz_value_set_new(const char *name, void *user_data, bz_free_f user_data_free,
+bz_value_set_new(const char *name, void *user_data, cork_free_f free_user_data,
                  bz_value_set_get_f get);
 
 void

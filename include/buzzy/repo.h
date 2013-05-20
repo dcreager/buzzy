@@ -13,7 +13,6 @@
 #include <libcork/core.h>
 
 #include "buzzy/action.h"
-#include "buzzy/callbacks.h"
 #include "buzzy/env.h"
 #include "buzzy/package.h"
 
@@ -33,7 +32,7 @@ typedef struct bz_action *
 /* Takes control of env */
 struct bz_repo *
 bz_repo_new(struct bz_env *env,
-            void *user_data, bz_free_f user_data_free,
+            void *user_data, cork_free_f free_user_data,
             bz_repo_load_f load,
             bz_repo_update_f update);
 

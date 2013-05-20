@@ -13,8 +13,6 @@
 #include <libcork/core.h>
 #include <libcork/ds.h>
 
-#include "buzzy/callbacks.h"
-
 
 /*-----------------------------------------------------------------------
  * Actions
@@ -33,7 +31,7 @@ typedef int
 struct bz_action;
 
 struct bz_action *
-bz_action_new(void *user_data, bz_free_f user_data_free,
+bz_action_new(void *user_data, cork_free_f free_user_data,
               bz_action_message_f message,
               bz_action_is_needed_f is_needed,
               bz_action_perform_f perform);

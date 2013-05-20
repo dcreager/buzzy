@@ -18,7 +18,6 @@
 #include <libcork/helpers/errors.h>
 #include <yaml.h>
 
-#include "buzzy/callbacks.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/version.h"
@@ -168,17 +167,17 @@ bz_env_get_version(struct bz_env *env, const char *name, bool required)
 
 struct bz_value_provider {
     void  *user_data;
-    bz_free_f  user_data_free;
+    cork_free_f  free_user_data;
     bz_provide_value_f  provide_value;
 };
 
 struct bz_value_provider *
-bz_value_provider_new(void *user_data, bz_free_f user_data_free,
+bz_value_provider_new(void *user_data, cork_free_f free_user_data,
                       bz_provide_value_f provide_value)
 {
     struct bz_value_provider  *provider = cork_new(struct bz_value_provider);
     provider->user_data = user_data;
-    provider->user_data_free = user_data_free;
+    provider->free_user_data = free_user_data;
     provider->provide_value = provide_value;
     return provider;
 }
@@ -186,7 +185,7 @@ bz_value_provider_new(void *user_data, bz_free_f user_data_free,
 void
 bz_value_provider_free(struct bz_value_provider *provider)
 {
-    bz_user_data_free(provider);
+    cork_free_user_data(provider);
     free(provider);
 }
 
@@ -205,19 +204,19 @@ struct bz_value_set {
     const char  *name;
     const char  *base_path;
     void  *user_data;
-    bz_free_f  user_data_free;
+    cork_free_f  free_user_data;
     bz_value_set_get_f  get;
 };
 
 struct bz_value_set *
-bz_value_set_new(const char *name, void *user_data, bz_free_f user_data_free,
+bz_value_set_new(const char *name, void *user_data, cork_free_f free_user_data,
                  bz_value_set_get_f get)
 {
     struct bz_value_set  *set = cork_new(struct bz_value_set);
     set->name = cork_strdup(name);
     set->base_path = cork_strdup("");
     set->user_data = user_data;
-    set->user_data_free = user_data_free;
+    set->free_user_data = free_user_data;
     set->get = get;
     return set;
 }
@@ -227,7 +226,7 @@ bz_value_set_free(struct bz_value_set *set)
 {
     cork_strfree(set->name);
     cork_strfree(set->base_path);
-    bz_user_data_free(set);
+    cork_free_user_data(set);
     free(set);
 }
 

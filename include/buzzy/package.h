@@ -13,7 +13,6 @@
 #include <libcork/core.h>
 
 #include "buzzy/action.h"
-#include "buzzy/callbacks.h"
 #include "buzzy/env.h"
 #include "buzzy/version.h"
 
@@ -37,7 +36,7 @@ typedef struct bz_action *
 /* Takes control of version, but not dep */
 struct bz_package *
 bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
-               void *user_data, bz_free_f user_data_free,
+               void *user_data, cork_free_f free_user_data,
                bz_package_build_f build,
                bz_package_test_f test,
                bz_package_install_f install);
@@ -79,7 +78,7 @@ typedef struct bz_package *
 
 struct bz_pdb *
 bz_pdb_new(const char *pdb_name,
-           void *user_data, bz_free_f user_data_free,
+           void *user_data, cork_free_f free_user_data,
            bz_pdb_satisfy_f satisfy);
 
 void
@@ -109,7 +108,7 @@ bz_single_package_pdb_new(const char *pdb_name, struct bz_package *package);
  * so, return it. */
 struct bz_pdb *
 bz_cached_pdb_new(const char *pdb_name,
-                  void *user_data, bz_free_f user_data_free,
+                  void *user_data, cork_free_f free_user_data,
                   bz_pdb_satisfy_f satisfy);
 
 

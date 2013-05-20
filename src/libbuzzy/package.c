@@ -17,7 +17,6 @@
 
 #include "buzzy/action.h"
 #include "buzzy/built.h"
-#include "buzzy/callbacks.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/package.h"
@@ -146,7 +145,7 @@ struct bz_package {
     const char  *name;
     struct bz_version  *version;
     void  *user_data;
-    bz_free_f  user_data_free;
+    cork_free_f  free_user_data;
     bz_package_build_f  build;
     bz_package_test_f  test;
     bz_package_install_f  install;
@@ -158,7 +157,7 @@ struct bz_package {
 
 struct bz_package *
 bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
-               void *user_data, bz_free_f user_data_free,
+               void *user_data, cork_free_f free_user_data,
                bz_package_build_f build,
                bz_package_test_f test,
                bz_package_install_f install)
@@ -168,7 +167,7 @@ bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
     package->name = cork_strdup(name);
     package->version = version;
     package->user_data = user_data;
-    package->user_data_free = user_data_free;
+    package->free_user_data = free_user_data;
     package->build = build;
     package->build_action = NULL;
     package->test = test;
@@ -183,7 +182,7 @@ bz_package_free(struct bz_package *package)
 {
     cork_strfree(package->name);
     bz_version_free(package->version);
-    bz_user_data_free(package);
+    cork_free_user_data(package);
     if (package->build_action != NULL) {
         bz_action_free(package->build_action);
     }
@@ -249,7 +248,7 @@ bz_package_install_action(struct bz_package *package)
 struct bz_pdb {
     const char  *name;
     void  *user_data;
-    bz_free_f  user_data_free;
+    cork_free_f  free_user_data;
     bz_pdb_satisfy_f  satisfy;
     struct cork_dllist_item  item;
 };
@@ -257,13 +256,13 @@ struct bz_pdb {
 
 struct bz_pdb *
 bz_pdb_new(const char *name,
-           void *user_data, bz_free_f user_data_free,
+           void *user_data, cork_free_f free_user_data,
            bz_pdb_satisfy_f satisfy)
 {
     struct bz_pdb  *pdb = cork_new(struct bz_pdb);
     pdb->name = cork_strdup(name);
     pdb->user_data = user_data;
-    pdb->user_data_free = user_data_free;
+    pdb->free_user_data = free_user_data;
     pdb->satisfy = satisfy;
     return pdb;
 }
@@ -272,7 +271,7 @@ void
 bz_pdb_free(struct bz_pdb *pdb)
 {
     cork_strfree(pdb->name);
-    bz_user_data_free(pdb);
+    cork_free_user_data(pdb);
     free(pdb);
 }
 
@@ -333,7 +332,7 @@ bz_single_package_pdb_new(const char *pdb_name, struct bz_package *package)
 
 struct bz_cached_pdb {
     void  *user_data;
-    bz_free_f  user_data_free;
+    cork_free_f  free_user_data;
     bz_pdb_satisfy_f  satisfy;
     struct cork_hash_table  packages;
 };
@@ -356,7 +355,7 @@ bz_cached_pdb__free(void *user_data)
     struct bz_cached_pdb  *pdb = user_data;
     cork_hash_table_map(&pdb->packages, bz_cached_pdb__free_package, NULL);
     cork_hash_table_done(&pdb->packages);
-    bz_user_data_free(pdb);
+    cork_free_user_data(pdb);
     free(pdb);
 }
 
@@ -383,12 +382,12 @@ bz_cached_pdb__satisfy(void *user_data, struct bz_dependency *dep)
 
 struct bz_pdb *
 bz_cached_pdb_new(const char *pdb_name,
-                  void *user_data, bz_free_f user_data_free,
+                  void *user_data, cork_free_f free_user_data,
                   bz_pdb_satisfy_f satisfy)
 {
     struct bz_cached_pdb  *pdb = cork_new(struct bz_cached_pdb);
     pdb->user_data = user_data;
-    pdb->user_data_free = user_data_free;
+    pdb->free_user_data = free_user_data;
     pdb->satisfy = satisfy;
     cork_string_hash_table_init(&pdb->packages, 0);
     return bz_pdb_new
