@@ -286,13 +286,16 @@ struct bz_single_package_pdb {
     struct bz_package  *package;
     const char  *package_name;
     struct bz_version  *package_version;
+    bool  free_package;
 };
 
 static void
 bz_single_package_pdb__free(void *user_data)
 {
     struct bz_single_package_pdb  *pdb = user_data;
-    bz_package_free(pdb->package);
+    if (pdb->free_package) {
+        bz_package_free(pdb->package);
+    }
     free(pdb);
 }
 
@@ -303,6 +306,9 @@ bz_single_package_pdb__satisfy(void *user_data, struct bz_dependency *dep)
     if (strcmp(pdb->package_name, dep->package_name) == 0) {
         if (dep->min_version == NULL ||
             bz_version_cmp(pdb->package_version, dep->min_version) >= 0) {
+            /* Once we return the package instance, the cached_pdb wrapper is
+             * going to try to free the package, so we shouldn't. */
+            pdb->free_package = false;
             return pdb->package;
         }
     }
@@ -313,6 +319,7 @@ struct bz_pdb *
 bz_single_package_pdb_new(const char *pdb_name, struct bz_package *package)
 {
     struct bz_single_package_pdb  *pdb = cork_new(struct bz_single_package_pdb);
+    pdb->free_package = true;
     pdb->package = package;
     pdb->package_name = bz_package_name(package);
     pdb->package_version = bz_package_version(package);

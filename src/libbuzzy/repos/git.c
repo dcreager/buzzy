@@ -53,14 +53,14 @@ static int
 bz_git__update(void *user_data, struct bz_env *env)
 {
     struct bz_git_repo  *repo = user_data;
-    struct cork_path  *repo_base_dir;
-    rip_check(repo_base_dir = bz_env_get_path(env, "repo.base_dir", true));
-    ei_check(bz_git_update(repo->url, repo->commit, repo_base_dir));
-    cork_path_free(repo_base_dir);
+    struct cork_path  *repo_git_dir;
+    rip_check(repo_git_dir = bz_env_get_path(env, "repo.git_dir", true));
+    ei_check(bz_git_update(repo->url, repo->commit, repo_git_dir));
+    cork_path_free(repo_git_dir);
     return 0;
 
 error:
-    cork_path_free(repo_base_dir);
+    cork_path_free(repo_git_dir);
     return -1;
 }
 
@@ -116,6 +116,13 @@ bz_git_repo_new(const char *url, const char *commit)
     bz_git_make_slug(&repo->slug, url, commit);
 
     repo_env = bz_repo_env_new_empty();
+    bz_env_add_override
+        (repo_env, "repo.git.url", bz_string_value_new(url));
+    bz_env_add_override
+        (repo_env, "repo.git.commit", bz_string_value_new(commit));
+    bz_env_add_override
+        (repo_env, "repo.name",
+         bz_interpolated_value_new("${repo.git.url} (${repo.git.commit})"));
     bz_env_add_override
         (repo_env, "repo.slug", bz_string_value_new(repo->slug.buf));
     bz_env_add_override

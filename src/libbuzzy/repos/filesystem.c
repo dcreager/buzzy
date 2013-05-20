@@ -133,6 +133,7 @@ bz_filesystem_repo__create_default_package(struct bz_repo *repo)
     package_name = bz_package_name(package);
     ep_check(pdb = bz_single_package_pdb_new(package_name, package));
     bz_pdb_register(pdb);
+    cork_path_free(package_file);
     return 0;
 
 error:

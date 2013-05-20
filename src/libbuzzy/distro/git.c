@@ -1150,4 +1150,5 @@ bz_git_update(const char *url, const char *commit, struct cork_path *dest_dir)
         bz_log_action("Clone %s (%s)", url, commit);
         return bz_git_perform_clone(url, commit, dest_dir);
     }
+
 }

@@ -7,6 +7,8 @@
  * ----------------------------------------------------------------------
  */
 
+#include <string.h>
+
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/os.h>
@@ -53,8 +55,33 @@ url_repos_init(void)
 static struct bz_repo *
 bz_url_repo_create(const char *url)
 {
-    /* For now, we assume the URL is a local filesystem path. */
-    return bz_local_filesystem_repo_new(url);
+    /* If the string doesn't look like an actual URL (by containing "://"), then
+     * we assume the URL is a local filesystem path. */
+    if (strstr(url, "://") == NULL) {
+        return bz_local_filesystem_repo_new(url);
+    }
+
+    /* Otherwise we look at the URL scheme.  Each of these memcmp calls are
+     * valid, even if we compare against a "short" url string — they can't
+     * possibly read past the end of the string, because the NUL terminator
+     * would cause the comparison to return. */
+
+    if (memcmp(url, "file://", 7) == 0) {
+        /* For file URLs, we just use the content of the URL as a local
+         * filesystem path. */
+        return bz_local_filesystem_repo_new(url + 7);
+    }
+
+    if ((memcmp(url, "git://", 6) == 0) || (memcmp(url, "git+", 4) == 0)) {
+        /* For git URLs, we assume the user wants the "master" branch.  (If not,
+         * they need to use the !git YAML tag so that they can provide a more
+         * complex configuration.) */
+        return bz_git_repo_new(url, "master");
+    }
+
+    /* Not a URL that we recognize. */
+    bz_bad_config("Unknown repository URL %s", url);
+    return NULL;
 }
 
 struct bz_repo *
