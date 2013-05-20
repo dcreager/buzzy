@@ -14,7 +14,6 @@
 #include <libcork/ds.h>
 #include <libcork/os.h>
 
-#include "buzzy/action.h"
 #include "buzzy/env.h"
 #include "buzzy/package.h"
 #include "buzzy/version.h"

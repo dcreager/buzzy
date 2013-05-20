@@ -44,15 +44,13 @@ repository and directory and while not in one.
   $ mkdir -p repo1/.buzzy
   $ cd repo1
   $ buzzy doc repo.base_dir
-  Load repositories:
-  \[1/1] Load .*/doc.t/repo1 (re)
+  \[1] Load .*/doc.t/repo1 (re)
   repo.base_dir
     The base path of the files defining the repository
   
     Current value: .*/doc.t/repo1 (re)
   $ buzzy doc repo.repo_yaml
-  Load repositories:
-  \[1/1] Load .*/doc.t/repo1 (re)
+  \[1] Load .*/doc.t/repo1 (re)
   repo.repo_yaml
     The location of the YAML file defining the repository
   
@@ -66,36 +64,31 @@ repository and directory and while not in one.
   > EOF
   $ cd repo2
   $ buzzy doc repo.base_dir
-  Load repositories:
-  \[1/1] Load .*/doc.t/repo2 (re)
+  \[1] Load .*/doc.t/repo2 (re)
   repo.base_dir
     The base path of the files defining the repository
   
     Current value: .*/doc.t/repo2 (re)
   $ buzzy doc repo.repo_yaml
-  Load repositories:
-  \[1/1] Load .*/doc.t/repo2 (re)
+  \[1] Load .*/doc.t/repo2 (re)
   repo.repo_yaml
     The location of the YAML file defining the repository
   
     Current value: .*/doc.t/repo2/.buzzy/repo.yaml (re)
   $ buzzy doc name
-  Load repositories:
-  \[1/1] Load .*/doc.t/repo2 (re)
+  \[1] Load .*/doc.t/repo2 (re)
   name
     The name of the package
   
     Current value: test
   $ buzzy doc version
-  Load repositories:
-  \[1/1] Load .*/doc.t/repo2 (re)
+  \[1] Load .*/doc.t/repo2 (re)
   version
     The version of the package
   
     Current value: 1.0~rc1
   $ buzzy doc source_dir
-  Load repositories:
-  \[1/1] Load .*/doc.t/repo2 (re)
+  \[1] Load .*/doc.t/repo2 (re)
   source_dir
     Where the package's extracted source archive should be placed
   

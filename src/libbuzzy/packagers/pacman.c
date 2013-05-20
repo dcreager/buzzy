@@ -11,7 +11,6 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/action.h"
 #include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/os.h"
@@ -134,16 +133,8 @@ bz_define_variables(pacman)
  */
 
 static int
-bz_pacman__package__message(void *user_data, struct cork_buffer *dest)
+bz_pacman__package__is_needed(struct bz_env *env, bool *is_needed)
 {
-    struct bz_env  *env = user_data;
-    return bz_package_message(dest, env, "pacman");
-}
-
-static int
-bz_pacman__package__is_needed(void *user_data, bool *is_needed)
-{
-    struct bz_env  *env = user_data;
     bool  force = false;
 
     rii_check(bz_env_get_bool(env, "force", &force, false));
@@ -162,7 +153,7 @@ bz_pacman__package__is_needed(void *user_data, bool *is_needed)
 }
 
 static int
-bz_pacman__package__perform(void *user_data)
+bz_pacman__package(void *user_data)
 {
     struct bz_env  *env = user_data;
     const char  *staging_dir;
@@ -175,12 +166,22 @@ bz_pacman__package__perform(void *user_data)
     const char  *pkgext;
     const char  *architecture;
     const char  *license;
+    bool  is_needed;
     bool  verbose = false;
 
     struct cork_env  *exec_env;
     struct cork_exec  *exec;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
     bool  staging_exists;
+
+    /* Has the package already been created? */
+    rii_check(bz_pacman__package__is_needed(env, &is_needed));
+    if (!is_needed) {
+        return 0;
+    }
+
+    rii_check(bz_install_dependency_string("pacman"));
+    rii_check(bz_package_message(env, "pacman"));
 
     rip_check(staging_dir = bz_env_get_string(env, "staging_dir", true));
     rip_check(binary_package_dir =
@@ -239,28 +240,10 @@ error:
     return -1;
 }
 
-static struct bz_action *
-bz_pacman__package(struct bz_env *env)
-{
-    return bz_action_new
-        (env, NULL,
-         bz_pacman__package__message,
-         bz_pacman__package__is_needed,
-         bz_pacman__package__perform);
-}
-
 
 static int
-bz_pacman__install__message(void *user_data, struct cork_buffer *dest)
+bz_pacman__install__is_needed(struct bz_env *env, bool *is_needed)
 {
-    struct bz_env  *env = user_data;
-    return bz_install_message(dest, env, "pacman");
-}
-
-static int
-bz_pacman__install__is_needed(void *user_data, bool *is_needed)
-{
-    struct bz_env  *env = user_data;
     bool  force = false;
 
     rii_check(bz_env_get_bool(env, "force", &force, false));
@@ -296,41 +279,32 @@ bz_pacman__install__is_needed(void *user_data, bool *is_needed)
 }
 
 static int
-bz_pacman__install__perform(void *user_data)
+bz_pacman__install(void *user_data)
 {
     struct bz_env  *env = user_data;
-    const char  *package_dir;
-    rip_check(package_dir = bz_env_get_string
-              (env, "pacman.package_dir", true));
+    const char  *package_file;
+    bool  is_needed;
+
+    /* Has the package already been installed? */
+    rii_check(bz_pacman__install__is_needed(env, &is_needed));
+    if (!is_needed) {
+        return 0;
+    }
+
+    rii_check(bz_install_dependency_string("pacman"));
+    rii_check(bz_install_message(env, "pacman"));
+
+    rip_check(package_file = bz_env_get_string
+              (env, "pacman.package_file", true));
     return bz_subprocess_run
         (false, NULL,
-         "sudo", "pacman", "-U", "--noconfirm", package_dir,
+         "sudo", "pacman", "-U", "--noconfirm", package_file,
          NULL);
 }
-
-static struct bz_action *
-bz_pacman__install(struct bz_env *env)
-{
-    return bz_action_new
-        (env, NULL,
-         bz_pacman__install__message,
-         bz_pacman__install__is_needed,
-         bz_pacman__install__perform);
-}
-
 
 struct bz_packager *
 bz_pacman_packager_new(struct bz_env *env)
 {
-    struct bz_packager  *packager;
-    rpp_check(packager = bz_packager_new
-              (env, "pacman",
-               bz_pacman__package(env),
-               bz_pacman__install(env)));
-    ei_check(bz_packager_add_prereq_package(packager, "pacman"));
-    return packager;
-
-error:
-    bz_packager_free(packager);
-    return NULL;
+    return bz_packager_new
+        (env, "pacman", env, NULL, bz_pacman__package, bz_pacman__install);
 }

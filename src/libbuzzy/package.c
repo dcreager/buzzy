@@ -15,7 +15,6 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/action.h"
 #include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
@@ -146,21 +145,21 @@ struct bz_package {
     struct bz_version  *version;
     void  *user_data;
     cork_free_f  free_user_data;
-    bz_package_build_f  build;
-    bz_package_test_f  test;
-    bz_package_install_f  install;
-    struct bz_action  *build_action;
-    struct bz_action  *test_action;
-    struct bz_action  *install_action;
+    bz_package_step_f  build;
+    bz_package_step_f  test;
+    bz_package_step_f  install;
+    bool  built;
+    bool  tested;
+    bool  installed;
 };
 
 
 struct bz_package *
 bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
                void *user_data, cork_free_f free_user_data,
-               bz_package_build_f build,
-               bz_package_test_f test,
-               bz_package_install_f install)
+               bz_package_step_f build,
+               bz_package_step_f test,
+               bz_package_step_f install)
 {
     struct bz_package  *package = cork_new(struct bz_package);
     package->env = env;
@@ -169,11 +168,11 @@ bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
     package->user_data = user_data;
     package->free_user_data = free_user_data;
     package->build = build;
-    package->build_action = NULL;
     package->test = test;
-    package->test_action = NULL;
     package->install = install;
-    package->install_action = NULL;
+    package->built = false;
+    package->tested = false;
+    package->installed = false;
     return package;
 }
 
@@ -183,15 +182,6 @@ bz_package_free(struct bz_package *package)
     cork_strfree(package->name);
     bz_version_free(package->version);
     cork_free_user_data(package);
-    if (package->build_action != NULL) {
-        bz_action_free(package->build_action);
-    }
-    if (package->test_action != NULL) {
-        bz_action_free(package->test_action);
-    }
-    if (package->install_action != NULL) {
-        bz_action_free(package->install_action);
-    }
     free(package);
 }
 
@@ -213,31 +203,37 @@ bz_package_version(struct bz_package *package)
     return package->version;
 }
 
-struct bz_action *
-bz_package_build_action(struct bz_package *package)
+int
+bz_package_build(struct bz_package *package)
 {
-    if (package->build_action == NULL) {
-        package->build_action = package->build(package->user_data);
+    if (package->built) {
+        return 0;
+    } else {
+        package->built = true;
+        return package->build(package->user_data);
     }
-    return package->build_action;
 }
 
-struct bz_action *
-bz_package_test_action(struct bz_package *package)
+int
+bz_package_test(struct bz_package *package)
 {
-    if (package->test_action == NULL) {
-        package->test_action = package->test(package->user_data);
+    if (package->tested) {
+        return 0;
+    } else {
+        package->tested = true;
+        return package->test(package->user_data);
     }
-    return package->test_action;
 }
 
-struct bz_action *
-bz_package_install_action(struct bz_package *package)
+int
+bz_package_install(struct bz_package *package)
 {
-    if (package->install_action == NULL) {
-        package->install_action = package->install(package->user_data);
+    if (package->installed) {
+        return 0;
+    } else {
+        package->installed = true;
+        return package->install(package->user_data);
     }
-    return package->install_action;
 }
 
 
@@ -453,12 +449,12 @@ bz_satisfy_dependency(struct bz_dependency *dep)
     return NULL;
 }
 
-struct bz_action *
+int
 bz_install_dependency(struct bz_dependency *dep)
 {
     struct bz_package  *package;
-    rpp_check(package = bz_satisfy_dependency(dep));
-    return bz_package_install_action(package);
+    rip_check(package = bz_satisfy_dependency(dep));
+    return bz_package_install(package);
 }
 
 struct bz_package *
@@ -472,13 +468,13 @@ bz_satisfy_dependency_string(const char *dep_string)
     return package;
 }
 
-struct bz_action *
+int
 bz_install_dependency_string(const char *dep_string)
 {
     struct bz_dependency  *dep;
-    struct bz_action  *action;
-    rpp_check(dep = bz_dependency_from_string(dep_string));
-    action = bz_install_dependency(dep);
+    int  rc;
+    rip_check(dep = bz_dependency_from_string(dep_string));
+    rc = bz_install_dependency(dep);
     bz_dependency_free(dep);
-    return action;
+    return rc;
 }

@@ -36,25 +36,20 @@
  */
 
 int
-bz_build_message(struct cork_buffer *dest, struct bz_env *env,
-                 const char *builder_name);
+bz_build_message(struct bz_env *env, const char *builder_name);
 
 int
-bz_test_message(struct cork_buffer *dest, struct bz_env *env,
-                const char *builder_name);
+bz_test_message(struct bz_env *env, const char *builder_name);
 
 int
-bz_stage_message(struct cork_buffer *dest, struct bz_env *env,
-                 const char *builder_name);
+bz_stage_message(struct bz_env *env, const char *builder_name);
 
 
 int
-bz_package_message(struct cork_buffer *dest, struct bz_env *env,
-                   const char *packager_name);
+bz_package_message(struct bz_env *env, const char *packager_name);
 
 int
-bz_install_message(struct cork_buffer *dest, struct bz_env *env,
-                   const char *packager_name);
+bz_install_message(struct bz_env *env, const char *packager_name);
 
 
 /*-----------------------------------------------------------------------
@@ -65,29 +60,22 @@ struct bz_builder;
 
 struct bz_builder *
 bz_builder_new(struct bz_env *env, const char *builder_name,
-               struct bz_action *build,
-               struct bz_action *test,
-               struct bz_action *stage);
+               void *user_data, cork_free_f free_user_data,
+               bz_package_step_f build,
+               bz_package_step_f test,
+               bz_package_step_f stage);
 
 void
 bz_builder_free(struct bz_builder *builder);
 
-void
-bz_builder_add_prereq(struct bz_builder *builder, struct bz_action *action);
+int
+bz_builder_build(struct bz_builder *builder);
 
 int
-bz_builder_add_prereq_package(struct bz_builder *builder, const char *dep);
+bz_builder_test(struct bz_builder *builder);
 
-/* The builder is responsible for freeing all of the following actions. */
-
-struct bz_action *
-bz_builder_build_action(struct bz_builder *builder);
-
-struct bz_action *
-bz_builder_test_action(struct bz_builder *builder);
-
-struct bz_action *
-bz_builder_stage_action(struct bz_builder *builder);
+int
+bz_builder_stage(struct bz_builder *builder);
 
 
 struct bz_builder *
@@ -102,25 +90,18 @@ struct bz_packager;
 
 struct bz_packager *
 bz_packager_new(struct bz_env *env, const char *packager_name,
-                struct bz_action *package,
-                struct bz_action *install);
+                void *user_data, cork_free_f free_user_data,
+                bz_package_step_f package,
+                bz_package_step_f install);
 
 void
 bz_packager_free(struct bz_packager *packager);
 
-void
-bz_packager_add_prereq(struct bz_packager *packager, struct bz_action *action);
+int
+bz_packager_package(struct bz_packager *packager);
 
 int
-bz_packager_add_prereq_package(struct bz_packager *packager, const char *dep);
-
-/* The packager is responsible for freeing all of the following actions. */
-
-struct bz_action *
-bz_packager_package_action(struct bz_packager *packager);
-
-struct bz_action *
-bz_packager_install_action(struct bz_packager *packager);
+bz_packager_install(struct bz_packager *packager);
 
 
 struct bz_packager *

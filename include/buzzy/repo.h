@@ -12,7 +12,6 @@
 
 #include <libcork/core.h>
 
-#include "buzzy/action.h"
 #include "buzzy/env.h"
 #include "buzzy/package.h"
 
@@ -23,10 +22,10 @@
 
 struct bz_repo;
 
-typedef struct bz_action *
+typedef int
 (*bz_repo_load_f)(void *user_data, struct bz_env *env);
 
-typedef struct bz_action *
+typedef int
 (*bz_repo_update_f)(void *user_data, struct bz_env *env);
 
 /* Takes control of env */
@@ -42,10 +41,10 @@ bz_repo_free(struct bz_repo *repo);
 struct bz_env *
 bz_repo_env(struct bz_repo *repo);
 
-struct bz_action *
+int
 bz_repo_load(struct bz_repo *repo);
 
-struct bz_action *
+int
 bz_repo_update(struct bz_repo *repo);
 
 struct bz_package *
@@ -68,10 +67,10 @@ bz_repo_registry_get(size_t index);
 void
 bz_repo_registry_reset(void);
 
-struct bz_action_phase *
+int
 bz_repo_registry_load_all(void);
 
-struct bz_action_phase *
+int
 bz_repo_registry_update_all(void);
 
 

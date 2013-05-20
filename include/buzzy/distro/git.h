@@ -12,7 +12,6 @@
 
 #include <libcork/core.h>
 
-#include "buzzy/action.h"
 #include "buzzy/env.h"
 #include "buzzy/version.h"
 
@@ -32,15 +31,11 @@ bz_git_version_value_new(void);
  * git repository actions
  */
 
-/* Takes control of dest_dir */
-struct bz_action *
-bz_git_clone_new(const char *url, const char *commit,
-                 struct cork_path *dest_dir);
+int
+bz_git_clone(const char *url, const char *commit, struct cork_path *dest_dir);
 
-/* Takes control of dest_dir */
-struct bz_action *
-bz_git_update_new(const char *url, const char *commit,
-                  struct cork_path *dest_dir);
+int
+bz_git_update(const char *url, const char *commit, struct cork_path *dest_dir);
 
 
 #endif /* BUZZY_DISTRO_GIT_H */

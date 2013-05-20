@@ -13,7 +13,6 @@
 
 #include <check.h>
 
-#include "buzzy/action.h"
 #include "buzzy/built.h"
 #include "buzzy/os.h"
 #include "buzzy/package.h"
@@ -124,9 +123,9 @@ test_stage_package(struct bz_env *env, bool force,
     struct cork_path  *source_dir = cork_path_new("/home/test/source");
     struct bz_pdb  *pdb;
     struct bz_builder  *builder;
-    struct bz_action  *action;
 
     bz_global_env_reset();
+    bz_mocked_actions_clear();
     fail_if_error(bz_load_variable_definitions());
     bz_pdb_registry_clear();
     fail_if_error(pdb = bz_arch_native_pdb());
@@ -137,8 +136,8 @@ test_stage_package(struct bz_env *env, bool force,
     bz_env_add_override(env, "force", bz_string_value_new(force? "1": "0"));
     bz_env_add_override(env, "verbose", bz_string_value_new("0"));
     fail_if_error(builder = bz_cmake_builder_new(env));
-    fail_if_error(action = bz_builder_stage_action(builder));
-    test_action(action, expected_actions);
+    fail_if_error(bz_builder_stage(builder));
+    test_actions(expected_actions);
     bz_builder_free(builder);
 }
 
@@ -164,9 +163,8 @@ START_TEST(test_cmake_stage_package_01)
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_stage_package(env, false,
-        "Test actions\n"
-        "[1/2] Build jansson 2.4 (cmake)\n"
-        "[2/2] Stage jansson 2.4 (cmake)\n"
+        "[1] Build jansson 2.4 (cmake)\n"
+        "[2] Stage jansson 2.4 (cmake)\n"
     );
     verify_commands_run(
         "$ pacman -Sdp --print-format %v cmake\n"
@@ -211,10 +209,9 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_stage_package(env, false,
-        "Test actions\n"
-        "[1/3] Install native Arch package cmake 2.6\n"
-        "[2/3] Build jansson 2.4 (cmake)\n"
-        "[3/3] Stage jansson 2.4 (cmake)\n"
+        "[1] Install native Arch package cmake 2.6\n"
+        "[2] Build jansson 2.4 (cmake)\n"
+        "[3] Stage jansson 2.4 (cmake)\n"
     );
     verify_commands_run(
         "$ pacman -Sdp --print-format %v cmake\n"
@@ -237,15 +234,23 @@ END_TEST
 static void
 test_unavailable(struct bz_env *env)
 {
+    struct cork_path  *source_dir = cork_path_new("/home/test/source");
     struct bz_pdb  *pdb;
+    struct bz_builder  *builder;
 
     bz_global_env_reset();
+    bz_mocked_actions_clear();
     fail_if_error(bz_load_variable_definitions());
     bz_pdb_registry_clear();
     fail_if_error(pdb = bz_arch_native_pdb());
     bz_pdb_register(pdb);
 
-    fail_unless_error(bz_cmake_builder_new(env));
+    bz_mock_file_exists(cork_path_get(source_dir), true);
+    bz_env_add_override(env, "source_dir", bz_path_value_new(source_dir));
+    bz_env_add_override(env, "verbose", bz_string_value_new("0"));
+    fail_if_error(builder = bz_cmake_builder_new(env));
+    fail_unless_error(bz_builder_stage(builder));
+    bz_builder_free(builder);
 }
 
 START_TEST(test_cmake_unavailable_01)

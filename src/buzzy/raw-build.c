@@ -93,8 +93,6 @@ execute(int argc, char **argv)
 {
     struct cork_path  *source_dir;
     struct bz_builder  *builder;
-    struct bz_action  *action;
-    struct bz_action_phase  *phase;
     struct bz_value_provider  *value;
 
     if (argc > 0) {
@@ -118,13 +116,8 @@ execute(int argc, char **argv)
     bz_env_add_override(package_env, "verbose", value);
 
     rp_check_error(builder = bz_package_builder_new(package_env));
-    rp_check_error(action = bz_builder_build_action(builder));
+    ri_check_error(bz_builder_build(builder));
 
-    phase = bz_action_phase_new("Build package:");
-    bz_action_phase_add(phase, action);
-    ri_check_error(bz_action_phase_perform(phase, 0));
-
-    bz_action_phase_free(phase);
     bz_builder_free(builder);
     package_env_done();
     exit(EXIT_SUCCESS);

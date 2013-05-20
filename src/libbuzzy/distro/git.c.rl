@@ -14,7 +14,9 @@
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/error.h"
+#include "buzzy/logging.h"
 #include "buzzy/os.h"
+#include "buzzy/package.h"
 #include "buzzy/version.h"
 #include "buzzy/distro/git.h"
 
@@ -240,72 +242,23 @@ bz_git_version_value_new(void)
  * git repository actions
  */
 
-struct bz_git {
-    const char  *url;
-    const char  *commit;
-    struct cork_path  *dest_dir;
-    struct cork_buffer  remote_commit;
-};
-
-struct bz_git *
-bz_git_new(const char *url, const char *commit, struct cork_path *dest_dir)
-{
-    struct bz_git  *git = cork_new(struct bz_git);
-    git->url = cork_strdup(url);
-    git->commit = cork_strdup(commit);
-    git->dest_dir = dest_dir;
-    cork_buffer_init(&git->remote_commit);
-    cork_buffer_printf(&git->remote_commit, "origin/%s", commit);
-    return git;
-}
-
-static void
-bz_git__free(void *user_data)
-{
-    struct bz_git  *git = user_data;
-    cork_strfree(git->url);
-    cork_strfree(git->commit);
-    cork_path_free(git->dest_dir);
-    cork_buffer_done(&git->remote_commit);
-    free(git);
-}
-
-
 static int
-bz_git__clone__message(void *user_data, struct cork_buffer *dest)
+bz_git_perform_clone(const char *url, const char *commit,
+                     struct cork_path *dest_dir)
 {
-    struct bz_git  *git = user_data;
-    cork_buffer_append_printf(dest, "Clone %s (%s)", git->url, git->commit);
-    return 0;
-}
-
-static int
-bz_git__clone__is_needed(void *user_data, bool *is_needed)
-{
-    struct bz_git  *git = user_data;
-    bool  exists;
-    rii_check(bz_file_exists(cork_path_get(git->dest_dir), &exists));
-    *is_needed = !exists;
-    return 0;
-}
-
-static int
-bz_git__clone__perform(void *user_data)
-{
-    struct bz_git  *git = user_data;
     struct cork_path  *parent;
 
     /* Create the parent directory of our clone. */
-    parent = cork_path_dirname(git->dest_dir);
+    parent = cork_path_dirname(dest_dir);
     ei_check(bz_create_directory(cork_path_get(parent)));
     cork_path_free(parent);
 
     return bz_subprocess_run
         (false, NULL,
          "git", "clone", "--recursive",
-         "--branch", git->commit,
-         git->url,
-         cork_path_get(git->dest_dir),
+         "--branch", commit,
+         url,
+         cork_path_get(dest_dir),
          NULL);
 
 error:
@@ -313,71 +266,62 @@ error:
     return -1;
 }
 
-struct bz_action *
-bz_git_clone_new(const char *url, const char *commit,
-                 struct cork_path *dest_dir)
-{
-    struct bz_git  *git = bz_git_new(url, commit, dest_dir);
-    return bz_action_new
-        (git, bz_git__free,
-         bz_git__clone__message,
-         bz_git__clone__is_needed,
-         bz_git__clone__perform);
-}
-
-
 static int
-bz_git__update__message(void *user_data, struct cork_buffer *dest)
+bz_git_perform_update(const char *url, const char *commit,
+                      struct cork_path *dest_dir)
 {
-    struct bz_git  *git = user_data;
-    cork_buffer_append_printf(dest, "Update %s (%s)", git->url, git->commit);
+    /* Otherwise perform a fetch + reset.  Assume that we've already checked out
+     * the right branch. */
+    struct cork_buffer  remote_commit = CORK_BUFFER_INIT();
+    cork_buffer_printf(&remote_commit, "origin/%s", commit);
+    ei_check(bz_subprocess_run
+             (false, NULL,
+              "git", "--git-dir", cork_path_get(dest_dir),
+              "fetch", "origin",
+              NULL));
+    ei_check(bz_subprocess_run
+             (false, NULL,
+              "git", "--git-dir", cork_path_get(dest_dir),
+              "reset", "--hard", remote_commit.buf,
+              NULL));
+    cork_buffer_done(&remote_commit);
     return 0;
+
+error:
+    cork_buffer_done(&remote_commit);
+    return -1;
 }
 
-static int
-bz_git__update__is_needed(void *user_data, bool *is_needed)
+
+int
+bz_git_clone(const char *url, const char *commit, struct cork_path *dest_dir)
 {
-    *is_needed = true;
-    return 0;
+    bool  exists;
+
+    /* If the target directory already exists, there's nothing to clone. */
+    rii_check(bz_file_exists(cork_path_get(dest_dir), &exists));
+    if (exists) {
+        return 0;
+    } else {
+        bz_log_action("Clone %s (%s)", url, commit);
+        return bz_git_perform_clone(url, commit, dest_dir);
+    }
 }
 
-static int
-bz_git__update__perform(void *user_data)
+int
+bz_git_update(const char *url, const char *commit, struct cork_path *dest_dir)
 {
-    struct bz_git  *git = user_data;
     bool  exists;
 
     /* If the destination directory doesn't exist yet, perform a clone instead
      * of an update. */
-    rii_check(bz_file_exists(cork_path_get(git->dest_dir), &exists));
-    if (!exists) {
-        return bz_git__clone__perform(git);
+    rii_check(bz_file_exists(cork_path_get(dest_dir), &exists));
+    if (exists) {
+        bz_log_action("Update %s (%s)", url, commit);
+        return bz_git_perform_update(url, commit, dest_dir);
+    } else {
+        bz_log_action("Clone %s (%s)", url, commit);
+        return bz_git_perform_clone(url, commit, dest_dir);
     }
 
-    /* Otherwise perform a fetch + reset.  Assume that we've already checked out
-     * the right branch. */
-
-    rii_check(bz_subprocess_run
-              (false, NULL,
-               "git", "--git-dir", cork_path_get(git->dest_dir),
-               "fetch", "origin",
-               NULL));
-    rii_check(bz_subprocess_run
-              (false, NULL,
-               "git", "--git-dir", cork_path_get(git->dest_dir),
-               "reset", "--hard", git->remote_commit.buf,
-               NULL));
-    return 0;
-}
-
-struct bz_action *
-bz_git_update_new(const char *url, const char *commit,
-                 struct cork_path *dest_dir)
-{
-    struct bz_git  *git = bz_git_new(url, commit, dest_dir);
-    return bz_action_new
-        (git, bz_git__free,
-         bz_git__update__message,
-         bz_git__update__is_needed,
-         bz_git__update__perform);
 }

@@ -26,7 +26,6 @@ START_TEST(test_repo_01)
 {
     DESCRIBE_TEST;
     struct bz_repo  *repo;
-    struct bz_action_phase  *load;
     bz_start_mocks();
     bz_repo_registry_reset();
     bz_global_env_reset();
@@ -39,12 +38,10 @@ START_TEST(test_repo_01)
     bz_mock_file_exists("/a/b/.git", false);
     fail_if_error(repo = bz_local_filesystem_repo_find("/a/b/c"));
     fail_if(repo == NULL, "Cannot create repo");
-    fail_if_error(load = bz_repo_registry_load_all());
-    test_action_phase(load,
-        "Load repositories:\n"
-        "[1/1] Load /a/b\n"
+    fail_if_error(bz_repo_registry_load_all());
+    test_actions(
+        "[1] Load /a/b\n"
     );
-    bz_action_phase_free(load);
 }
 END_TEST
 

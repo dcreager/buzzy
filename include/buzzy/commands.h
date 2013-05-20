@@ -18,7 +18,6 @@
 #include <libcork/ds.h>
 #include <libcork/os.h>
 
-#include "buzzy/action.h"
 #include "buzzy/distro.h"
 #include "buzzy/env.h"
 #include "buzzy/package.h"
@@ -198,7 +197,6 @@ static void
 bz_load_repositories(void)
 {
     struct cork_path  *cwd;
-    struct bz_action_phase  *phase;
 
     ri_check_error(bz_load_variable_definitions());
     ri_check_error(bz_pdb_discover());
@@ -208,9 +206,7 @@ bz_load_repositories(void)
                    bz_local_filesystem_repo_find(cork_path_get(cwd)));
     cork_path_free(cwd);
 
-    rp_check_error(phase = bz_repo_registry_load_all());
-    ri_check_error(bz_action_phase_perform(phase, BZ_ACTION_HIDE_NOOP));
-    bz_action_phase_free(phase);
+    ri_check_error(bz_repo_registry_load_all());
 }
 
 

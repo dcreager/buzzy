@@ -19,8 +19,7 @@ run "buzzy info" in each of them.
   $ mkdir -p repo1/.buzzy
   $ cd repo1
   $ buzzy info
-  Load repositories:
-  \[1/1] Load .*/info.t/repo1 (re)
+  \[1] Load .*/info.t/repo1 (re)
   Repositories:
     .*/info.t/repo1 (re)
   $ cd ..

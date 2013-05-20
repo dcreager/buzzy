@@ -12,7 +12,6 @@
 
 #include <libcork/core.h>
 
-#include "buzzy/action.h"
 #include "buzzy/env.h"
 #include "buzzy/version.h"
 
@@ -23,23 +22,17 @@
 
 struct bz_package;
 
-typedef struct bz_action *
-(*bz_package_build_f)(void *user_data);
-
-typedef struct bz_action *
-(*bz_package_test_f)(void *user_data);
-
-typedef struct bz_action *
-(*bz_package_install_f)(void *user_data);
+typedef int
+(*bz_package_step_f)(void *user_data);
 
 
 /* Takes control of version, but not dep */
 struct bz_package *
 bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
                void *user_data, cork_free_f free_user_data,
-               bz_package_build_f build,
-               bz_package_test_f test,
-               bz_package_install_f install);
+               bz_package_step_f build,
+               bz_package_step_f test,
+               bz_package_step_f install);
 
 void
 bz_package_free(struct bz_package *package);
@@ -53,16 +46,14 @@ bz_package_name(struct bz_package *package);
 struct bz_version *
 bz_package_version(struct bz_package *package);
 
-/* The package is responsible for freeing all of the following actions. */
+int
+bz_package_build(struct bz_package *package);
 
-struct bz_action *
-bz_package_build_action(struct bz_package *package);
+int
+bz_package_test(struct bz_package *package);
 
-struct bz_action *
-bz_package_test_action(struct bz_package *package);
-
-struct bz_action *
-bz_package_install_action(struct bz_package *package);
+int
+bz_package_install(struct bz_package *package);
 
 
 /*-----------------------------------------------------------------------
@@ -126,13 +117,13 @@ bz_pdb_registry_clear(void);
 struct bz_package *
 bz_satisfy_dependency(struct bz_dependency *dep);
 
-struct bz_action *
+int
 bz_install_dependency(struct bz_dependency *dep);
 
 struct bz_package *
 bz_satisfy_dependency_string(const char *dep_string);
 
-struct bz_action *
+int
 bz_install_dependency_string(const char *dep_string);
 
 

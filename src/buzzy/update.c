@@ -15,7 +15,6 @@
 #include <libcork/helpers/errors.h>
 #include <libcork/helpers/posix.h>
 
-#include "buzzy/action.h"
 #include "buzzy/commands.h"
 #include "buzzy/env.h"
 #include "buzzy/repo.h"
@@ -79,7 +78,6 @@ execute(int argc, char **argv)
 {
     size_t  i;
     size_t  repo_count;
-    struct bz_action_phase  *phase;
 
     bz_load_repositories();
     repo_count = bz_repo_registry_count();
@@ -88,15 +86,10 @@ execute(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
-    phase = bz_action_phase_new("Update repositories:");
     for (i = 0; i < repo_count; i++) {
         struct bz_repo  *repo = bz_repo_registry_get(i);
-        struct bz_action  *action;
-        rp_check_error(action = bz_repo_update(repo));
-        bz_action_phase_add(phase, action);
+        ri_check_error(bz_repo_update(repo));
     }
 
-    ri_check_error(bz_action_phase_perform(phase, 0));
-    bz_action_phase_free(phase);
     exit(EXIT_SUCCESS);
 }

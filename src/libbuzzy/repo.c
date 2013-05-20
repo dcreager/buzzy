@@ -11,7 +11,6 @@
 #include <libcork/ds.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/action.h"
 #include "buzzy/env.h"
 #include "buzzy/repo.h"
 
@@ -72,13 +71,13 @@ bz_define_variables(repo)
 
 struct bz_repo {
     struct bz_env  *env;
+    struct bz_package  *default_package;
     void  *user_data;
     cork_free_f  free_user_data;
     bz_repo_load_f  load;
     bz_repo_update_f  update;
-    struct bz_action  *load_action;
-    struct bz_action  *update_action;
-    struct bz_package  *default_package;
+    bool  loaded;
+    bool  updated;
 };
 
 struct bz_repo *
@@ -89,25 +88,19 @@ bz_repo_new(struct bz_env *env,
 {
     struct bz_repo  *repo = cork_new(struct bz_repo);
     repo->env = env;
+    repo->default_package = NULL;
     repo->user_data = user_data;
     repo->free_user_data = free_user_data;
     repo->load = load;
     repo->update = update;
-    repo->load_action = NULL;
-    repo->update_action = NULL;
-    repo->default_package = NULL;
+    repo->loaded = false;
+    repo->updated = false;
     return repo;
 }
 
 void
 bz_repo_free(struct bz_repo *repo)
 {
-    if (repo->load_action != NULL) {
-        bz_action_free(repo->load_action);
-    }
-    if (repo->update_action != NULL) {
-        bz_action_free(repo->update_action);
-    }
     cork_free_user_data(repo);
     bz_env_free(repo->env);
     free(repo);
@@ -119,22 +112,26 @@ bz_repo_env(struct bz_repo *repo)
     return repo->env;
 }
 
-struct bz_action *
+int
 bz_repo_load(struct bz_repo *repo)
 {
-    if (repo->load_action == NULL) {
-        repo->load_action = repo->load(repo->user_data, repo->env);
+    if (!repo->loaded) {
+        repo->loaded = true;
+        return repo->load(repo->user_data, repo->env);
+    } else {
+        return 0;
     }
-    return repo->load_action;
 }
 
-struct bz_action *
+int
 bz_repo_update(struct bz_repo *repo)
 {
-    if (repo->update_action == NULL) {
-        repo->update_action = repo->update(repo->user_data, repo->env);
+    if (!repo->updated) {
+        repo->updated = true;
+        return repo->update(repo->user_data, repo->env);
+    } else {
+        return 0;
     }
-    return repo->update_action;
 }
 
 struct bz_package *
@@ -213,44 +210,26 @@ bz_repo_registry_get(size_t index)
     return cork_array_at(&repos, index);
 }
 
-struct bz_action_phase *
+int
 bz_repo_registry_load_all(void)
 {
     size_t  i;
-    struct bz_action_phase  *phase;
-
     repos_init();
-    phase = bz_action_phase_new("Load repositories:");
     for (i = 0; i < cork_array_size(&repos); i++) {
         struct bz_repo  *repo = cork_array_at(&repos, i);
-        struct bz_action  *action;
-        ep_check(action = bz_repo_load(repo));
-        bz_action_phase_add(phase, action);
+        rii_check(bz_repo_load(repo));
     }
-    return phase;
-
-error:
-    bz_action_phase_free(phase);
-    return NULL;
+    return 0;
 }
 
-struct bz_action_phase *
+int
 bz_repo_registry_update_all(void)
 {
     size_t  i;
-    struct bz_action_phase  *phase;
-
     repos_init();
-    phase = bz_action_phase_new("Update repositories:");
     for (i = 0; i < cork_array_size(&repos); i++) {
         struct bz_repo  *repo = cork_array_at(&repos, i);
-        struct bz_action  *action;
-        ep_check(action = bz_repo_update(repo));
-        bz_action_phase_add(phase, action);
+        rii_check(bz_repo_update(repo));
     }
-    return phase;
-
-error:
-    bz_action_phase_free(phase);
-    return NULL;
+    return 0;
 }

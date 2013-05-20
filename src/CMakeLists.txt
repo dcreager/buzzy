@@ -51,13 +51,13 @@ foreach(RAGEL_INPUT ${LIBBUZZY_RAGEL})
 endforeach(RAGEL_INPUT)
 
 set(LIBBUZZY_SRC
-    libbuzzy/action.c
     libbuzzy/builder.c
     libbuzzy/built.c
     libbuzzy/dependency.c
     libbuzzy/env.c
     libbuzzy/global-vars.c
     libbuzzy/interpolated.c
+    libbuzzy/logging.c
     libbuzzy/mock.c
     libbuzzy/native.c
     libbuzzy/os.c

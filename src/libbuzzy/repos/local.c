@@ -11,10 +11,10 @@
 #include <libcork/ds.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/action.h"
 #include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
+#include "buzzy/logging.h"
 #include "buzzy/os.h"
 #include "buzzy/repo.h"
 
@@ -37,42 +37,17 @@ bz_local_filesystem__free(void *user_data)
 }
 
 static int
-bz_local_filesystem__load__message(void *user_data, struct cork_buffer *dest)
-{
-    struct bz_local_filesystem_repo  *repo = user_data;
-    cork_buffer_append_printf(dest, "Load %s", repo->path);
-    return 0;
-}
-
-static int
-bz_local_filesystem__load__is_needed(void *user_data, bool *is_needed)
-{
-    *is_needed = true;
-    return 0;
-}
-
-static int
-bz_local_filesystem__load__perform(void *user_data)
-{
-    struct bz_local_filesystem_repo  *repo = user_data;
-    return bz_filesystem_repo_load(repo->repo);
-}
-
-static struct bz_action *
 bz_local_filesystem__load(void *user_data, struct bz_env *env)
 {
     struct bz_local_filesystem_repo  *repo = user_data;
-    return bz_action_new
-        (repo, NULL,
-         bz_local_filesystem__load__message,
-         bz_local_filesystem__load__is_needed,
-         bz_local_filesystem__load__perform);
+    bz_log_action("Load %s", repo->path);
+    return bz_filesystem_repo_load(repo->repo);
 }
 
-static struct bz_action *
+static int
 bz_local_filesystem__update(void *user_data, struct bz_env *env)
 {
-    return bz_noop_action_new();
+    return 0;
 }
 
 struct bz_repo *

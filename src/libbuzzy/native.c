@@ -13,8 +13,8 @@
 #include <libcork/ds.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/action.h"
 #include "buzzy/error.h"
+#include "buzzy/logging.h"
 #include "buzzy/native.h"
 #include "buzzy/package.h"
 #include "buzzy/version.h"
@@ -56,100 +56,26 @@ bz_native_package__free(void *user_data)
     free(native);
 }
 
-
 static int
-bz_native_package__build__message(void *user_data, struct cork_buffer *dest)
-{
-    struct bz_native_package  *native = user_data;
-    cork_buffer_append_printf
-        (dest, "Build native %s package %s %s",
-         native->short_distro_name,
-         native->native_package_name,
-         bz_version_to_string(native->version));
-    return 0;
-}
-
-static int
-bz_native_package__build__is_needed(void *user_data, bool *is_needed)
-{
-    /* Native packages never need to be built. */
-    *is_needed = false;
-    return 0;
-}
-
-static int
-bz_native_package__build__perform(void *user_data)
-{
-    return 0;
-}
-
-static struct bz_action *
 bz_native_package__build(void *user_data)
 {
-    struct bz_native_package  *native = user_data;
-    return bz_action_new
-        (native, NULL,
-         bz_native_package__build__message,
-         bz_native_package__build__is_needed,
-         bz_native_package__build__perform);
-}
-
-
-static int
-bz_native_package__test__message(void *user_data, struct cork_buffer *dest)
-{
-    struct bz_native_package  *native = user_data;
-    cork_buffer_append_printf
-        (dest, "test native %s package %s %s",
-         native->short_distro_name,
-         native->native_package_name,
-         bz_version_to_string(native->version));
+    /* Native packages never need to be built. */
     return 0;
 }
 
 static int
-bz_native_package__test__is_needed(void *user_data, bool *is_needed)
-{
-    /* Native packages never need to be tested. */
-    *is_needed = false;
-    return 0;
-}
-
-static int
-bz_native_package__test__perform(void *user_data)
-{
-    return 0;
-}
-
-static struct bz_action *
 bz_native_package__test(void *user_data)
 {
-    struct bz_native_package  *native = user_data;
-    return bz_action_new
-        (native, NULL,
-         bz_native_package__test__message,
-         bz_native_package__test__is_needed,
-         bz_native_package__test__perform);
-}
-
-
-static int
-bz_native_package__install__message(void *user_data, struct cork_buffer *dest)
-{
-    struct bz_native_package  *native = user_data;
-    cork_buffer_append_printf
-        (dest, "Install native %s package %s %s",
-         native->short_distro_name,
-         native->native_package_name,
-         bz_version_to_string(native->version));
+    /* Native packages never need to be tested. */
     return 0;
 }
 
 static int
-bz_native_package__install__is_needed(void *user_data, bool *is_needed)
+bz_native_package__install(void *user_data)
 {
     struct bz_native_package  *native = user_data;
     struct bz_version  *installed;
+    bool  is_needed = false;
 
     installed = native->version_installed(native->native_package_name);
     if (CORK_UNLIKELY(cork_error_occurred())) {
@@ -157,31 +83,22 @@ bz_native_package__install__is_needed(void *user_data, bool *is_needed)
     }
 
     if (installed == NULL) {
-        *is_needed = true;
-        return 0;
+        is_needed = true;
     } else {
-        *is_needed = (bz_version_cmp(installed, native->version) < 0);
+        is_needed = (bz_version_cmp(installed, native->version) < 0);
         bz_version_free(installed);
+    }
+
+    if (is_needed) {
+        bz_log_action
+            ("Install native %s package %s %s",
+             native->short_distro_name,
+             native->native_package_name,
+             bz_version_to_string(native->version));
+        return native->install(native->native_package_name, native->version);
+    } else {
         return 0;
     }
-}
-
-static int
-bz_native_package__install__perform(void *user_data)
-{
-    struct bz_native_package  *native = user_data;
-    return native->install(native->native_package_name, native->version);
-}
-
-static struct bz_action *
-bz_native_package__install(void *user_data)
-{
-    struct bz_native_package  *native = user_data;
-    return bz_action_new
-        (native, NULL,
-         bz_native_package__install__message,
-         bz_native_package__install__is_needed,
-         bz_native_package__install__perform);
 }
 
 

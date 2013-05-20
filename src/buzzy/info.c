@@ -15,7 +15,6 @@
 #include <libcork/helpers/errors.h>
 #include <libcork/helpers/posix.h>
 
-#include "buzzy/action.h"
 #include "buzzy/commands.h"
 #include "buzzy/env.h"
 #include "buzzy/repo.h"
