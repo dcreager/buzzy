@@ -114,6 +114,14 @@ bz_local_filesystem_repo_new(const char *path);
 struct bz_repo *
 bz_local_filesystem_repo_find(const char *path);
 
+
+/* A repository that we must clone from some remote git repository.  We assume
+ * that the Buzzy repository appears as a ".buzzy" directory within the
+ * checkout. */
+struct bz_repo *
+bz_git_repo_new(const char *url, const char *commit);
+
+
 /* Creates a repository for the given URL.  These repos will be cached, so that
  * the same bz_repo instance is returned if you request the same URL multiple
  * times. */

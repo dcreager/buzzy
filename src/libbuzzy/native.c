@@ -37,6 +37,7 @@
  */
 
 struct bz_native_package {
+    struct bz_env  *env;
     const char  *short_distro_name;
     const char  *package_name;
     const char  *native_package_name;
@@ -52,6 +53,7 @@ bz_native_package__free(void *user_data)
     cork_strfree(native->short_distro_name);
     cork_strfree(native->package_name);
     cork_strfree(native->native_package_name);
+    bz_env_free(native->env);
     /* version will be freed by the package wrapper */
     free(native);
 }
@@ -124,6 +126,7 @@ bz_native_package_new(const char *short_distro_name,
     bz_env_add_override(env, "name", bz_string_value_new(package_name));
     bz_env_add_override
         (env, "version", bz_string_value_new(bz_version_to_string(version)));
+    native->env = env;
 
     return bz_package_new
         (package_name, version, env,

@@ -16,6 +16,7 @@ run "buzzy info" in each of them.
   $ buzzy info
   No repositories found!
   $ cd ..
+  $ rm -rf not-a-repo
 
   $ mkdir -p repo1/.buzzy
   $ cd repo1
@@ -24,6 +25,7 @@ run "buzzy info" in each of them.
   Repositories:
     .*/info.t/repo1 (re)
   $ cd ..
+  $ rm -rf repo1
 
   $ mkdir -p repo1/.buzzy
   $ cat > repo1/.buzzy/links.yaml <<EOF
@@ -38,3 +40,19 @@ run "buzzy info" in each of them.
     .*/info.t/repo1 (re)
     .*/info.t/repo2 (re)
   $ cd ..
+  $ rm -rf repo1 repo2
+
+  $ mkdir -p repo1/.buzzy
+  $ cat > repo1/.buzzy/links.yaml <<EOF
+  > - file://$TEST_TMP/repo2
+  > EOF
+  $ mkdir -p repo2/.buzzy
+  $ cd repo1
+  $ buzzy info
+  \[1] Load .*/info.t/repo1 (re)
+  \[2] Load .*/info.t/repo2 (re)
+  Repositories:
+    .*/info.t/repo1 (re)
+    .*/info.t/repo2 (re)
+  $ cd ..
+  $ rm -rf repo1 repo2

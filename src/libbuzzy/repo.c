@@ -21,6 +21,13 @@
 
 bz_define_variables(repo)
 {
+    bz_global_variable(
+        repo_dir, "repo_dir",
+        bz_interpolated_value_new("${work_dir}/repos"),
+        "Where cloned copied of remote repositories should be placed",
+        ""
+    );
+
     bz_repo_variable(
         repo_base_dir, "repo.base_dir",
         NULL,
@@ -105,6 +112,7 @@ void
 bz_repo_free(struct bz_repo *repo)
 {
     cork_free_user_data(repo);
+    cork_array_done(&repo->links);
     bz_env_free(repo->env);
     free(repo);
 }
