@@ -41,11 +41,19 @@ bz_noop__install(void *user_data)
     return bz_install_message(env, "noop");
 }
 
+static int
+bz_noop__uninstall(void *user_data)
+{
+    struct bz_env  *env = user_data;
+    return bz_uninstall_message(env, "noop");
+}
+
 struct bz_packager *
 bz_noop_packager_new(struct bz_env *env)
 {
     return bz_packager_new
         (env, "noop", env, NULL,
          bz_noop__is_needed, bz_noop__package,
-         bz_noop__is_needed, bz_noop__install);
+         bz_noop__is_needed, bz_noop__install,
+         bz_noop__is_needed, bz_noop__uninstall);
 }

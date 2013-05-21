@@ -44,6 +44,7 @@ struct bz_native_package {
     struct bz_version  *version;
     bz_native_detect_f  version_installed;
     bz_native_install_f  install;
+    bz_native_uninstall_f  uninstall;
 };
 
 static void
@@ -72,8 +73,10 @@ bz_native_package__test(void *user_data)
     return 0;
 }
 
+
 static int
-bz_native_package__is_needed(struct bz_native_package *native, bool *is_needed)
+bz_native_package__install__is_needed(struct bz_native_package *native,
+                                      bool *is_needed)
 {
     struct bz_version  *installed;
 
@@ -98,7 +101,7 @@ bz_native_package__install(void *user_data)
     struct bz_native_package  *native = user_data;
     bool  is_needed;
 
-    rii_check(bz_native_package__is_needed(native, &is_needed));
+    rii_check(bz_native_package__install__is_needed(native, &is_needed));
     if (is_needed) {
         bz_log_action
             ("Install native %s package %s %s",
@@ -112,12 +115,55 @@ bz_native_package__install(void *user_data)
 }
 
 
+static int
+bz_native_package__uninstall__is_needed(struct bz_native_package *native,
+                                        bool *is_needed)
+{
+    struct bz_version  *installed;
+
+    installed = native->version_installed(native->native_package_name);
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return -1;
+    }
+
+    /* Uninstall any version that happens to be installed. */
+    if (installed == NULL) {
+        *is_needed = false;
+    } else {
+        *is_needed = true;
+        bz_version_free(installed);
+    }
+
+    return 0;
+}
+
+static int
+bz_native_package__uninstall(void *user_data)
+{
+    struct bz_native_package  *native = user_data;
+    bool  is_needed;
+
+    rii_check(bz_native_package__uninstall__is_needed(native, &is_needed));
+    if (is_needed) {
+        bz_log_action
+            ("Uninstall native %s package %s %s",
+             native->short_distro_name,
+             native->native_package_name,
+             bz_version_to_string(native->version));
+        return native->uninstall(native->native_package_name);
+    }
+
+    return 0;
+}
+
+
 struct bz_package *
 bz_native_package_new(const char *short_distro_name,
                       const char *package_name, const char *native_package_name,
                       struct bz_version *version,
                       bz_native_detect_f version_installed,
-                      bz_native_install_f install)
+                      bz_native_install_f install,
+                      bz_native_uninstall_f uninstall)
 {
     struct bz_native_package  *native;
     struct bz_env  *env;
@@ -129,6 +175,7 @@ bz_native_package_new(const char *short_distro_name,
     native->version = version;
     native->version_installed = version_installed;
     native->install = install;
+    native->uninstall = uninstall;
 
     env = bz_package_env_new_empty(NULL, package_name);
     bz_env_add_override(env, "name", bz_string_value_new(package_name));
@@ -141,7 +188,8 @@ bz_native_package_new(const char *short_distro_name,
          native, bz_native_package__free,
          bz_native_package__build,
          bz_native_package__test,
-         bz_native_package__install);
+         bz_native_package__install,
+         bz_native_package__uninstall);
 }
 
 
@@ -154,6 +202,7 @@ struct bz_native_pdb {
     bz_native_detect_f  version_available;
     bz_native_detect_f  version_installed;
     bz_native_install_f  install;
+    bz_native_uninstall_f  uninstall;
     cork_array(const char *)  patterns;
     struct cork_buffer  buf;
 };
@@ -188,7 +237,7 @@ bz_native_pdb_try_pattern(struct bz_native_pdb *pdb, const char *pattern,
         return bz_native_package_new
             (pdb->short_distro_name,
              dep->package_name, pdb->buf.buf, available,
-             pdb->version_installed, pdb->install);
+             pdb->version_installed, pdb->install, pdb->uninstall);
     }
 }
 
@@ -213,6 +262,7 @@ bz_native_pdb_new(const char *short_distro_name,
                   bz_native_detect_f version_available,
                   bz_native_detect_f version_installed,
                   bz_native_install_f install,
+                  bz_native_uninstall_f uninstall,
                   /* const char *pattern */ ...)
 {
     va_list  args;
@@ -221,10 +271,11 @@ bz_native_pdb_new(const char *short_distro_name,
     pdb->version_available = version_available;
     pdb->version_installed = version_installed;
     pdb->install = install;
+    pdb->uninstall = uninstall;
     pdb->short_distro_name = cork_strdup(short_distro_name);
     cork_buffer_init(&pdb->buf);
     cork_array_init(&pdb->patterns);
-    va_start(args, install);
+    va_start(args, uninstall);
     while ((pattern = va_arg(args, const char *)) != NULL) {
         cork_array_append(&pdb->patterns, cork_strdup(pattern));
     }

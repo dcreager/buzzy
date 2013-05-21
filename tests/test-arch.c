@@ -287,7 +287,7 @@ START_TEST(test_arch_pdb_uninstalled_native_package_02)
         "[1] Install native Arch package jansson 2.4\n"
     );
 
-    test_arch_pdb_dep(pdb, "jansson", "");
+    test_arch_pdb_dep(pdb, "jansson", "Nothing to do!\n");
 
     bz_pdb_free(pdb);
 }
@@ -306,8 +306,8 @@ START_TEST(test_arch_pdb_installed_native_package_01)
 
     fail_if_error(pdb = bz_arch_native_pdb());
 
-    test_arch_pdb_dep(pdb, "jansson", "");
-    test_arch_pdb_dep(pdb, "jansson >= 2.4", "");
+    test_arch_pdb_dep(pdb, "jansson", "Nothing to do!\n");
+    test_arch_pdb_dep(pdb, "jansson >= 2.4", "Nothing to do!\n");
 
     bz_pdb_free(pdb);
 }
@@ -468,7 +468,7 @@ START_TEST(test_arch_create_existing_package_01)
     bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", true);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
-    test_create_package(env, false, "");
+    test_create_package(env, false, "Nothing to do!\n");
     verify_commands_run(
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"

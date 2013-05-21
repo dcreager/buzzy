@@ -17,9 +17,9 @@
 
 
 void
-bz_real__print_action(struct cork_buffer *buf)
+bz_real__print_action(const char *message)
 {
-    printf("%s\n", (char *) buf->buf);
+    printf("%s\n", message);
 }
 
 
@@ -34,8 +34,16 @@ bz_log_action(const char *fmt, ...)
     va_start(args, fmt);
     cork_buffer_append_vprintf(&message, fmt, args);
     va_end(args);
-    bz_mocked_print_action(&message);
+    bz_mocked_print_action(message.buf);
     cork_buffer_done(&message);
+}
+
+void
+bz_finalize_actions(void)
+{
+    if (action_count == 0) {
+        bz_mocked_print_action("Nothing to do!");
+    }
 }
 
 void

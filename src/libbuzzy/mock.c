@@ -257,9 +257,9 @@ bz_mocked__file_exists(struct cork_path *path, bool *exists)
  */
 
 static void
-bz_mocked__print_action(struct cork_buffer *buf)
+bz_mocked__print_action(const char *message)
 {
-    cork_buffer_append(&actions_run, buf->buf, buf->size);
+    cork_buffer_append_string(&actions_run, message);
     cork_buffer_append(&actions_run, "\n", 1);
 }
 

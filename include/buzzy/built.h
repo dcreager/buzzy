@@ -51,6 +51,9 @@ bz_package_message(struct bz_env *env, const char *packager_name);
 int
 bz_install_message(struct bz_env *env, const char *packager_name);
 
+int
+bz_uninstall_message(struct bz_env *env, const char *packager_name);
+
 
 /*-----------------------------------------------------------------------
  * Builders
@@ -97,7 +100,9 @@ bz_packager_new(struct bz_env *env, const char *packager_name,
                 bz_package_is_needed_f package_needed,
                 bz_package_step_f package,
                 bz_package_is_needed_f install_needed,
-                bz_package_step_f install);
+                bz_package_step_f install,
+                bz_package_is_needed_f uninstall_needed,
+                bz_package_step_f uninstall);
 
 void
 bz_packager_free(struct bz_packager *packager);
@@ -111,6 +116,9 @@ bz_packager_package(struct bz_packager *packager);
 
 int
 bz_packager_install(struct bz_packager *packager);
+
+int
+bz_packager_uninstall(struct bz_packager *packager);
 
 
 struct bz_packager *

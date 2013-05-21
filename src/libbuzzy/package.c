@@ -148,9 +148,11 @@ struct bz_package {
     bz_package_step_f  build;
     bz_package_step_f  test;
     bz_package_step_f  install;
+    bz_package_step_f  uninstall;
     bool  built;
     bool  tested;
     bool  installed;
+    bool  uninstalled;
 };
 
 
@@ -159,7 +161,8 @@ bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
                void *user_data, cork_free_f free_user_data,
                bz_package_step_f build,
                bz_package_step_f test,
-               bz_package_step_f install)
+               bz_package_step_f install,
+               bz_package_step_f uninstall)
 {
     struct bz_package  *package = cork_new(struct bz_package);
     package->env = env;
@@ -170,9 +173,11 @@ bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
     package->build = build;
     package->test = test;
     package->install = install;
+    package->uninstall = uninstall;
     package->built = false;
     package->tested = false;
     package->installed = false;
+    package->uninstalled = false;
     return package;
 }
 
@@ -233,6 +238,17 @@ bz_package_install(struct bz_package *package)
     } else {
         package->installed = true;
         return package->install(package->user_data);
+    }
+}
+
+int
+bz_package_uninstall(struct bz_package *package)
+{
+    if (package->uninstalled) {
+        return 0;
+    } else {
+        package->uninstalled = true;
+        return package->uninstall(package->user_data);
     }
 }
 

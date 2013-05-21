@@ -21,19 +21,17 @@
 #include "buzzy/repo.h"
 
 /*-----------------------------------------------------------------------
- * buzzy update
+ * buzzy uninstall
  */
 
 #define SHORT_DESC \
-    "Update the current repository and its dependencies"
+    "Uninstall a package"
 
 #define USAGE_SUFFIX \
-    ""
+    "<dependency>..."
 
 #define HELP_TEXT \
-"If the current repository, or any of the repositories that it depends on,\n" \
-"come from a remote source, we will contact the remote source to make sure\n" \
-"that our local copies are up-to-date.\n" \
+"Uninstalls the given packages.\n" \
 GENERAL_HELP_TEXT \
 
 static int
@@ -42,8 +40,8 @@ parse_options(int argc, char **argv);
 static void
 execute(int argc, char **argv);
 
-CORK_LOCAL struct cork_command  buzzy_update =
-    cork_leaf_command("update", SHORT_DESC, USAGE_SUFFIX, HELP_TEXT,
+CORK_LOCAL struct cork_command  buzzy_uninstall =
+    cork_leaf_command("uninstall", SHORT_DESC, USAGE_SUFFIX, HELP_TEXT,
                       parse_options, execute);
 
 #define SHORT_OPTS  "+" \
@@ -66,7 +64,7 @@ parse_options(int argc, char **argv)
 
         switch (ch) {
             default:
-                cork_command_show_help(&buzzy_update, NULL);
+                cork_command_show_help(&buzzy_uninstall, NULL);
                 exit(EXIT_FAILURE);
         }
 
@@ -78,20 +76,16 @@ static void
 execute(int argc, char **argv)
 {
     size_t  i;
-    size_t  repo_count;
 
     bz_load_repositories();
-    repo_count = bz_repo_registry_count();
-    if (repo_count == 0) {
-        printf("No repositories found!\n");
-        exit(EXIT_SUCCESS);
+    satisfy_dependencies(&buzzy_uninstall, argc, argv);
+
+    for (i = 0; i < cork_array_size(&dep_packages); i++) {
+        struct bz_package  *package = cork_array_at(&dep_packages, i);
+        ri_check_error(bz_package_uninstall(package));
     }
 
-    for (i = 0; i < repo_count; i++) {
-        struct bz_repo  *repo = bz_repo_registry_get(i);
-        ri_check_error(bz_repo_update(repo));
-    }
-
+    free_dependencies();
     bz_finalize_actions();
     exit(EXIT_SUCCESS);
 }

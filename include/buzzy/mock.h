@@ -68,7 +68,7 @@ struct bz_mock {
     (*file_exists)(struct cork_path *path, bool *exists);
 
     void
-    (*print_action)(struct cork_buffer *buf);
+    (*print_action)(const char *message);
 };
 
 extern struct bz_mock  *bz_mocks;
@@ -81,8 +81,8 @@ extern struct bz_mock  *bz_mocks;
     (bz_mocks->create_file((p), (s)))
 #define bz_mocked_file_exists(p, e) \
     (bz_mocks->file_exists((p), (e)))
-#define bz_mocked_print_action(b) \
-    (bz_mocks->print_action((b)))
+#define bz_mocked_print_action(m) \
+    (bz_mocks->print_action((m)))
 
 
 /*-----------------------------------------------------------------------
@@ -103,7 +103,7 @@ int
 bz_real__file_exists(struct cork_path *path, bool *exists);
 
 void
-bz_real__print_action(struct cork_buffer *buf);
+bz_real__print_action(const char *message);
 
 
 #endif /* BUZZY_MOCK_H */

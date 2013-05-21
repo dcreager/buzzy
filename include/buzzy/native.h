@@ -27,13 +27,17 @@ typedef int
 (*bz_native_install_f)(const char *native_package_name,
                        struct bz_version *version);
 
+typedef int
+(*bz_native_uninstall_f)(const char *native_package_name);
+
 /* Takes control of version */
 struct bz_package *
 bz_native_package_new(const char *short_distro_name,
                       const char *package_name, const char *native_package_name,
                       struct bz_version *version,
                       bz_native_detect_f version_installed,
-                      bz_native_install_f install);
+                      bz_native_install_f install,
+                      bz_native_uninstall_f uninstall);
 
 
 /*-----------------------------------------------------------------------
@@ -49,6 +53,7 @@ bz_native_pdb_new(const char *short_distro_name,
                   bz_native_detect_f version_available,
                   bz_native_detect_f version_installed,
                   bz_native_install_f install,
+                  bz_native_uninstall_f uninstall,
                   /* const char *pattern */ ...);
 
 
