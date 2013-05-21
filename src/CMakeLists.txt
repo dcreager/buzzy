@@ -100,6 +100,7 @@ set(BUZZY_SRC
     buzzy/raw-pkg.c
     buzzy/root.c
     buzzy/test.c
+    buzzy/uninstall.c
     buzzy/update.c
     buzzy/vercmp.c
 )

@@ -88,6 +88,15 @@ bz_built_package__install(void *user_data)
     return bz_packager_install(packager);
 }
 
+static int
+bz_built_package__uninstall(void *user_data)
+{
+    struct bz_built_package  *package = user_data;
+    struct bz_packager  *packager;
+    rip_check(packager = bz_built_package_packager(package));
+    return bz_packager_uninstall(packager);
+}
+
 struct bz_package *
 bz_built_package_new(struct bz_env *env)
 {
@@ -107,5 +116,6 @@ bz_built_package_new(struct bz_env *env)
          package, bz_built_package__free,
          bz_built_package__build,
          bz_built_package__test,
-         bz_built_package__install);
+         bz_built_package__install,
+         bz_built_package__uninstall);
 }

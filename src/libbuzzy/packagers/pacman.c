@@ -290,11 +290,53 @@ bz_pacman__install(void *user_data)
          NULL);
 }
 
+
+static int
+bz_pacman__uninstall__is_needed(void *user_data, bool *is_needed)
+{
+    struct bz_env  *env = user_data;
+    const char  *package_name;
+    struct bz_version  *installed;
+
+    rii_check(bz_install_dependency_string("pacman"));
+
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    installed = bz_arch_native_version_installed(package_name);
+    if (CORK_UNLIKELY(cork_error_occurred())) {
+        return -1;
+    }
+
+    if (installed == NULL) {
+        *is_needed = false;
+    } else {
+        *is_needed = true;
+        bz_version_free(installed);
+    }
+    return 0;
+}
+
+static int
+bz_pacman__uninstall(void *user_data)
+{
+    struct bz_env  *env = user_data;
+    const char  *package_name;
+
+    rii_check(bz_uninstall_message(env, "pacman"));
+
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    return bz_subprocess_run
+        (false, NULL,
+         "sudo", "pacman", "-R", "--noconfirm", package_name,
+         NULL);
+}
+
+
 struct bz_packager *
 bz_pacman_packager_new(struct bz_env *env)
 {
     return bz_packager_new
         (env, "pacman", env, NULL,
          bz_pacman__package__is_needed, bz_pacman__package,
-         bz_pacman__install__is_needed, bz_pacman__install);
+         bz_pacman__install__is_needed, bz_pacman__install,
+         bz_pacman__uninstall__is_needed, bz_pacman__uninstall);
 }

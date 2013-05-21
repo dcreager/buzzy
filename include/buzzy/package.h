@@ -35,7 +35,8 @@ bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
                void *user_data, cork_free_f free_user_data,
                bz_package_step_f build,
                bz_package_step_f test,
-               bz_package_step_f install);
+               bz_package_step_f install,
+               bz_package_step_f uninstall);
 
 void
 bz_package_free(struct bz_package *package);
@@ -57,6 +58,9 @@ bz_package_test(struct bz_package *package);
 
 int
 bz_package_install(struct bz_package *package);
+
+int
+bz_package_uninstall(struct bz_package *package);
 
 
 /*-----------------------------------------------------------------------

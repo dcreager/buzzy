@@ -887,7 +887,7 @@ case 5:
 
 
 static int
-bz_arch_native_install(const char *native_package_name,
+bz_arch_native__install(const char *native_package_name,
                        struct bz_version *version)
 {
     /* We don't pass the --needed flag to pacman since our is_needed method
@@ -899,6 +899,18 @@ bz_arch_native_install(const char *native_package_name,
          NULL);
 }
 
+static int
+bz_arch_native__uninstall(const char *native_package_name)
+{
+    /* We don't pass the --needed flag to pacman since our is_needed method
+     * should have already verified that the desired version isn't installed
+     * yet. */
+    return bz_subprocess_run
+        (false, NULL,
+         "sudo", "pacman", "-R", "--noconfirm", native_package_name,
+         NULL);
+}
+
 struct bz_pdb *
 bz_arch_native_pdb(void)
 {
@@ -906,6 +918,7 @@ bz_arch_native_pdb(void)
         ("Arch",
          bz_arch_native_version_available,
          bz_arch_native_version_installed,
-         bz_arch_native_install,
+         bz_arch_native__install,
+         bz_arch_native__uninstall,
          "%s", "lib%s", NULL);
 }

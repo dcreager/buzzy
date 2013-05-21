@@ -47,6 +47,17 @@ bz_install_message(struct bz_env *env, const char *packager_name)
     return 0;
 }
 
+int
+bz_uninstall_message(struct bz_env *env, const char *packager_name)
+{
+    const char  *package_name;
+    const char  *version;
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
+    bz_log_action("Uninstall %s %s (%s)", package_name, version, packager_name);
+    return 0;
+}
+
 
 /*-----------------------------------------------------------------------
  * Packagers
@@ -63,8 +74,11 @@ struct bz_packager {
     bz_package_step_f  package;
     bz_package_is_needed_f  install_needed;
     bz_package_step_f  install;
+    bz_package_is_needed_f  uninstall_needed;
+    bz_package_step_f  uninstall;
     bool  packaged;
     bool  installed;
+    bool  uninstalled;
 };
 
 
@@ -74,7 +88,9 @@ bz_packager_new(struct bz_env *env, const char *packager_name,
                 bz_package_is_needed_f package_needed,
                 bz_package_step_f package,
                 bz_package_is_needed_f install_needed,
-                bz_package_step_f install)
+                bz_package_step_f install,
+                bz_package_is_needed_f uninstall_needed,
+                bz_package_step_f uninstall)
 {
     struct bz_packager  *packager = cork_new(struct bz_packager);
     packager->env = env;
@@ -86,8 +102,11 @@ bz_packager_new(struct bz_env *env, const char *packager_name,
     packager->package = package;
     packager->install_needed = install_needed;
     packager->install = install;
+    packager->uninstall_needed = uninstall_needed;
+    packager->uninstall = uninstall;
     packager->packaged = false;
     packager->installed = false;
+    packager->uninstalled = false;
     return packager;
 }
 
@@ -136,6 +155,22 @@ bz_packager_install(struct bz_packager *packager)
         if (is_needed) {
             rii_check(bz_packager_package(packager));
             return packager->install(packager->user_data);
+        }
+    }
+    return 0;
+}
+
+int
+bz_packager_uninstall(struct bz_packager *packager)
+{
+    rii_check(bz_packager_package(packager));
+    if (!packager->uninstalled) {
+        bool  is_needed;
+        packager->uninstalled = true;
+        rii_check(packager->uninstall_needed(packager->user_data, &is_needed));
+        if (is_needed) {
+            rii_check(bz_packager_package(packager));
+            return packager->uninstall(packager->user_data);
         }
     }
     return 0;
