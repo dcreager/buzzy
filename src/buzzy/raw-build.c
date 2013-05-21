@@ -16,6 +16,7 @@
 
 #include "buzzy/built.h"
 #include "buzzy/commands.h"
+#include "buzzy/logging.h"
 #include "buzzy/version.h"
 
 /*-----------------------------------------------------------------------
@@ -120,5 +121,6 @@ execute(int argc, char **argv)
 
     bz_builder_free(builder);
     package_env_done();
+    bz_finalize_actions();
     exit(EXIT_SUCCESS);
 }

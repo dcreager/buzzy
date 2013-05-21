@@ -40,7 +40,6 @@ static int
 bz_local_filesystem__load(void *user_data, struct bz_env *env)
 {
     struct bz_local_filesystem_repo  *repo = user_data;
-    bz_log_action("Load %s", repo->path);
     return bz_filesystem_repo_load(repo->repo);
 }
 

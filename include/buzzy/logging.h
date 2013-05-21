@@ -22,6 +22,9 @@ bz_log_action(const char *fmt, ...)
     CORK_ATTR_PRINTF(1, 2);
 
 void
+bz_finalize_actions(void);
+
+void
 bz_reset_action_count(void);
 
 

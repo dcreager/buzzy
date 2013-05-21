@@ -15,6 +15,7 @@
 #include "libcork/core.h"
 #include "libcork/os.h"
 
+#include "buzzy/logging.h"
 #include "buzzy/mock.h"
 #include "buzzy/os.h"
 #include "buzzy/version.h"
@@ -103,6 +104,7 @@ CORK_ATTR_UNUSED
 static void
 test_actions(const char *expected_actions)
 {
+    bz_finalize_actions();
     fail_unless_streq("Action list", expected_actions,
                       bz_mocked_actions_run());
 }

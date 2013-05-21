@@ -40,7 +40,6 @@ bz_git__load(void *user_data, struct bz_env *env)
     rip_check(repo_base_dir = bz_env_get_path(env, "repo.base_dir", true));
     ei_check(bz_git_clone(repo->url, repo->commit, repo_base_dir));
     cork_path_free(repo_base_dir);
-    bz_log_action("Load %s (%s)", repo->url, repo->commit);
     return bz_filesystem_repo_load(repo->repo);
 
 error:

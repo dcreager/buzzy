@@ -147,7 +147,7 @@ START_TEST(test_git_clone_unneeded)
     bz_start_mocks();
     bz_mock_file_exists("/test/git-repo", true);
     fail_if_error(bz_git_clone(url, commit, path));
-    test_actions("");
+    test_actions("Nothing to do!\n");
     verify_commands_run(
         "$ [ -f /test/git-repo ]\n"
     );

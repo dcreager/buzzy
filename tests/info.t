@@ -21,7 +21,6 @@ run "buzzy info" in each of them.
   $ mkdir -p repo1/.buzzy
   $ cd repo1
   $ buzzy info
-  \[1] Load .*/info.t/repo1 (re)
   Repositories:
     .*/info.t/repo1 (re)
   $ cd ..
@@ -34,8 +33,6 @@ run "buzzy info" in each of them.
   $ mkdir -p repo2/.buzzy
   $ cd repo1
   $ buzzy info
-  \[1] Load .*/info.t/repo1 (re)
-  \[2] Load .*/info.t/repo2 (re)
   Repositories:
     .*/info.t/repo1 (re)
     .*/info.t/repo2 (re)
@@ -49,8 +46,6 @@ run "buzzy info" in each of them.
   $ mkdir -p repo2/.buzzy
   $ cd repo1
   $ buzzy info
-  \[1] Load .*/info.t/repo1 (re)
-  \[2] Load .*/info.t/repo2 (re)
   Repositories:
     .*/info.t/repo1 (re)
     .*/info.t/repo2 (re)

@@ -8,7 +8,6 @@ builders that we know about.
   > EOF
   $ cd unknown-repo
   $ buzzy doc builder
-  \[1] Load .*/detect-builder.t/unknown-repo (re)
   builder
     What build system is used to build the package
   $ cd ..
@@ -21,7 +20,6 @@ builders that we know about.
   $ touch cmake-repo/CMakeLists.txt
   $ cd cmake-repo
   $ buzzy doc builder
-  \[1] Load .*/detect-builder.t/cmake-repo (re)
   builder
     What build system is used to build the package
   

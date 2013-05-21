@@ -41,7 +41,7 @@ START_TEST(test_repo_01)
     fail_if(repo == NULL, "Cannot create repo");
     fail_if_error(bz_repo_registry_load_all());
     test_actions(
-        "[1] Load /a/b\n"
+        "Nothing to do!\n"
     );
 }
 END_TEST
@@ -81,7 +81,6 @@ START_TEST(test_git_repo_01)
     fail_if_error(bz_repo_load(repo));
     test_actions(
         "[1] Clone git://github.com/redjack/buzzy-test.git (master)\n"
-        "[2] Load git://github.com/redjack/buzzy-test.git (master)\n"
     );
     bz_repo_free(repo);
 }

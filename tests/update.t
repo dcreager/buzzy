@@ -19,5 +19,5 @@ run "buzzy update" in each of them.
   $ mkdir -p repo1/.buzzy
   $ cd repo1
   $ buzzy update
-  \[1] Load .*/update.t/repo1 (re)
+  Nothing to do!
   $ cd ..

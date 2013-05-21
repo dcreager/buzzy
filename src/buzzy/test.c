@@ -17,6 +17,7 @@
 
 #include "buzzy/commands.h"
 #include "buzzy/env.h"
+#include "buzzy/logging.h"
 #include "buzzy/repo.h"
 
 /*-----------------------------------------------------------------------
@@ -87,5 +88,6 @@ execute(int argc, char **argv)
     }
 
     free_dependencies();
+    bz_finalize_actions();
     exit(EXIT_SUCCESS);
 }
