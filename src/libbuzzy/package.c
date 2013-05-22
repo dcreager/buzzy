@@ -167,7 +167,7 @@ bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
     struct bz_package  *package = cork_new(struct bz_package);
     package->env = env;
     package->name = cork_strdup(name);
-    package->version = version;
+    package->version = bz_version_copy(version);
     package->user_data = user_data;
     package->free_user_data = free_user_data;
     package->build = build;
@@ -459,10 +459,9 @@ bz_satisfy_dependency(struct bz_dependency *dep)
     for (curr = cork_dllist_start(&pdbs); !cork_dllist_is_end(&pdbs, curr);
          curr = curr->next) {
         struct bz_pdb  *pdb = cork_container_of(curr, struct bz_pdb, item);
-        struct bz_package  *package = bz_pdb_satisfy_dependency(pdb, dep);
-        if (CORK_UNLIKELY(cork_error_occurred())) {
-            return NULL;
-        } else if (package != NULL) {
+        struct bz_package  *package;
+        rpe_check(package = bz_pdb_satisfy_dependency(pdb, dep));
+        if (package != NULL) {
             return package;
         }
     }

@@ -96,7 +96,7 @@ execute(int argc, char **argv)
         printf("\n  %s\n", doc->long_desc);
     }
 
-    value = bz_env_get(env, argv[0], NULL);
+    value = bz_env_get_string(env, argv[0]);
     if (value != NULL) {
         printf("\n  Current value: %s\n", value);
     }

@@ -45,13 +45,13 @@ static int
 bz_noop__stage(void *user_data)
 {
     struct bz_env  *env = user_data;
-    const char  *staging_path;
+    struct cork_path  *staging_path;
 
     rii_check(bz_stage_message(env, "noop"));
 
     /* Create the staging path */
-    rip_check(staging_path = bz_env_get_string(env, "staging_path", true));
-    rii_check(bz_create_directory(staging_path));
+    rip_check(staging_path = bz_env_get_path(env, "staging_path"));
+    rii_check(bz_create_directory(cork_path_get(staging_path)));
 
     return 0;
 }

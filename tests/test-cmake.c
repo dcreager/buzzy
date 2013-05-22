@@ -124,10 +124,6 @@ test_stage_package(struct bz_env *env, bool force,
     struct bz_pdb  *pdb;
     struct bz_builder  *builder;
 
-    bz_global_env_reset();
-    bz_mocked_actions_clear();
-    fail_if_error(bz_load_variable_definitions());
-    bz_pdb_registry_clear();
     fail_if_error(pdb = bz_arch_native_pdb());
     bz_pdb_register(pdb);
 
@@ -146,6 +142,7 @@ START_TEST(test_cmake_stage_package_01)
     DESCRIBE_TEST;
     struct bz_version  *version;
     struct bz_env  *env;
+    reset_everything();
     bz_start_mocks();
     mock_cmake_installed();
     bz_mock_subprocess
@@ -188,6 +185,7 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
     DESCRIBE_TEST;
     struct bz_version  *version;
     struct bz_env  *env;
+    reset_everything();
     bz_start_mocks();
     mock_cmake_uninstalled();
     bz_mock_file_exists
@@ -238,10 +236,6 @@ test_unavailable(struct bz_env *env)
     struct bz_pdb  *pdb;
     struct bz_builder  *builder;
 
-    bz_global_env_reset();
-    bz_mocked_actions_clear();
-    fail_if_error(bz_load_variable_definitions());
-    bz_pdb_registry_clear();
     fail_if_error(pdb = bz_arch_native_pdb());
     bz_pdb_register(pdb);
 
@@ -258,6 +252,7 @@ START_TEST(test_cmake_unavailable_01)
     DESCRIBE_TEST;
     struct bz_version  *version;
     struct bz_env  *env;
+    reset_everything();
     bz_start_mocks();
     mock_cmake_unavailable();
     fail_if_error(version = bz_version_from_string("2.4"));

@@ -26,10 +26,8 @@ START_TEST(test_repo_01)
 {
     DESCRIBE_TEST;
     struct bz_repo  *repo;
+    reset_everything();
     bz_start_mocks();
-    bz_repo_registry_reset();
-    bz_global_env_reset();
-    fail_if_error(bz_load_variable_definitions());
     bz_mock_file_exists("/a/b/c/.buzzy", false);
     bz_mock_file_exists("/a/b", true);
     bz_mock_file_exists("/a/b/.buzzy", true);
@@ -50,10 +48,8 @@ START_TEST(test_git_repo_01)
 {
     DESCRIBE_TEST;
     struct bz_repo  *repo;
+    reset_everything();
     bz_start_mocks();
-    bz_repo_registry_reset();
-    bz_global_env_reset();
-    fail_if_error(bz_load_variable_definitions());
     /* The repo directory itself is mocked to not exist, so that we perform the
      * clone. */
     bz_mock_file_exists
@@ -90,10 +86,8 @@ START_TEST(test_missing_repo_01)
 {
     DESCRIBE_TEST;
     struct bz_repo  *repo;
+    reset_everything();
     bz_start_mocks();
-    bz_repo_registry_reset();
-    bz_global_env_reset();
-    fail_if_error(bz_load_variable_definitions());
     bz_mock_file_exists("/a/b/c/.buzzy", false);
     bz_mock_file_exists("/a/b/.buzzy", false);
     bz_mock_file_exists("/a/.buzzy", false);

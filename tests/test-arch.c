@@ -162,6 +162,7 @@ START_TEST(test_arch_uninstalled_native_package_01)
     struct bz_version  *version;
     /* A package that is available in the native package database, but has not
      * yet been installed. */
+    reset_everything();
     bz_start_mocks();
     mock_available_package("jansson", "2.4-1");
     mock_uninstalled_package("jansson");
@@ -180,6 +181,7 @@ START_TEST(test_arch_installed_native_package_01)
     struct bz_version  *version;
     /* A package that is available in the native package database, and has been
      * installed. */
+    reset_everything();
     bz_start_mocks();
     mock_available_package("jansson", "2.4-1");
     mock_installed_package("jansson", "2.4-1");
@@ -197,6 +199,7 @@ START_TEST(test_arch_nonexistent_native_package_01)
     DESCRIBE_TEST;
     struct bz_version  *version;
     /* A package that isn't available in the native package database. */
+    reset_everything();
     bz_start_mocks();
     mock_unavailable_package("jansson");
     mock_uninstalled_package("jansson");
@@ -352,10 +355,6 @@ test_create_package(struct bz_env *env, bool force,
     struct bz_pdb  *pdb;
     struct bz_packager  *packager;
 
-    bz_global_env_reset();
-    bz_mocked_actions_clear();
-    fail_if_error(bz_load_variable_definitions());
-    bz_pdb_registry_clear();
     fail_if_error(pdb = bz_arch_native_pdb());
     bz_pdb_register(pdb);
 
@@ -378,6 +377,7 @@ START_TEST(test_arch_create_package_01)
     DESCRIBE_TEST;
     struct bz_version  *version;
     struct bz_env  *env;
+    reset_everything();
     bz_start_mocks();
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
@@ -419,6 +419,7 @@ START_TEST(test_arch_create_package_license_01)
     DESCRIBE_TEST;
     struct bz_version  *version;
     struct bz_env  *env;
+    reset_everything();
     bz_start_mocks();
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
@@ -462,6 +463,7 @@ START_TEST(test_arch_create_existing_package_01)
     DESCRIBE_TEST;
     struct bz_version  *version;
     struct bz_env  *env;
+    reset_everything();
     bz_start_mocks();
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
@@ -482,6 +484,7 @@ START_TEST(test_arch_create_existing_package_02)
     DESCRIBE_TEST;
     struct bz_version  *version;
     struct bz_env  *env;
+    reset_everything();
     bz_start_mocks();
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);

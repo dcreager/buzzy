@@ -77,16 +77,16 @@ END_TEST
 static void
 test_git_version_value(const char *git, const char *buzzy)
 {
-    struct bz_value_provider  *provider;
+    struct bz_value  *value;
     struct bz_env  *env = bz_env_new("test");
     const char  *actual;
     bz_start_mocks();
     bz_mock_subprocess("git describe", git, NULL, 0);
     bz_mock_subprocess("git status --porcelain", NULL, NULL, 0);
-    fail_if_error(provider = bz_git_version_value_new());
-    bz_env_add_override(env, "version", provider);
+    fail_if_error(value = bz_git_version_value_new());
+    bz_env_add_override(env, "version", value);
     bz_env_add_override(env, "source_dir", bz_string_value_new("."));
-    fail_if_error(actual = bz_env_get_string(env, "version", true));
+    fail_if_error(actual = bz_env_get_string(env, "version"));
     fail_unless_streq("Versions", buzzy, actual);
     bz_env_free(env);
 }

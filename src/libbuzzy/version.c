@@ -108,6 +108,12 @@ bz_version_new(void)
     return version;
 }
 
+struct bz_version *
+bz_version_copy(struct bz_version *other)
+{
+    return bz_version_from_string(bz_version_to_string(other));
+}
+
 void
 bz_version_free(struct bz_version *version)
 {
@@ -254,25 +260,25 @@ bz_version_from_string(const char *string)
     version = bz_version_new();
 
     
-#line 258 "libbuzzy/version.c"
+#line 264 "libbuzzy/version.c"
 static const int buzzy_version_start = 1;
 
 static const int buzzy_version_en_main = 1;
 
 
-#line 264 "libbuzzy/version.c"
+#line 270 "libbuzzy/version.c"
 	{
 	cs = buzzy_version_start;
 	}
 
-#line 269 "libbuzzy/version.c"
+#line 275 "libbuzzy/version.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
 	switch ( cs )
 	{
 tr5:
-#line 276 "libbuzzy/version.c.rl"
+#line 282 "libbuzzy/version.c.rl"
 	{
             size_t  size = p - part_start;
             DEBUG("    String value: %.*s\n", (int) size, part_start);
@@ -283,7 +289,7 @@ st1:
 	if ( ++p == pe )
 		goto _test_eof1;
 case 1:
-#line 287 "libbuzzy/version.c"
+#line 293 "libbuzzy/version.c"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto tr0;
@@ -297,34 +303,34 @@ st0:
 cs = 0;
 	goto _out;
 tr0:
-#line 261 "libbuzzy/version.c.rl"
+#line 267 "libbuzzy/version.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             DEBUG("  Create new release version part\n");
         }
-#line 257 "libbuzzy/version.c.rl"
+#line 263 "libbuzzy/version.c.rl"
 	{
             part_start = p;
         }
 	goto st4;
 tr2:
-#line 271 "libbuzzy/version.c.rl"
+#line 277 "libbuzzy/version.c.rl"
 	{
             kind = BZ_VERSION_POSTRELEASE;
             DEBUG("  Create new prerelease version part\n");
         }
-#line 257 "libbuzzy/version.c.rl"
+#line 263 "libbuzzy/version.c.rl"
 	{
             part_start = p;
         }
 	goto st4;
 tr3:
-#line 266 "libbuzzy/version.c.rl"
+#line 272 "libbuzzy/version.c.rl"
 	{
             kind = BZ_VERSION_PRERELEASE;
             DEBUG("  Create new prerelease version part\n");
         }
-#line 257 "libbuzzy/version.c.rl"
+#line 263 "libbuzzy/version.c.rl"
 	{
             part_start = p;
         }
@@ -333,7 +339,7 @@ st4:
 	if ( ++p == pe )
 		goto _test_eof4;
 case 4:
-#line 337 "libbuzzy/version.c"
+#line 343 "libbuzzy/version.c"
 	switch( (*p) ) {
 		case 43: goto tr4;
 		case 46: goto tr5;
@@ -349,7 +355,7 @@ case 4:
 		goto st4;
 	goto st0;
 tr4:
-#line 276 "libbuzzy/version.c.rl"
+#line 282 "libbuzzy/version.c.rl"
 	{
             size_t  size = p - part_start;
             DEBUG("    String value: %.*s\n", (int) size, part_start);
@@ -360,7 +366,7 @@ st2:
 	if ( ++p == pe )
 		goto _test_eof2;
 case 2:
-#line 364 "libbuzzy/version.c"
+#line 370 "libbuzzy/version.c"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto tr2;
@@ -371,7 +377,7 @@ case 2:
 		goto tr2;
 	goto st0;
 tr7:
-#line 276 "libbuzzy/version.c.rl"
+#line 282 "libbuzzy/version.c.rl"
 	{
             size_t  size = p - part_start;
             DEBUG("    String value: %.*s\n", (int) size, part_start);
@@ -382,7 +388,7 @@ st3:
 	if ( ++p == pe )
 		goto _test_eof3;
 case 3:
-#line 386 "libbuzzy/version.c"
+#line 392 "libbuzzy/version.c"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto tr3;
@@ -403,30 +409,30 @@ case 3:
 	{
 	switch ( cs ) {
 	case 4: 
-#line 276 "libbuzzy/version.c.rl"
+#line 282 "libbuzzy/version.c.rl"
 	{
             size_t  size = p - part_start;
             DEBUG("    String value: %.*s\n", (int) size, part_start);
             bz_version_add_part(version, kind, part_start, size);
         }
 	break;
-#line 414 "libbuzzy/version.c"
+#line 420 "libbuzzy/version.c"
 	}
 	}
 
 	_out: {}
 	}
 
-#line 295 "libbuzzy/version.c.rl"
+#line 301 "libbuzzy/version.c.rl"
 
 
     /* A hack to suppress some unused variable warnings */
     (void) buzzy_version_en_main;
 
     if (CORK_UNLIKELY(cs < 
-#line 428 "libbuzzy/version.c"
+#line 434 "libbuzzy/version.c"
 4
-#line 300 "libbuzzy/version.c.rl"
+#line 306 "libbuzzy/version.c.rl"
 )) {
         bz_invalid_version("Invalid version \"%s\"", string);
         bz_version_free(version);

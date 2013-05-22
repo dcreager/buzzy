@@ -171,7 +171,7 @@ package_env_parse_opt(int ch, struct cork_command *cmd)
     if (ch == 'P') {
         struct cork_buffer  buf = CORK_BUFFER_INIT();
         const char  *equals = strchr(optarg, '=');
-        struct bz_value_provider  *value;
+        struct bz_value  *value;
         if (equals == NULL) {
             cork_command_show_help(cmd, "Missing variable value.");
             exit(EXIT_FAILURE);

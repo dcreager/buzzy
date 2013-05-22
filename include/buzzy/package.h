@@ -29,7 +29,6 @@ typedef int
 (*bz_package_step_f)(void *user_data);
 
 
-/* Takes control of version, but not dep */
 struct bz_package *
 bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
                void *user_data, cork_free_f free_user_data,

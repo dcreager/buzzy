@@ -22,15 +22,15 @@
  */
 
 static const char *
-bz_architecture_value__provide(void *user_data, struct bz_env *env)
+bz_architecture_value__get(void *user_data, struct bz_value *ctx)
 {
     return bz_arch_current_architecture();
 }
 
-static struct bz_value_provider *
+static struct bz_value *
 bz_architecture_value_new(void)
 {
-    return bz_value_provider_new(NULL, NULL, bz_architecture_value__provide);
+    return bz_scalar_value_new(NULL, NULL, bz_architecture_value__get);
 }
 
 
@@ -46,23 +46,22 @@ bz_pacman_version__free(void *user_data)
 }
 
 static const char *
-bz_pacman_version__provide(void *user_data, struct bz_env *env)
+bz_pacman_version__get(void *user_data, struct bz_value *ctx)
 {
     struct cork_buffer  *buf = user_data;
     struct bz_version  *version;
-    rpp_check(version = bz_env_get_version(env, "version", true));
+    rpp_check(version = bz_value_get_version(ctx, "version"));
     cork_buffer_clear(buf);
     bz_version_to_arch(version, buf);
-    bz_version_free(version);
     return buf->buf;
 }
 
-static struct bz_value_provider *
+static struct bz_value *
 bz_pacman_version_value_new(void)
 {
     struct cork_buffer  *buf = cork_buffer_new();
-    return bz_value_provider_new
-        (buf, bz_pacman_version__free, bz_pacman_version__provide);
+    return bz_scalar_value_new
+        (buf, bz_pacman_version__free, bz_pacman_version__get);
 }
 
 
@@ -73,7 +72,7 @@ bz_pacman_version_value_new(void)
 bz_define_variables(pacman)
 {
     bz_package_variable(
-        package_filename, "pacman.package_file.base",
+        package_file_base, "pacman.package_file_base",
         bz_interpolated_value_new(
             "${name}-${pacman.version}-${pacman.pkgrel}-"
             "${pacman.arch}"
@@ -86,7 +85,7 @@ bz_define_variables(pacman)
     bz_package_variable(
         package_file, "pacman.package_file",
         bz_interpolated_value_new
-            ("${binary_package_dir}/${pacman.package_file.base}"),
+            ("${binary_package_dir}/${pacman.package_file_base}"),
         "The filename for any package that we create",
         ""
     );
@@ -138,7 +137,7 @@ bz_pacman__package__is_needed(void *user_data, bool *is_needed)
     struct bz_env  *env = user_data;
     bool  force = false;
 
-    rii_check(bz_env_get_bool(env, "force", &force, false));
+    rie_check(force = bz_env_get_bool(env, "force"));
 
     if (force) {
         *is_needed = true;
@@ -146,7 +145,7 @@ bz_pacman__package__is_needed(void *user_data, bool *is_needed)
     } else {
         const char  *package_file;
         rip_check(package_file = bz_env_get_string
-                  (env, "pacman.package_file", true));
+                  (env, "pacman.package_file"));
         rii_check(bz_file_exists(package_file, is_needed));
         *is_needed = !*is_needed;
         return 0;
@@ -157,17 +156,17 @@ static int
 bz_pacman__package(void *user_data)
 {
     struct bz_env  *env = user_data;
-    const char  *staging_dir;
-    const char  *binary_package_dir;
-    const char  *package_build_dir;
-    const char  *pkgbuild;
+    struct cork_path  *staging_dir;
+    struct cork_path  *binary_package_dir;
+    struct cork_path  *package_build_dir;
+    struct cork_path  *pkgbuild;
     const char  *package_name;
     const char  *version;
     const char  *pkgrel;
     const char  *pkgext;
     const char  *architecture;
     const char  *license;
-    bool  verbose = false;
+    bool  verbose;
 
     struct cork_env  *exec_env;
     struct cork_exec  *exec;
@@ -177,31 +176,31 @@ bz_pacman__package(void *user_data)
     rii_check(bz_install_dependency_string("pacman"));
     rii_check(bz_package_message(env, "pacman"));
 
-    rip_check(staging_dir = bz_env_get_string(env, "staging_dir", true));
+    rip_check(staging_dir = bz_env_get_path(env, "staging_dir"));
     rip_check(binary_package_dir =
-              bz_env_get_string(env, "binary_package_dir", true));
+              bz_env_get_path(env, "binary_package_dir"));
     rip_check(package_build_dir =
-              bz_env_get_string(env, "package_build_dir", true));
-    rip_check(pkgbuild = bz_env_get_string(env, "pacman.pkgbuild", true));
-    rip_check(package_name = bz_env_get_string(env, "name", true));
-    rip_check(version = bz_env_get_string(env, "pacman.version", true));
-    rip_check(pkgrel = bz_env_get_string(env, "pacman.pkgrel", true));
-    rip_check(pkgext = bz_env_get_string(env, "pacman.pkgext", true));
-    rip_check(architecture = bz_env_get_string(env, "pacman.arch", true));
-    rip_check(license = bz_env_get_string(env, "license", true));
-    rii_check(bz_env_get_bool(env, "verbose", &verbose, false));
+              bz_env_get_path(env, "package_build_dir"));
+    rip_check(pkgbuild = bz_env_get_path(env, "pacman.pkgbuild"));
+    rip_check(package_name = bz_env_get_string(env, "name"));
+    rip_check(version = bz_env_get_string(env, "pacman.version"));
+    rip_check(pkgrel = bz_env_get_string(env, "pacman.pkgrel"));
+    rip_check(pkgext = bz_env_get_string(env, "pacman.pkgext"));
+    rip_check(architecture = bz_env_get_string(env, "pacman.arch"));
+    rip_check(license = bz_env_get_string(env, "license"));
+    rie_check(verbose = bz_env_get_bool(env, "verbose"));
 
-    rii_check(bz_file_exists(staging_dir, &staging_exists));
+    rii_check(bz_file_exists(cork_path_get(staging_dir), &staging_exists));
     if (CORK_UNLIKELY(!staging_exists)) {
         cork_error_set
             (CORK_BUILTIN_ERROR, CORK_SYSTEM_ERROR,
-             "Staging directory %s does not exist", staging_dir);
+             "Staging directory %s does not exist", cork_path_get(staging_dir));
         return -1;
     }
 
     /* Create the temporary directory and the packaging destination */
-    rii_check(bz_create_directory(package_build_dir));
-    rii_check(bz_create_directory(binary_package_dir));
+    rii_check(bz_create_directory(cork_path_get(package_build_dir)));
+    rii_check(bz_create_directory(cork_path_get(binary_package_dir)));
 
     /* Create a PKGBUILD file for this package */
     cork_buffer_append_printf(&buf, "pkgname='%s'\n", package_name);
@@ -215,17 +214,17 @@ bz_pacman__package(void *user_data)
         "    rm -rf \"${pkgdir}\"\n"
         "    cp -a '%s' \"${pkgdir}\"\n"
         "}\n",
-        staging_dir
+        cork_path_get(staging_dir)
     );
 
-    ei_check(bz_create_file(pkgbuild, &buf));
+    ei_check(bz_create_file(cork_path_get(pkgbuild), &buf));
     cork_buffer_done(&buf);
 
     exec_env = cork_env_clone_current();
-    cork_env_add(exec_env, "PKGDEST", binary_package_dir);
+    cork_env_add(exec_env, "PKGDEST", cork_path_get(binary_package_dir));
     cork_env_add(exec_env, "PKGEXT", pkgext);
     exec = cork_exec_new_with_params("makepkg", "-sf", NULL);
-    cork_exec_set_cwd(exec, package_build_dir);
+    cork_exec_set_cwd(exec, cork_path_get(package_build_dir));
     cork_exec_set_env(exec, exec_env);
     return bz_subprocess_run_exec(verbose, NULL, exec);
 
@@ -239,39 +238,36 @@ static int
 bz_pacman__install__is_needed(void *user_data, bool *is_needed)
 {
     struct bz_env  *env = user_data;
-    bool  force = false;
+    struct bz_version  *package_version;
+    bool  force;
 
     rii_check(bz_install_dependency_string("pacman"));
-    rii_check(bz_env_get_bool(env, "force", &force, false));
+    rie_check(force = bz_env_get_bool(env, "force"));
 
     if (force) {
         *is_needed = true;
         return 0;
     } else {
         const char  *package_name;
-        struct bz_version  *package_version;
         struct bz_version  *installed;
 
-        rip_check(package_name = bz_env_get_string(env, "name", true));
-        rip_check(package_version = bz_env_get_version(env, "version", true));
-
-        installed = bz_arch_native_version_installed(package_name);
-        if (CORK_UNLIKELY(cork_error_occurred())) {
-            bz_version_free(package_version);
-            return -1;
-        }
+        rip_check(package_name = bz_env_get_string(env, "name"));
+        rip_check(package_version = bz_env_get_version(env, "version"));
+        ee_check(installed = bz_arch_native_version_installed(package_name));
 
         if (installed == NULL) {
-            bz_version_free(package_version);
             *is_needed = true;
             return 0;
         } else {
             *is_needed = (bz_version_cmp(installed, package_version) < 0);
-            bz_version_free(package_version);
             bz_version_free(installed);
             return 0;
         }
     }
+
+error:
+    bz_version_free(package_version);
+    return -1;
 }
 
 static int
@@ -283,7 +279,7 @@ bz_pacman__install(void *user_data)
     rii_check(bz_install_message(env, "pacman"));
 
     rip_check(package_file = bz_env_get_string
-              (env, "pacman.package_file", true));
+              (env, "pacman.package_file"));
     return bz_subprocess_run
         (false, NULL,
          "sudo", "pacman", "-U", "--noconfirm", package_file,
@@ -297,15 +293,9 @@ bz_pacman__uninstall__is_needed(void *user_data, bool *is_needed)
     struct bz_env  *env = user_data;
     const char  *package_name;
     struct bz_version  *installed;
-
     rii_check(bz_install_dependency_string("pacman"));
-
-    rip_check(package_name = bz_env_get_string(env, "name", true));
-    installed = bz_arch_native_version_installed(package_name);
-    if (CORK_UNLIKELY(cork_error_occurred())) {
-        return -1;
-    }
-
+    rip_check(package_name = bz_env_get_string(env, "name"));
+    rie_check(installed = bz_arch_native_version_installed(package_name));
     if (installed == NULL) {
         *is_needed = false;
     } else {
@@ -323,7 +313,7 @@ bz_pacman__uninstall(void *user_data)
 
     rii_check(bz_uninstall_message(env, "pacman"));
 
-    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(package_name = bz_env_get_string(env, "name"));
     return bz_subprocess_run
         (false, NULL,
          "sudo", "pacman", "-R", "--noconfirm", package_name,

@@ -187,3 +187,114 @@ bz_yaml_get_mapping_elements(yaml_document_t *doc, int node_id,
 
     return 0;
 }
+
+
+/*-----------------------------------------------------------------------
+ * YAML values
+ */
+
+static struct bz_value *
+bz_yaml_value_new_from_node(yaml_document_t *doc, yaml_node_t *node);
+
+
+static struct bz_value *
+bz_yaml_string_new(yaml_document_t *doc, yaml_node_t *node)
+{
+    const char  *content = (const char *) node->data.scalar.value;
+    return bz_interpolated_value_new(content);
+}
+
+
+static struct bz_value *
+bz_yaml_array_new(yaml_document_t *doc, yaml_node_t *node)
+{
+    struct bz_array  *array;
+    yaml_node_item_t  *item;
+
+    array = bz_array_new();
+    for (item = node->data.sequence.items.start;
+         item < node->data.sequence.items.top; item++) {
+        yaml_node_t  *element_node = yaml_document_get_node(doc, *item);
+        struct bz_value  *element;
+        ep_check(element = bz_yaml_value_new_from_node(doc, element_node));
+        bz_array_append(array, element);
+    }
+    return bz_array_as_value(array);
+
+error:
+    bz_value_free(bz_array_as_value(array));
+    return NULL;
+}
+
+
+static struct bz_value *
+bz_yaml_map_new(yaml_document_t *doc, yaml_node_t *node)
+{
+    struct bz_value  *map;
+    yaml_node_pair_t  *pair;
+
+    map = bz_map_new();
+    for (pair = node->data.mapping.pairs.start;
+         pair < node->data.mapping.pairs.top; pair++) {
+        yaml_node_t  *key_node = yaml_document_get_node(doc, pair->key);
+        yaml_node_t  *value_node = yaml_document_get_node(doc, pair->value);
+        const char  *key;
+        struct bz_value  *value;
+
+        if (CORK_LIKELY(key_node->type == YAML_SCALAR_NODE)) {
+            key = (char *) key_node->data.scalar.value;
+        } else {
+            bz_bad_config("Mapping key must be a string");
+            return NULL;
+        }
+
+        ep_check(value = bz_yaml_value_new_from_node(doc, value_node));
+        ei_check(bz_map_value_add(map, key, value, false));
+    }
+    return map;
+
+error:
+    bz_value_free(map);
+    return NULL;
+}
+
+
+
+static struct bz_value *
+bz_yaml_value_new_from_node(yaml_document_t *doc, yaml_node_t *node)
+{
+    if (node->type == YAML_SCALAR_NODE) {
+        return bz_yaml_string_new(doc, node);
+    } else if (node->type == YAML_SEQUENCE_NODE) {
+        return bz_yaml_array_new(doc, node);
+    } else if (node->type == YAML_MAPPING_NODE) {
+        return bz_yaml_map_new(doc, node);
+    } else {
+        cork_unreachable();
+    }
+}
+
+struct bz_value *
+bz_yaml_value_new(yaml_document_t *doc)
+{
+    yaml_node_t  *root = yaml_document_get_root_node(doc);
+    struct bz_value  *result = bz_yaml_value_new_from_node(doc, root);
+    yaml_document_delete(doc);
+    return result;
+}
+
+struct bz_value *
+bz_yaml_value_new_from_file(const char *path)
+{
+    yaml_document_t  doc;
+    rpi_check(bz_load_yaml_file(&doc, path));
+    return bz_yaml_value_new(&doc);
+}
+
+struct bz_value *
+bz_yaml_value_new_from_string(const char *content)
+{
+    yaml_document_t  doc;
+    rpi_check(bz_load_yaml_string(&doc, content));
+    return bz_yaml_value_new(&doc);
+}
