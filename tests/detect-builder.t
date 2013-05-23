@@ -5,11 +5,14 @@ builders that we know about.
   $ cat > unknown-repo/.buzzy/package.yaml <<EOF
   > name: test
   > version: 1.0~rc1
+  > builder: noop
   > EOF
   $ cd unknown-repo
   $ buzzy doc builder
   builder
     What build system is used to build the package
+  
+    Current value: noop
   $ cd ..
 
   $ mkdir -p cmake-repo/.buzzy

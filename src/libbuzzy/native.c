@@ -55,7 +55,7 @@ bz_native_package__free(void *user_data)
     cork_strfree(native->package_name);
     cork_strfree(native->native_package_name);
     bz_env_free(native->env);
-    /* version will be freed by the package wrapper */
+    bz_version_free(native->version);
     free(native);
 }
 

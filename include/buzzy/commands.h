@@ -39,23 +39,17 @@ CORK_LOCAL extern struct cork_command  buzzy_raw;
 CORK_LOCAL extern struct cork_command  buzzy_raw_build;
 CORK_LOCAL extern struct cork_command  buzzy_raw_pkg;
 
-#define ri_check_error(call) \
+#define re_check_error(call) \
     do { \
-        CORK_ATTR_UNUSED int  __rc = call; \
+        call; \
         if (CORK_UNLIKELY(cork_error_occurred())) { \
             fprintf(stderr, "%s\n", cork_error_message()); \
             exit(EXIT_FAILURE); \
         } \
     } while (0)
 
-#define rp_check_error(call) \
-    do { \
-        CORK_ATTR_UNUSED void  *__result = call; \
-        if (CORK_UNLIKELY(cork_error_occurred())) { \
-            fprintf(stderr, "%s\n", cork_error_message()); \
-            exit(EXIT_FAILURE); \
-        } \
-    } while (0)
+#define ri_check_error  re_check_error
+#define rp_check_error  re_check_error
 
 
 /*-----------------------------------------------------------------------

@@ -54,6 +54,22 @@ struct bz_value *
 bz_array_value_get(struct bz_value *value, size_t index);
 
 
+typedef int
+(*bz_array_map_f)(void *user_data, struct bz_value *element);
+
+/* Call map for each element in value. */
+int
+bz_array_value_map(struct bz_value *value, void *user_data, bz_array_map_f map);
+
+/* If value is an array, verify that it only contains scalars, and call the map
+ * function for each scalar.  If value is itself a scalar, treat that like a
+ * one-element array (i.e., call the map function on it).  Otherwise raise an
+ * error. */
+int
+bz_array_value_map_scalars(struct bz_value *value, void *user_data,
+                           bz_array_map_f map);
+
+
 /*-----------------------------------------------------------------------
  * Map values
  */
@@ -159,6 +175,8 @@ bz_interpolated_value_new(const char *template_value);
 /*-----------------------------------------------------------------------
  * Editable arrays
  */
+
+struct bz_array;
 
 struct bz_array *
 bz_array_new(void);

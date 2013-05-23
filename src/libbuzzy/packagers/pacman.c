@@ -14,6 +14,7 @@
 #include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/os.h"
+#include "buzzy/value.h"
 #include "buzzy/distro/arch.h"
 
 
@@ -152,6 +153,61 @@ bz_pacman__package__is_needed(void *user_data, bool *is_needed)
     }
 }
 
+struct bz_pacman_fill_deps {
+    struct bz_value  *ctx;
+    struct cork_buffer  dep_buf;
+    bool  first;
+};
+
+static int
+bz_pacman_fill_one_dep(void *user_data, struct bz_value *dep_value)
+{
+    struct bz_pacman_fill_deps  *state = user_data;
+    const char  *dep_string;
+    struct bz_dependency  *dep;
+    rip_check(dep_string = bz_scalar_value_get(dep_value, state->ctx));
+    rip_check(dep = bz_dependency_from_string(dep_string));
+    if (state->first) {
+        cork_buffer_append(&state->dep_buf, "'", 1);
+        state->first = false;
+    } else {
+        cork_buffer_append(&state->dep_buf, " '", 2);
+    }
+    cork_buffer_append_string(&state->dep_buf, dep->package_name);
+    if (dep->min_version != NULL) {
+        cork_buffer_append(&state->dep_buf, ">=", 2);
+        bz_version_to_arch(dep->min_version, &state->dep_buf);
+    }
+    cork_buffer_append(&state->dep_buf, "'", 1);
+    bz_dependency_free(dep);
+    return 0;
+}
+
+static int
+bz_pacman_fill_deps(struct bz_env *env, struct cork_buffer *buf,
+                    const char *pkgbuild_name, const char *var_name)
+{
+    struct bz_value  *deps_value;
+    rie_check(deps_value = bz_env_get_value(env, var_name));
+    if (deps_value != NULL) {
+        int  rc;
+        struct bz_pacman_fill_deps  state = {
+            bz_env_as_value(env),
+            CORK_BUFFER_INIT(),
+            true
+        };
+        rc = bz_array_value_map_scalars
+            (deps_value, &state, bz_pacman_fill_one_dep);
+        if (rc == 0 && state.dep_buf.size > 0) {
+            cork_buffer_append_printf
+                (buf, "%s=(%s)\n", pkgbuild_name, (char *) state.dep_buf.buf);
+        }
+        cork_buffer_done(&state.dep_buf);
+        return rc;
+    }
+    return 0;
+}
+
 static int
 bz_pacman__package(void *user_data)
 {
@@ -208,6 +264,7 @@ bz_pacman__package(void *user_data)
     cork_buffer_append_printf(&buf, "pkgrel='%s'\n", pkgrel);
     cork_buffer_append_printf(&buf, "arch=('%s')\n", architecture);
     cork_buffer_append_printf(&buf, "license=('%s')\n", license);
+    rii_check(bz_pacman_fill_deps(env, &buf, "depends", "dependencies"));
     /* TODO: dependencies */
     cork_buffer_append_printf(&buf,
         "package () {\n"

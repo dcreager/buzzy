@@ -133,6 +133,12 @@ bz_env_as_value(struct bz_env *env)
  * Retrieving the value of a variable
  */
 
+struct bz_value *
+bz_env_get_value(struct bz_env *env, const char *name)
+{
+    return bz_value_get_nested(env->value, name);
+}
+
 bool
 bz_env_get_bool(struct bz_env *env, const char *name)
 {

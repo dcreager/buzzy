@@ -359,6 +359,47 @@ bz_array_value_get(struct bz_value *value, size_t index)
 }
 
 
+int
+bz_array_value_map(struct bz_value *value, void *user_data, bz_array_map_f map)
+{
+    size_t  i;
+    size_t  count;
+    rie_check(count = bz_array_value_count(value));
+    for (i = 0; i < count; i++) {
+        struct bz_value  *element;
+        rie_check(element = bz_array_value_get(value, i));
+        rii_check(map(user_data, element));
+    }
+    return 0;
+}
+
+int
+bz_array_value_map_scalars(struct bz_value *value, void *user_data,
+                           bz_array_map_f map)
+{
+    if (value->kind == BZ_VALUE_SCALAR) {
+        return map(user_data, value);
+    } else if (value->kind == BZ_VALUE_ARRAY) {
+        size_t  i;
+        size_t  count;
+        rie_check(count = bz_array_value_count(value));
+        for (i = 0; i < count; i++) {
+            struct bz_value  *element;
+            rie_check(element = bz_array_value_get(value, i));
+            if (element->kind != BZ_VALUE_SCALAR) {
+                bz_bad_config("Array must only contain scalars");
+                return -1;
+            }
+            rii_check(map(user_data, element));
+        }
+        return 0;
+    } else {
+        bz_bad_config("Value must be an array or scalar");
+        return -1;
+    }
+}
+
+
 /*-----------------------------------------------------------------------
  * Map values
  */

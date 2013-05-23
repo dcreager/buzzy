@@ -21,6 +21,7 @@
  */
 
 struct bz_package;
+struct bz_package_list;
 
 typedef int
 (*bz_package_is_needed_f)(void *user_data, bool *is_needed);
@@ -49,6 +50,12 @@ bz_package_name(struct bz_package *package);
 struct bz_version *
 bz_package_version(struct bz_package *package);
 
+struct bz_package_list *
+bz_package_build_deps(struct bz_package *package);
+
+struct bz_package_list *
+bz_package_deps(struct bz_package *package);
+
 int
 bz_package_build(struct bz_package *package);
 
@@ -60,6 +67,20 @@ bz_package_install(struct bz_package *package);
 
 int
 bz_package_uninstall(struct bz_package *package);
+
+
+/*-----------------------------------------------------------------------
+ * Lists of packages
+ */
+
+size_t
+bz_package_list_count(struct bz_package_list *list);
+
+struct bz_package *
+bz_package_list_get(struct bz_package_list *list, size_t index);
+
+int
+bz_package_list_install(struct bz_package_list *list);
 
 
 /*-----------------------------------------------------------------------

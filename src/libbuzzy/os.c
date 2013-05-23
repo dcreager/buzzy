@@ -153,9 +153,9 @@ bz_subprocess_run_exec(bool verbose, bool *successful, struct cork_exec *exec)
     struct cork_stream_consumer  *out = NULL;
     struct cork_stream_consumer  *err = NULL;
 
+    cork_buffer_set(&out_buf, "", 0);
+    cork_buffer_set(&err_buf, "", 0);
     if (!verbose) {
-        cork_buffer_ensure_size(&out_buf, 16);
-        cork_buffer_ensure_size(&err_buf, 16);
         out = cork_buffer_to_stream_consumer(&out_buf);
         err = cork_buffer_to_stream_consumer(&err_buf);
     }

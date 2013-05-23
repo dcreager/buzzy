@@ -23,6 +23,9 @@ struct bz_env;
  * Retrieving the value of a variable
  */
 
+struct bz_value *
+bz_env_get_value(struct bz_env *env, const char *name);
+
 /* All of the following return an error if the value is missing, or if it's
  * malformed.  You are not responsible for freeing any results. */
 
