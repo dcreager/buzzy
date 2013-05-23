@@ -65,6 +65,9 @@ struct bz_version {
 
 
 struct bz_version *
+bz_version_copy(struct bz_version *version);
+
+struct bz_version *
 bz_version_from_string(const char *string);
 
 void

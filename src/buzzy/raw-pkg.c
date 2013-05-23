@@ -97,7 +97,7 @@ execute(int argc, char **argv)
     struct cork_path  *binary_package_dir;
     struct cork_path  *staging_dir;
     struct bz_packager  *packager;
-    struct bz_value_provider  *value;
+    struct bz_value  *value;
 
     if (argc == 0) {
         cork_command_show_help(&buzzy_raw_pkg, "Missing staging directory.");

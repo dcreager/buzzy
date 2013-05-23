@@ -23,7 +23,7 @@
 struct bz_version *
 bz_version_from_git_describe(const char *git_version);
 
-struct bz_value_provider *
+struct bz_value *
 bz_git_version_value_new(void);
 
 

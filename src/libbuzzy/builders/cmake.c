@@ -54,44 +54,44 @@ static int
 bz_cmake__build(void *user_data)
 {
     struct bz_env  *env = user_data;
-    const char  *build_dir;
-    const char  *source_dir;
-    const char  *install_prefix;
+    struct cork_path  *build_dir;
+    struct cork_path  *source_dir;
+    struct cork_path  *install_prefix;
     const char  *build_type;
-    bool  verbose = false;
+    bool  verbose;
     struct cork_exec  *exec;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
     rii_check(bz_install_dependency_string("cmake"));
     rii_check(bz_build_message(env, "cmake"));
 
-    rip_check(build_dir = bz_env_get_string(env, "build_dir", true));
-    rip_check(source_dir = bz_env_get_string(env, "source_dir", true));
-    rip_check(install_prefix = bz_env_get_string(env, "install_prefix", true));
-    rip_check(build_type = bz_env_get_string(env, "cmake.build_type", true));
-    rii_check(bz_env_get_bool(env, "verbose", &verbose, false));
+    rip_check(build_dir = bz_env_get_path(env, "build_dir"));
+    rip_check(source_dir = bz_env_get_path(env, "source_dir"));
+    rip_check(install_prefix = bz_env_get_path(env, "install_prefix"));
+    rip_check(build_type = bz_env_get_string(env, "cmake.build_type"));
+    rie_check(verbose = bz_env_get_bool(env, "verbose"));
 
     /* Create the build path */
-    rii_check(bz_create_directory(build_dir));
+    rii_check(bz_create_directory(cork_path_get(build_dir)));
 
     /* $ cmake ${source_dir} */
     exec = cork_exec_new("cmake");
     cork_exec_add_param(exec, "cmake");
-    cork_exec_add_param(exec, source_dir);
+    cork_exec_add_param(exec, cork_path_get(source_dir));
     cork_buffer_printf
-        (&buf, "-DCMAKE_INSTALL_PREFIX=%s", install_prefix);
+        (&buf, "-DCMAKE_INSTALL_PREFIX=%s", cork_path_get(install_prefix));
     cork_exec_add_param(exec, buf.buf);
     cork_buffer_printf
         (&buf, "-DCMAKE_BUILD_TYPE=%s", build_type);
     cork_exec_add_param(exec, buf.buf);
-    cork_exec_set_cwd(exec, build_dir);
+    cork_exec_set_cwd(exec, cork_path_get(build_dir));
     ei_check(bz_subprocess_run_exec(verbose, NULL, exec));
 
     /* $ cmake --build ${build_dir} */
     exec = cork_exec_new("cmake");
     cork_exec_add_param(exec, "cmake");
     cork_exec_add_param(exec, "--build");
-    cork_exec_add_param(exec, build_dir);
+    cork_exec_add_param(exec, cork_path_get(build_dir));
     ei_check(bz_subprocess_run_exec(verbose, NULL, exec));
 
     cork_buffer_done(&buf);
@@ -106,20 +106,20 @@ static int
 bz_cmake__test(void *user_data)
 {
     struct bz_env  *env = user_data;
-    const char  *build_dir;
-    bool  verbose = false;
+    struct cork_path  *build_dir;
+    bool  verbose;
     struct cork_exec  *exec;
 
     rii_check(bz_install_dependency_string("cmake"));
     rii_check(bz_test_message(env, "cmake"));
 
     /* $ cmake --build ${build_path} --target test */
-    rip_check(build_dir = bz_env_get_string(env, "build_dir", true));
-    rii_check(bz_env_get_bool(env, "verbose", &verbose, false));
+    rip_check(build_dir = bz_env_get_path(env, "build_dir"));
+    rie_check(verbose = bz_env_get_bool(env, "verbose"));
     exec = cork_exec_new("cmake");
     cork_exec_add_param(exec, "cmake");
     cork_exec_add_param(exec, "--build");
-    cork_exec_add_param(exec, build_dir);
+    cork_exec_add_param(exec, cork_path_get(build_dir));
     cork_exec_add_param(exec, "--target");
     cork_exec_add_param(exec, "test");
     return bz_subprocess_run_exec(verbose, NULL, exec);
@@ -129,31 +129,31 @@ static int
 bz_cmake__stage(void *user_data)
 {
     struct bz_env  *env = user_data;
-    const char  *build_dir;
-    const char  *staging_dir;
-    bool  verbose = false;
+    struct cork_path  *build_dir;
+    struct cork_path  *staging_dir;
+    bool  verbose;
     struct cork_env  *exec_env;
     struct cork_exec  *exec;
 
     rii_check(bz_install_dependency_string("cmake"));
     rii_check(bz_stage_message(env, "cmake"));
 
-    rip_check(build_dir = bz_env_get_string(env, "build_dir", true));
-    rip_check(staging_dir = bz_env_get_string(env, "staging_dir", true));
-    rii_check(bz_env_get_bool(env, "verbose", &verbose, false));
+    rip_check(build_dir = bz_env_get_path(env, "build_dir"));
+    rip_check(staging_dir = bz_env_get_path(env, "staging_dir"));
+    rii_check(verbose = bz_env_get_bool(env, "verbose"));
 
     /* Create the staging path */
-    rii_check(bz_create_directory(staging_dir));
+    rii_check(bz_create_directory(cork_path_get(staging_dir)));
 
     /* $ cmake --build ${build_path} --target install */
     exec = cork_exec_new("cmake");
     cork_exec_add_param(exec, "cmake");
     cork_exec_add_param(exec, "--build");
-    cork_exec_add_param(exec, build_dir);
+    cork_exec_add_param(exec, cork_path_get(build_dir));
     cork_exec_add_param(exec, "--target");
     cork_exec_add_param(exec, "install");
     exec_env = cork_env_clone_current();
-    cork_env_add(exec_env, "DESTDIR", staging_dir);
+    cork_env_add(exec_env, "DESTDIR", cork_path_get(staging_dir));
     cork_exec_set_env(exec, exec_env);
     return bz_subprocess_run_exec(verbose, NULL, exec);
 }

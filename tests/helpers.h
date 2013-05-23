@@ -18,6 +18,7 @@
 #include "buzzy/logging.h"
 #include "buzzy/mock.h"
 #include "buzzy/os.h"
+#include "buzzy/package.h"
 #include "buzzy/version.h"
 
 #if !defined(PRINT_EXPECTED_FAILURES)
@@ -79,6 +80,17 @@ initialize_tests(void)
     cork_env_remove(NULL, "XDG_CACHE_DIRS");
     cork_env_remove(NULL, "XDG_DATA_HOME");
     cork_env_remove(NULL, "XDG_DATA_DIRS");
+}
+
+
+CORK_ATTR_UNUSED
+static void
+reset_everything(void)
+{
+    bz_global_env_reset();
+    bz_mocked_actions_clear();
+    fail_if_error(bz_load_variable_definitions());
+    bz_pdb_registry_clear();
 }
 
 

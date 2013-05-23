@@ -77,16 +77,16 @@ END_TEST
 static void
 test_git_version_value(const char *git, const char *buzzy)
 {
-    struct bz_value_provider  *provider;
+    struct bz_value  *value;
     struct bz_env  *env = bz_env_new("test");
     const char  *actual;
     bz_start_mocks();
     bz_mock_subprocess("git describe", git, NULL, 0);
     bz_mock_subprocess("git status --porcelain", NULL, NULL, 0);
-    fail_if_error(provider = bz_git_version_value_new());
-    bz_env_add_override(env, "version", provider);
+    fail_if_error(value = bz_git_version_value_new());
+    bz_env_add_override(env, "version", value);
     bz_env_add_override(env, "source_dir", bz_string_value_new("."));
-    fail_if_error(actual = bz_env_get_string(env, "version", true));
+    fail_if_error(actual = bz_env_get_string(env, "version"));
     fail_unless_streq("Versions", buzzy, actual);
     bz_env_free(env);
 }
@@ -163,10 +163,12 @@ START_TEST(test_git_update)
     bz_start_mocks();
     bz_mock_file_exists("/test/git-repo", true);
     bz_mock_subprocess
-        ("git --git-dir /test/git-repo fetch origin",
+        ("git --git-dir /test/git-repo --work-tree /test/git-repo "
+          "fetch origin",
          NULL, NULL, 0);
     bz_mock_subprocess
-        ("git --git-dir /test/git-repo reset --hard origin/master",
+        ("git --git-dir /test/git-repo --work-tree /test/git-repo "
+           "reset --hard origin/master",
          NULL, NULL, 0);
     fail_if_error(bz_git_update(url, commit, path));
     test_actions(
@@ -174,8 +176,10 @@ START_TEST(test_git_update)
     );
     verify_commands_run(
         "$ [ -f /test/git-repo ]\n"
-        "$ git --git-dir /test/git-repo fetch origin\n"
-        "$ git --git-dir /test/git-repo reset --hard origin/master\n"
+        "$ git --git-dir /test/git-repo --work-tree /test/git-repo "
+          "fetch origin\n"
+        "$ git --git-dir /test/git-repo --work-tree /test/git-repo "
+           "reset --hard origin/master\n"
     );
 }
 END_TEST

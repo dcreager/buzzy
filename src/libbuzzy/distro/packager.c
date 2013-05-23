@@ -18,7 +18,7 @@
 
 
 static const char *
-bz_packager__detect(void *user_data, struct bz_env *env)
+bz_packager__detect(void *user_data, struct bz_value *ctx)
 {
     bool  is_arch;
 
@@ -31,8 +31,8 @@ bz_packager__detect(void *user_data, struct bz_env *env)
     return NULL;
 }
 
-struct bz_value_provider *
+struct bz_value *
 bz_packager_detector_new(void)
 {
-    return bz_value_provider_new(NULL, NULL, bz_packager__detect);
+    return bz_scalar_value_new(NULL, NULL, bz_packager__detect);
 }

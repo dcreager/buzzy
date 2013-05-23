@@ -137,7 +137,7 @@ bz_built_package_new(struct bz_env *env);
  * Available builders
  */
 
-struct bz_value_provider *
+struct bz_value *
 bz_builder_detector_new(void);
 
 struct bz_builder *
@@ -151,7 +151,7 @@ bz_cmake_builder_new(struct bz_env *env);
  * Available packagers
  */
 
-struct bz_value_provider *
+struct bz_value *
 bz_packager_detector_new(void);
 
 struct bz_packager *

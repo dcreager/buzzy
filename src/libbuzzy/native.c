@@ -55,7 +55,7 @@ bz_native_package__free(void *user_data)
     cork_strfree(native->package_name);
     cork_strfree(native->native_package_name);
     bz_env_free(native->env);
-    /* version will be freed by the package wrapper */
+    bz_version_free(native->version);
     free(native);
 }
 
@@ -79,19 +79,14 @@ bz_native_package__install__is_needed(struct bz_native_package *native,
                                       bool *is_needed)
 {
     struct bz_version  *installed;
-
-    installed = native->version_installed(native->native_package_name);
-    if (CORK_UNLIKELY(cork_error_occurred())) {
-        return -1;
-    }
-
+    rie_check(installed = native->version_installed
+              (native->native_package_name));
     if (installed == NULL) {
         *is_needed = true;
     } else {
         *is_needed = (bz_version_cmp(installed, native->version) < 0);
         bz_version_free(installed);
     }
-
     return 0;
 }
 
@@ -120,12 +115,8 @@ bz_native_package__uninstall__is_needed(struct bz_native_package *native,
                                         bool *is_needed)
 {
     struct bz_version  *installed;
-
-    installed = native->version_installed(native->native_package_name);
-    if (CORK_UNLIKELY(cork_error_occurred())) {
-        return -1;
-    }
-
+    rie_check(installed = native->version_installed
+              (native->native_package_name));
     /* Uninstall any version that happens to be installed. */
     if (installed == NULL) {
         *is_needed = false;
@@ -133,7 +124,6 @@ bz_native_package__uninstall__is_needed(struct bz_native_package *native,
         *is_needed = true;
         bz_version_free(installed);
     }
-
     return 0;
 }
 

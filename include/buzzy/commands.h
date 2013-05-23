@@ -39,23 +39,17 @@ CORK_LOCAL extern struct cork_command  buzzy_raw;
 CORK_LOCAL extern struct cork_command  buzzy_raw_build;
 CORK_LOCAL extern struct cork_command  buzzy_raw_pkg;
 
-#define ri_check_error(call) \
+#define re_check_error(call) \
     do { \
-        CORK_ATTR_UNUSED int  __rc = call; \
+        call; \
         if (CORK_UNLIKELY(cork_error_occurred())) { \
             fprintf(stderr, "%s\n", cork_error_message()); \
             exit(EXIT_FAILURE); \
         } \
     } while (0)
 
-#define rp_check_error(call) \
-    do { \
-        CORK_ATTR_UNUSED void  *__result = call; \
-        if (CORK_UNLIKELY(cork_error_occurred())) { \
-            fprintf(stderr, "%s\n", cork_error_message()); \
-            exit(EXIT_FAILURE); \
-        } \
-    } while (0)
+#define ri_check_error  re_check_error
+#define rp_check_error  re_check_error
 
 
 /*-----------------------------------------------------------------------
@@ -171,7 +165,7 @@ package_env_parse_opt(int ch, struct cork_command *cmd)
     if (ch == 'P') {
         struct cork_buffer  buf = CORK_BUFFER_INIT();
         const char  *equals = strchr(optarg, '=');
-        struct bz_value_provider  *value;
+        struct bz_value  *value;
         if (equals == NULL) {
             cork_command_show_help(cmd, "Missing variable value.");
             exit(EXIT_FAILURE);

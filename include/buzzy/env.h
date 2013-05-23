@@ -12,38 +12,37 @@
 
 #include <libcork/core.h>
 #include <libcork/os.h>
-#include <yaml.h>
+
+#include "buzzy/value.h"
 
 
 struct bz_env;
-struct bz_value_provider;
-struct bz_value_set;
-struct bz_var_table;
 
 
 /*-----------------------------------------------------------------------
  * Retrieving the value of a variable
  */
 
-/* Error if it has malformed value.  If required is true, then also an error if
- * value is missing. */
+struct bz_value *
+bz_env_get_value(struct bz_env *env, const char *name);
 
-int
-bz_env_get_bool(struct bz_env *env, const char *name, bool *dest,
-                bool required);
+/* All of the following return an error if the value is missing, or if it's
+ * malformed.  You are not responsible for freeing any results. */
 
-int
-bz_env_get_long(struct bz_env *env, const char *name, long *dest,
-                bool required);
+bool
+bz_env_get_bool(struct bz_env *env, const char *name);
+
+long
+bz_env_get_long(struct bz_env *env, const char *name);
 
 struct cork_path *
-bz_env_get_path(struct bz_env *env, const char *name, bool required);
+bz_env_get_path(struct bz_env *env, const char *name);
 
 const char *
-bz_env_get_string(struct bz_env *env, const char *name, bool required);
+bz_env_get_string(struct bz_env *env, const char *name);
 
 struct bz_version *
-bz_env_get_version(struct bz_env *env, const char *name, bool required);
+bz_env_get_version(struct bz_env *env, const char *name);
 
 
 /*-----------------------------------------------------------------------
@@ -69,14 +68,14 @@ bz_package_env_new(struct bz_env *repo_env, const char *package_name,
 /* Every global and package-specific environment will use these default values
  * for any variables that aren't explicitly defined. */
 int
-bz_env_set_global_default(const char *name, struct bz_value_provider *value,
+bz_env_set_global_default(const char *name, struct bz_value *value,
                           const char *short_desc, const char *long_desc);
 
 struct bz_var_doc {
     const char  *name;
     const char  *short_desc;
     const char  *long_desc;
-    struct bz_value_provider  *value;
+    struct bz_value  *value;
 };
 
 struct bz_var_doc *
@@ -85,54 +84,6 @@ bz_env_get_global_default(const char *name);
 /* Only needed for reproducible test cases */
 void
 bz_global_env_reset(void);
-
-
-/*-----------------------------------------------------------------------
- * Value providers
- */
-
-typedef const char *
-(*bz_provide_value_f)(void *user_data, struct bz_env *env);
-
-struct bz_value_provider *
-bz_value_provider_new(void *user_data, cork_free_f free_user_data,
-                      bz_provide_value_f provide_value);
-
-void
-bz_value_provider_free(struct bz_value_provider *provider);
-
-const char *
-bz_value_provider_get(struct bz_value_provider *provider, struct bz_env *env);
-
-
-/*-----------------------------------------------------------------------
- * Value sets
- */
-
-/* Shouldn't raise an error if the key is missing. */
-typedef struct bz_value_provider *
-(*bz_value_set_get_f)(void *user_data, const char *key);
-
-struct bz_value_set *
-bz_value_set_new(const char *name, void *user_data, cork_free_f free_user_data,
-                 bz_value_set_get_f get);
-
-void
-bz_value_set_free(struct bz_value_set *set);
-
-/* Any relative paths in this value set will be interpreted relative to this
- * base path.  Base path defaults to the current working directory. */
-const char *
-bz_value_set_base_path(struct bz_value_set *set);
-
-void
-bz_value_set_set_base_path(struct bz_value_set *set, const char *base_path);
-
-struct bz_value_provider *
-bz_value_set_get_provider(struct bz_value_set *set, const char *key);
-
-const char *
-bz_value_set_get(struct bz_value_set *set, const char *key, struct bz_env *env);
 
 
 /*-----------------------------------------------------------------------
@@ -148,24 +99,29 @@ bz_env_free(struct bz_env *env);
 const char *
 bz_env_name(struct bz_env *env);
 
-/* Takes control of set */
+const char *
+bz_env_base_path(struct bz_env *env);
+
 void
-bz_env_add_set(struct bz_env *env, struct bz_value_set *set);
+bz_env_set_base_path(struct bz_env *env, const char *base_path);
 
 /* Takes control of set */
 void
-bz_env_add_backup_set(struct bz_env *env, struct bz_value_set *set);
+bz_env_add_set(struct bz_env *env, struct bz_value *set);
+
+/* Takes control of set */
+void
+bz_env_add_backup_set(struct bz_env *env, struct bz_value *set);
 
 /* Each of the sets in env are checked for key.  The sets added with
  * bz_env_add_set are checked first, in order, followed by the sets added with
  * bz_env_add_backup_set, in order.  If "set" is not-NULL, it will be filled in
  * with the value set that provided the result. */
-struct bz_value_provider *
-bz_env_get_provider(struct bz_env *env, const char *key,
-                    struct bz_value_set **set);
+struct bz_value *
+bz_env_get_value(struct bz_env *env, const char *key);
 
 const char *
-bz_env_get(struct bz_env *env, const char *key, struct bz_value_set **set);
+bz_env_get(struct bz_env *env, const char *key);
 
 /* Every environment comes with two var_table sets for free.  The first takes
  * precedence over every other value set, the other is overridden by every other
@@ -173,82 +129,18 @@ bz_env_get(struct bz_env *env, const char *key, struct bz_value_set **set);
 
 void
 bz_env_add_override(struct bz_env *env, const char *key,
-                    struct bz_value_provider *value);
+                    struct bz_value *value);
 
 void
 bz_env_add_backup(struct bz_env *env, const char *key,
-                  struct bz_value_provider *value);
+                  struct bz_value *value);
 
 
-/* A value set that tries to find variables in env.  This lets you "nest" env
- * inside of some other environment.  We do not take control of env; it's your
+/* A value that tries to find variables in env.  This lets you "nest" env inside
+ * of some other environment.  We do not take control of env; it's your
  * responsibility to make sure that it's valid whenever this set is used. */
-struct bz_value_set *
-bz_env_as_value_set(struct bz_env *env);
-
-
-/*-----------------------------------------------------------------------
- * Built-in value providers
- */
-
-/* Takes control of path */
-struct bz_value_provider *
-bz_path_value_new(struct cork_path *path);
-
-struct bz_value_provider *
-bz_string_value_new(const char *value);
-
-/* ${var} is substituted with the value of another variable */
-struct bz_value_provider *
-bz_interpolated_value_new(const char *template_value);
-
-
-/*-----------------------------------------------------------------------
- * Internal hash tables of variables
- */
-
-struct bz_var_table *
-bz_var_table_new(const char *name);
-
-void
-bz_var_table_free(struct bz_var_table *table);
-
-/* Takes control of provider; overwrites any existing entry for key */
-void
-bz_var_table_add(struct bz_var_table *table, const char *key,
-                 struct bz_value_provider *value);
-
-/* Not an error if key isn't present. */
-struct bz_value_provider *
-bz_var_table_get_provider(struct bz_var_table *table, const char *key);
-
-/* Not an error if key isn't present. */
-const char *
-bz_var_table_get(struct bz_var_table *table, const char *key,
-                 struct bz_env *env);
-
-/* The new set controls table; you should not free it after calling this
- * function. */
-struct bz_value_set *
-bz_var_table_as_set(struct bz_var_table *table);
-
-
-/*-----------------------------------------------------------------------
- * YAML file of values
- */
-
-/* Takes control of doc */
-struct bz_value_set *
-bz_yaml_value_set_new(const char *name, yaml_document_t *doc);
-
-struct bz_value_set *
-bz_yaml_value_set_new_from_env_var(struct bz_env *env, const char *var_name);
-
-struct bz_value_set *
-bz_yaml_value_set_new_from_file(const char *name, const char *path);
-
-struct bz_value_set *
-bz_yaml_value_set_new_from_string(const char *name, const char *content);
+struct bz_value *
+bz_env_as_value(struct bz_env *env);
 
 
 /*-----------------------------------------------------------------------
@@ -280,7 +172,7 @@ bz_define_vars__##prefix(void) \
 #define bz_global_variable(c_name, name, default_value, short_desc, long_desc) \
     do { \
         int  __rc; \
-        struct bz_value_provider  *__dv = default_value; \
+        struct bz_value  *__dv = default_value; \
         if (CORK_UNLIKELY(cork_error_occurred())) { \
             return; \
         } \

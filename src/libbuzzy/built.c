@@ -104,8 +104,8 @@ bz_built_package_new(struct bz_env *env)
     const char  *name;
     struct bz_version  *version;
 
-    rpp_check(name = bz_env_get_string(env, "name", true));
-    rpp_check(version = bz_env_get_version(env, "version", true));
+    rpp_check(name = bz_env_get_string(env, "name"));
+    rpp_check(version = bz_env_get_version(env, "version"));
 
     package = cork_new(struct bz_built_package);
     package->env = env;

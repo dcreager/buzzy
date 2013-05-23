@@ -106,6 +106,12 @@ bz_version_new(void)
     return version;
 }
 
+struct bz_version *
+bz_version_copy(struct bz_version *other)
+{
+    return bz_version_from_string(bz_version_to_string(other));
+}
+
 void
 bz_version_free(struct bz_version *version)
 {

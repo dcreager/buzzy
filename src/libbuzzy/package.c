@@ -19,6 +19,7 @@
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/package.h"
+#include "buzzy/value.h"
 #include "buzzy/version.h"
 
 
@@ -65,6 +66,20 @@ bz_define_variables(package)
         license, "license",
         bz_string_value_new("unknown"),
         "The license that the package is released under",
+        ""
+    );
+
+    bz_package_variable(
+        dependencies, "dependencies",
+        NULL,
+        "Other packages that this package needs at runtime",
+        ""
+    );
+
+    bz_package_variable(
+        build_dependencies, "build_dependencies",
+        NULL,
+        "Other packages needed to build this package",
         ""
     );
 
@@ -136,6 +151,93 @@ bz_define_variables(package)
 
 
 /*-----------------------------------------------------------------------
+ * Package lists
+ */
+
+struct bz_package_list {
+    cork_array(struct bz_package *)  packages;
+    bool  filled;
+};
+
+static void
+bz_package_list_init(struct bz_package_list *list)
+{
+    cork_array_init(&list->packages);
+    list->filled = false;
+}
+
+static void
+bz_package_list_done(struct bz_package_list *list)
+{
+    cork_array_done(&list->packages);
+}
+
+struct bz_package_list_fill {
+    struct bz_package_list  *list;
+    struct bz_value  *ctx;
+};
+
+static int
+bz_package_list_fill_one(void *user_data, struct bz_value *dep_value)
+{
+    struct bz_package_list_fill  *state = user_data;
+    const char  *dep_string;
+    struct bz_package  *dep;
+    rip_check(dep_string = bz_scalar_value_get(dep_value, state->ctx));
+    rip_check(dep = bz_satisfy_dependency_string(dep_string));
+    cork_array_append(&state->list->packages, dep);
+    return 0;
+}
+
+static int
+bz_package_list_fill(struct bz_package_list *list, struct bz_package *package,
+                     const char *var_name)
+{
+    if (!list->filled) {
+        struct bz_value  *ctx = bz_env_as_value(bz_package_env(package));
+        struct bz_value  *value;
+        list->filled = true;
+        rie_check(value = bz_map_value_get(ctx, var_name));
+        if (value != NULL) {
+            struct bz_package_list_fill  state = {
+                list, ctx
+            };
+            return bz_array_value_map_scalars
+                (value, &state, bz_package_list_fill_one);
+        }
+    }
+
+    return 0;
+}
+
+size_t
+bz_package_list_count(struct bz_package_list *list)
+{
+    assert(list->filled);
+    return cork_array_size(&list->packages);
+}
+
+struct bz_package *
+bz_package_list_get(struct bz_package_list *list, size_t index)
+{
+    assert(list->filled);
+    return cork_array_at(&list->packages, index);
+}
+
+int
+bz_package_list_install(struct bz_package_list *list)
+{
+    size_t  i;
+    assert(list->filled);
+    for (i = 0; i < cork_array_size(&list->packages); i++) {
+        struct bz_package  *dep = cork_array_at(&list->packages, i);
+        rii_check(bz_package_install(dep));
+    }
+    return 0;
+}
+
+
+/*-----------------------------------------------------------------------
  * Packages
  */
 
@@ -143,6 +245,9 @@ struct bz_package {
     struct bz_env  *env;
     const char  *name;
     struct bz_version  *version;
+    struct bz_package_list  deps;
+    struct bz_package_list  build_deps;
+
     void  *user_data;
     cork_free_f  free_user_data;
     bz_package_step_f  build;
@@ -167,7 +272,9 @@ bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
     struct bz_package  *package = cork_new(struct bz_package);
     package->env = env;
     package->name = cork_strdup(name);
-    package->version = version;
+    package->version = bz_version_copy(version);
+    bz_package_list_init(&package->deps);
+    bz_package_list_init(&package->build_deps);
     package->user_data = user_data;
     package->free_user_data = free_user_data;
     package->build = build;
@@ -186,6 +293,8 @@ bz_package_free(struct bz_package *package)
 {
     cork_strfree(package->name);
     bz_version_free(package->version);
+    bz_package_list_done(&package->deps);
+    bz_package_list_done(&package->build_deps);
     cork_free_user_data(package);
     free(package);
 }
@@ -208,6 +317,48 @@ bz_package_version(struct bz_package *package)
     return package->version;
 }
 
+
+static int
+bz_package_load_deps(struct bz_package *package)
+{
+    rii_check(bz_package_list_fill
+              (&package->deps, package, "dependencies"));
+    rii_check(bz_package_list_fill
+              (&package->build_deps, package, "build_dependencies"));
+    return 0;
+}
+
+struct bz_package_list *
+bz_package_build_deps(struct bz_package *package)
+{
+    rpi_check(bz_package_load_deps(package));
+    return &package->build_deps;
+}
+
+struct bz_package_list *
+bz_package_deps(struct bz_package *package)
+{
+    rpi_check(bz_package_load_deps(package));
+    return &package->deps;
+}
+
+static int
+bz_package_install_build_deps(struct bz_package *package)
+{
+    struct bz_package_list  *list;
+    rip_check(list = bz_package_build_deps(package));
+    return bz_package_list_install(list);
+}
+
+static int
+bz_package_install_deps(struct bz_package *package)
+{
+    struct bz_package_list  *list;
+    rip_check(list = bz_package_deps(package));
+    return bz_package_list_install(list);
+}
+
+
 int
 bz_package_build(struct bz_package *package)
 {
@@ -215,6 +366,8 @@ bz_package_build(struct bz_package *package)
         return 0;
     } else {
         package->built = true;
+        rii_check(bz_package_install_build_deps(package));
+        rii_check(bz_package_install_deps(package));
         return package->build(package->user_data);
     }
 }
@@ -226,6 +379,8 @@ bz_package_test(struct bz_package *package)
         return 0;
     } else {
         package->tested = true;
+        rii_check(bz_package_install_build_deps(package));
+        rii_check(bz_package_install_deps(package));
         return package->test(package->user_data);
     }
 }
@@ -237,6 +392,7 @@ bz_package_install(struct bz_package *package)
         return 0;
     } else {
         package->installed = true;
+        rii_check(bz_package_install_deps(package));
         return package->install(package->user_data);
     }
 }
@@ -459,10 +615,9 @@ bz_satisfy_dependency(struct bz_dependency *dep)
     for (curr = cork_dllist_start(&pdbs); !cork_dllist_is_end(&pdbs, curr);
          curr = curr->next) {
         struct bz_pdb  *pdb = cork_container_of(curr, struct bz_pdb, item);
-        struct bz_package  *package = bz_pdb_satisfy_dependency(pdb, dep);
-        if (CORK_UNLIKELY(cork_error_occurred())) {
-            return NULL;
-        } else if (package != NULL) {
+        struct bz_package  *package;
+        rpe_check(package = bz_pdb_satisfy_dependency(pdb, dep));
+        if (package != NULL) {
             return package;
         }
     }

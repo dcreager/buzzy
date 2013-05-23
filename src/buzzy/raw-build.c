@@ -94,7 +94,7 @@ execute(int argc, char **argv)
 {
     struct cork_path  *source_dir;
     struct bz_builder  *builder;
-    struct bz_value_provider  *value;
+    struct bz_value  *value;
 
     if (argc > 0) {
         cork_command_show_help(&buzzy_raw_build, NULL);

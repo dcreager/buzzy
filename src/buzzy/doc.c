@@ -66,7 +66,7 @@ execute(int argc, char **argv)
 {
     struct bz_env  *env;
     struct bz_var_doc  *doc;
-    const char  *value;
+    struct bz_value  *value;
 
     if (argc != 1) {
         cork_command_show_help(&buzzy_doc, "Must provide a variable name.");
@@ -96,9 +96,19 @@ execute(int argc, char **argv)
         printf("\n  %s\n", doc->long_desc);
     }
 
-    value = bz_env_get(env, argv[0], NULL);
-    if (value != NULL) {
-        printf("\n  Current value: %s\n", value);
+    re_check_error(value = bz_env_get_value(env, argv[0]));
+    if (value == NULL) {
+        printf("\n  No current value\n");
+    } else {
+        if (bz_value_kind(value) == BZ_VALUE_SCALAR) {
+            const char  *content;
+            re_check_error(content = bz_scalar_value_get
+                           (value, bz_env_as_value(env)));
+            printf("\n  Current value: %s\n", content);
+        } else {
+            printf("\n  Current value: [%s]\n",
+                   bz_value_kind_string(bz_value_kind(value)));
+        }
     }
 
     exit(EXIT_SUCCESS);

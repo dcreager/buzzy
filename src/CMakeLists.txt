@@ -64,6 +64,7 @@ set(LIBBUZZY_SRC
     libbuzzy/package.c
     libbuzzy/packager.c
     libbuzzy/repo.c
+    libbuzzy/value.c
     libbuzzy/version.c
     libbuzzy/yaml.c
     libbuzzy/builders/cmake.c

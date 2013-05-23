@@ -36,9 +36,13 @@ repository and directory and while not in one.
   $ buzzy doc repo.base_dir
   repo.base_dir
     The base path of the files defining the repository
+  
+    No current value
   $ buzzy doc repo.repo_yaml
+  No value for repo.base_dir
   repo.repo_yaml
     The location of the YAML file defining the repository
+  [1]
   $ cd ..
 
   $ mkdir -p repo1/.buzzy

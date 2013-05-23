@@ -30,8 +30,8 @@ bz_build_message(struct bz_env *env, const char *builder_name)
 {
     const char  *package_name;
     const char  *version;
-    rip_check(package_name = bz_env_get_string(env, "name", true));
-    rip_check(version = bz_env_get_string(env, "version", true));
+    rip_check(package_name = bz_env_get_string(env, "name"));
+    rip_check(version = bz_env_get_string(env, "version"));
     bz_log_action("Build %s %s (%s)", package_name, version, builder_name);
     return 0;
 }
@@ -41,8 +41,8 @@ bz_test_message(struct bz_env *env, const char *builder_name)
 {
     const char  *package_name;
     const char  *version;
-    rip_check(package_name = bz_env_get_string(env, "name", true));
-    rip_check(version = bz_env_get_string(env, "version", true));
+    rip_check(package_name = bz_env_get_string(env, "name"));
+    rip_check(version = bz_env_get_string(env, "version"));
     bz_log_action("Test %s %s (%s)", package_name, version, builder_name);
     return 0;
 }
@@ -52,8 +52,8 @@ bz_stage_message(struct bz_env *env, const char *builder_name)
 {
     const char  *package_name;
     const char  *version;
-    rip_check(package_name = bz_env_get_string(env, "name", true));
-    rip_check(version = bz_env_get_string(env, "version", true));
+    rip_check(package_name = bz_env_get_string(env, "name"));
+    rip_check(version = bz_env_get_string(env, "version"));
     bz_log_action("Stage %s %s (%s)", package_name, version, builder_name);
     return 0;
 }
@@ -181,8 +181,7 @@ bz_package_builder_new(struct bz_env *env)
 {
     const char  *builder_name;
     struct bz_builder_reg  *builder;
-
-    rpp_check(builder_name = bz_env_get_string(env, "builder", true));
+    rpp_check(builder_name = bz_env_get_string(env, "builder"));
     for (builder = builders; builder->name != NULL; builder++) {
         if (strcmp(builder_name, builder->name) == 0) {
             return builder->new_builder(env);
@@ -198,25 +197,19 @@ bz_package_builder_new(struct bz_env *env)
  */
 
 static int
-bz_builder_is_cmake(struct bz_env *env, bool *dest)
+bz_builder_is_cmake(struct bz_value *ctx, bool *dest)
 {
     struct cork_path  *path;
-    rip_check(path = bz_env_get_path(env, "cmake.cmakelists", true));
-    ei_check(bz_file_exists(cork_path_get(path), dest));
-    cork_path_free(path);
-    return 0;
-
-error:
-    cork_path_free(path);
-    return -1;
+    rip_check(path = bz_value_get_path(ctx, "cmake.cmakelists"));
+    return bz_file_exists(cork_path_get(path), dest);
 }
 
 static const char *
-bz_builder__detect(void *user_data, struct bz_env *env)
+bz_builder__detect(void *user_data, struct bz_value *ctx)
 {
     bool  is_cmake;
 
-    rpi_check(bz_builder_is_cmake(env, &is_cmake));
+    rpi_check(bz_builder_is_cmake(ctx, &is_cmake));
     if (is_cmake) {
         return "cmake";
     }
@@ -225,8 +218,8 @@ bz_builder__detect(void *user_data, struct bz_env *env)
     return NULL;
 }
 
-struct bz_value_provider *
+struct bz_value *
 bz_builder_detector_new(void)
 {
-    return bz_value_provider_new(NULL, NULL, bz_builder__detect);
+    return bz_scalar_value_new(NULL, NULL, bz_builder__detect);
 }
