@@ -7,6 +7,7 @@
  * ----------------------------------------------------------------------
  */
 
+#include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/helpers/errors.h>
 #include <yaml.h>
@@ -15,6 +16,8 @@
 #include "buzzy/error.h"
 #include "buzzy/os.h"
 #include "buzzy/yaml.h"
+
+#define CLOG_CHANNEL  "yaml"
 
 
 /*-----------------------------------------------------------------------
@@ -287,6 +290,7 @@ struct bz_value *
 bz_yaml_value_new_from_file(const char *path)
 {
     yaml_document_t  doc;
+    clog_debug("Load YAML file %s", path);
     rpi_check(bz_load_yaml_file(&doc, path));
     return bz_yaml_value_new(&doc);
 }

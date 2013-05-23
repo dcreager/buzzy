@@ -7,6 +7,7 @@
  * ----------------------------------------------------------------------
  */
 
+#include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
@@ -14,6 +15,8 @@
 #include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/os.h"
+
+#define CLOG_CHANNEL  "cmake"
 
 
 /*-----------------------------------------------------------------------
@@ -54,6 +57,7 @@ static int
 bz_cmake__build(void *user_data)
 {
     struct bz_env  *env = user_data;
+    const char  *package_name;
     struct cork_path  *build_dir;
     struct cork_path  *source_dir;
     struct cork_path  *install_prefix;
@@ -65,6 +69,7 @@ bz_cmake__build(void *user_data)
     rii_check(bz_install_dependency_string("cmake"));
     rii_check(bz_build_message(env, "cmake"));
 
+    rip_check(package_name = bz_env_get_string(env, "name"));
     rip_check(build_dir = bz_env_get_path(env, "build_dir"));
     rip_check(source_dir = bz_env_get_path(env, "source_dir"));
     rip_check(install_prefix = bz_env_get_path(env, "install_prefix"));
@@ -75,6 +80,7 @@ bz_cmake__build(void *user_data)
     rii_check(bz_create_directory(cork_path_get(build_dir)));
 
     /* $ cmake ${source_dir} */
+    clog_info("(%s) Configure using cmake", package_name);
     exec = cork_exec_new("cmake");
     cork_exec_add_param(exec, "cmake");
     cork_exec_add_param(exec, cork_path_get(source_dir));
@@ -88,6 +94,7 @@ bz_cmake__build(void *user_data)
     ei_check(bz_subprocess_run_exec(verbose, NULL, exec));
 
     /* $ cmake --build ${build_dir} */
+    clog_info("(%s) Build using cmake", package_name);
     exec = cork_exec_new("cmake");
     cork_exec_add_param(exec, "cmake");
     cork_exec_add_param(exec, "--build");
@@ -106,6 +113,7 @@ static int
 bz_cmake__test(void *user_data)
 {
     struct bz_env  *env = user_data;
+    const char  *package_name;
     struct cork_path  *build_dir;
     bool  verbose;
     struct cork_exec  *exec;
@@ -114,6 +122,8 @@ bz_cmake__test(void *user_data)
     rii_check(bz_test_message(env, "cmake"));
 
     /* $ cmake --build ${build_path} --target test */
+    rip_check(package_name = bz_env_get_string(env, "name"));
+    clog_info("(%s) Test using cmake", package_name);
     rip_check(build_dir = bz_env_get_path(env, "build_dir"));
     rie_check(verbose = bz_env_get_bool(env, "verbose"));
     exec = cork_exec_new("cmake");
@@ -129,6 +139,7 @@ static int
 bz_cmake__stage(void *user_data)
 {
     struct bz_env  *env = user_data;
+    const char  *package_name;
     struct cork_path  *build_dir;
     struct cork_path  *staging_dir;
     bool  verbose;
@@ -138,6 +149,8 @@ bz_cmake__stage(void *user_data)
     rii_check(bz_install_dependency_string("cmake"));
     rii_check(bz_stage_message(env, "cmake"));
 
+    rip_check(package_name = bz_env_get_string(env, "name"));
+    clog_info("(%s) Stage using cmake", package_name);
     rip_check(build_dir = bz_env_get_path(env, "build_dir"));
     rip_check(staging_dir = bz_env_get_path(env, "staging_dir"));
     rii_check(verbose = bz_env_get_bool(env, "verbose"));

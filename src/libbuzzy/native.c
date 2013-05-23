@@ -9,6 +9,7 @@
 
 #include <stdarg.h>
 
+#include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/helpers/errors.h>
@@ -19,17 +20,7 @@
 #include "buzzy/package.h"
 #include "buzzy/version.h"
 
-
-#if !defined(BZ_DEBUG_NATIVE_PACKAGES)
-#define BZ_DEBUG_NATIVE_PACKAGES  0
-#endif
-
-#if BZ_DEBUG_NATIVE_PACKAGES
-#include <stdio.h>
-#define DEBUG(...) fprintf(stderr, __VA_ARGS__)
-#else
-#define DEBUG(...) /* no debug messages */
-#endif
+#define CLOG_CHANNEL  "native"
 
 
 /*-----------------------------------------------------------------------
@@ -79,6 +70,9 @@ bz_native_package__install__is_needed(struct bz_native_package *native,
                                       bool *is_needed)
 {
     struct bz_version  *installed;
+    clog_info("(%s) Check whether %s package %s is needed",
+              native->package_name,
+              native->short_distro_name, native->native_package_name);
     rie_check(installed = native->version_installed
               (native->native_package_name));
     if (installed == NULL) {
@@ -115,6 +109,9 @@ bz_native_package__uninstall__is_needed(struct bz_native_package *native,
                                         bool *is_needed)
 {
     struct bz_version  *installed;
+    clog_info("(%s) Check whether %s package %s is installed",
+              native->package_name,
+              native->short_distro_name, native->native_package_name);
     rie_check(installed = native->version_installed
               (native->native_package_name));
     /* Uninstall any version that happens to be installed. */
@@ -220,6 +217,9 @@ bz_native_pdb_try_pattern(struct bz_native_pdb *pdb, const char *pattern,
 {
     struct bz_version  *available;
     cork_buffer_printf(&pdb->buf, pattern, dep->package_name);
+    clog_info("(%s) Check whether %s package %s exists",
+              dep->package_name,
+              pdb->short_distro_name, (char *) pdb->buf.buf);
     available = pdb->version_available(pdb->buf.buf);
     if (available == NULL) {
         return NULL;

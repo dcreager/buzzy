@@ -7,8 +7,10 @@
 # ----------------------------------------------------------------------
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/lib/clogger/include)
 include_directories(${CMAKE_SOURCE_DIR}/lib/libcork/include)
 
+add_subdirectory(clogger)
 add_subdirectory(libcork)
 add_subdirectory(libyaml)
 
@@ -82,7 +84,12 @@ set(LIBBUZZY_SRC
 )
 
 add_library(libbuzzy STATIC ${LIBBUZZY_SRC})
-target_link_libraries(libbuzzy ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(libbuzzy
+    ${CMAKE_THREAD_LIBS_INIT}
+    libcork
+    libclogger
+    libyaml
+)
 set_target_properties(libbuzzy PROPERTIES
     OUTPUT_NAME buzzy
 )
@@ -110,5 +117,5 @@ add_executable(buzzy ${BUZZY_SRC})
 set_target_properties(buzzy PROPERTIES
     COMPILE_DEFINITIONS CORK_API=CORK_LOCAL
 )
-target_link_libraries(buzzy libbuzzy libcork libyaml)
+target_link_libraries(buzzy libbuzzy libcork libclogger)
 install(TARGETS buzzy DESTINATION bin)

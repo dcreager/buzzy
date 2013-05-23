@@ -7,6 +7,7 @@
  * ----------------------------------------------------------------------
  */
 
+#include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/helpers/errors.h>
@@ -17,6 +18,8 @@
 #include "buzzy/logging.h"
 #include "buzzy/os.h"
 #include "buzzy/repo.h"
+
+#define CLOG_CHANNEL  "repo:local"
 
 
 /*-----------------------------------------------------------------------
@@ -85,6 +88,8 @@ bz_local_filesystem_repo_find(const char *path_string)
 {
     struct cork_path  *path = cork_path_new(path_string);
 
+    clog_info("Look for local repository near current directory");
+
     do {
         bool  exists;
         cork_path_append(path, ".buzzy");
@@ -94,6 +99,7 @@ bz_local_filesystem_repo_find(const char *path_string)
         cork_path_set_dirname(path);
         if (exists) {
             struct bz_repo  *repo;
+            clog_info("Found local repository at %s", cork_path_get(path));
             ep_check(repo = bz_local_filesystem_repo_new(cork_path_get(path)));
             cork_path_free(path);
             bz_repo_register(repo);

@@ -7,6 +7,7 @@
  * ----------------------------------------------------------------------
  */
 
+#include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/os.h>
@@ -18,6 +19,8 @@
 #include "buzzy/os.h"
 #include "buzzy/repo.h"
 #include "buzzy/distro/git.h"
+
+#define CLOG_CHANNEL  "repo:filesystem"
 
 
 /*-----------------------------------------------------------------------
@@ -36,6 +39,7 @@ bz_filesystem_repo__load_repo_yaml(struct bz_repo *repo)
     if (exists) {
         const char  *repo_yaml_file_string = cork_path_get(repo_yaml_file);
         struct bz_value  *repo_yaml;
+        clog_info("Load repo.yaml file");
         rip_check(repo_yaml = bz_yaml_value_new_from_file
                   (repo_yaml_file_string));
         bz_env_add_set(repo_env, repo_yaml);
@@ -56,6 +60,7 @@ bz_filesystem_repo__load_links_yaml(struct bz_repo *repo)
     rii_check(bz_file_exists(cork_path_get(links_yaml_file), &exists));
     if (exists) {
         const char  *links_yaml_file_string = cork_path_get(links_yaml_file);
+        clog_info("Load links.yaml file");
         rii_check(bz_repo_parse_yaml_links(repo, links_yaml_file_string));
     }
 
@@ -92,7 +97,6 @@ bz_filesystem_repo__create_default_package(struct bz_repo *repo)
     struct bz_value  *package_yaml;
     struct bz_package  *package = NULL;
     struct bz_pdb  *pdb = NULL;
-    const char  *package_name;
 
     /* See if the repository has a package.yaml file. */
     rip_check(package_file = bz_env_get_path(repo_env, "repo.package_yaml"));
@@ -100,6 +104,8 @@ bz_filesystem_repo__create_default_package(struct bz_repo *repo)
     if (!exists) {
         return 0;
     }
+
+    clog_info("Load package.yaml file");
 
     /* If so, create a default package from it. */
     ep_check(package_env = bz_package_env_new_empty(repo_env, "package"));
@@ -112,8 +118,7 @@ bz_filesystem_repo__create_default_package(struct bz_repo *repo)
     bz_repo_set_default_package(repo, package);
 
     /* And a single-package database. */
-    package_name = bz_package_name(package);
-    ep_check(pdb = bz_single_package_pdb_new(package_name, package));
+    ep_check(pdb = bz_single_package_pdb_new(bz_repo_name(repo), package));
     bz_pdb_register(pdb);
     return 0;
 

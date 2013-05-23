@@ -39,6 +39,9 @@ bz_repo_new(struct bz_env *env,
 void
 bz_repo_free(struct bz_repo *repo);
 
+const char *
+bz_repo_name(struct bz_repo *repo);
+
 struct bz_env *
 bz_repo_env(struct bz_repo *repo);
 

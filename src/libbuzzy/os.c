@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/os.h>
@@ -23,6 +24,8 @@
 #include "buzzy/error.h"
 #include "buzzy/mock.h"
 #include "buzzy/os.h"
+
+#define CLOG_CHANNEL  "os"
 
 
 /*-----------------------------------------------------------------------
@@ -244,6 +247,7 @@ bz_create_directory(const char *path_string)
 {
     struct cork_path  *path = cork_path_new(path_string);
     struct cork_file  *dir;
+    clog_debug("Create directory %s", path_string);
     rip_check(dir = bz_mocked_create_dir(path));
     cork_file_free(dir);
     return 0;
@@ -284,6 +288,7 @@ bz_create_file(const char *path_string, struct cork_buffer *src)
 {
     struct cork_path  *path = cork_path_new(path_string);
     struct cork_file  *file;
+    clog_debug("Create file %s", path_string);
     rip_check(file = bz_mocked_create_file(path, src));
     cork_file_free(file);
     return 0;
@@ -305,6 +310,7 @@ bz_file_exists(const char *path_string, bool *exists)
 {
     int  rc;
     struct cork_path  *path = cork_path_new(path_string);
+    clog_debug("Check whether %s exists", path_string);
     rc = bz_mocked_file_exists(path, exists);
     cork_path_free(path);
     return rc;

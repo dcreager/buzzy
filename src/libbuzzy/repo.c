@@ -7,12 +7,15 @@
  * ----------------------------------------------------------------------
  */
 
+#include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/env.h"
 #include "buzzy/repo.h"
+
+#define CLOG_CHANNEL  "repo"
 
 
 /*-----------------------------------------------------------------------
@@ -80,6 +83,7 @@ struct bz_repo {
     struct bz_env  *env;
     struct bz_package  *default_package;
     cork_array(struct bz_repo *)  links;
+    const char  *name;
 
     void  *user_data;
     cork_free_f  free_user_data;
@@ -97,6 +101,7 @@ bz_repo_new(struct bz_env *env,
 {
     struct bz_repo  *repo = cork_new(struct bz_repo);
     repo->env = env;
+    repo->name = NULL;
     repo->default_package = NULL;
     cork_array_init(&repo->links);
     repo->user_data = user_data;
@@ -115,6 +120,15 @@ bz_repo_free(struct bz_repo *repo)
     cork_array_done(&repo->links);
     bz_env_free(repo->env);
     free(repo);
+}
+
+const char *
+bz_repo_name(struct bz_repo *repo)
+{
+    if (repo->name == NULL) {
+        repo->name = bz_env_get_string(repo->env, "repo.name");
+    }
+    return repo->name;
 }
 
 struct bz_env *
@@ -146,6 +160,7 @@ bz_repo_load(struct bz_repo *repo)
 {
     if (!repo->loaded) {
         repo->loaded = true;
+        clog_info("Load repository %s", bz_repo_name(repo));
         return repo->load(repo->user_data, repo->env);
     } else {
         return 0;

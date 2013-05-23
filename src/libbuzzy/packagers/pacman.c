@@ -7,6 +7,7 @@
  * ----------------------------------------------------------------------
  */
 
+#include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
@@ -17,6 +18,8 @@
 #include "buzzy/value.h"
 #include "buzzy/distro/arch.h"
 
+#define CLOG_CHANNEL  "pacman"
+
 
 /*-----------------------------------------------------------------------
  * Architecture values
@@ -25,13 +28,19 @@
 static const char *
 bz_architecture_value__get(void *user_data, struct bz_value *ctx)
 {
-    return bz_arch_current_architecture();
+    struct cork_buffer  *buf = user_data;
+    if (buf->size == 0) {
+        cork_buffer_set_string(buf, bz_arch_current_architecture());
+    }
+    return buf->buf;
 }
 
 static struct bz_value *
 bz_architecture_value_new(void)
 {
-    return bz_scalar_value_new(NULL, NULL, bz_architecture_value__get);
+    struct cork_buffer  *buf = cork_buffer_new();
+    return bz_scalar_value_new
+        (buf, (cork_free_f) cork_buffer_free, bz_architecture_value__get);
 }
 
 
@@ -136,18 +145,23 @@ static int
 bz_pacman__package__is_needed(void *user_data, bool *is_needed)
 {
     struct bz_env  *env = user_data;
+    const char  *package_name;
     bool  force = false;
 
+    rip_check(package_name = bz_env_get_string(env, "name"));
     rie_check(force = bz_env_get_bool(env, "force"));
 
     if (force) {
         *is_needed = true;
+        clog_info("(%s) Force creation of binary package",
+                  package_name);
         return 0;
     } else {
-        const char  *package_file;
-        rip_check(package_file = bz_env_get_string
-                  (env, "pacman.package_file"));
-        rii_check(bz_file_exists(package_file, is_needed));
+        struct cork_path  *package_file;
+        rip_check(package_file = bz_env_get_path(env, "pacman.package_file"));
+        clog_info("(%s) Check whether binary package %s exists",
+                  package_name, cork_path_get(package_file));
+        rii_check(bz_file_exists(cork_path_get(package_file), is_needed));
         *is_needed = !*is_needed;
         return 0;
     }
@@ -216,6 +230,7 @@ bz_pacman__package(void *user_data)
     struct cork_path  *binary_package_dir;
     struct cork_path  *package_build_dir;
     struct cork_path  *pkgbuild;
+    struct cork_path  *package_file;
     const char  *package_name;
     const char  *version;
     const char  *pkgrel;
@@ -232,13 +247,16 @@ bz_pacman__package(void *user_data)
     rii_check(bz_install_dependency_string("pacman"));
     rii_check(bz_package_message(env, "pacman"));
 
+    rip_check(package_name = bz_env_get_string(env, "name"));
+    clog_info("(%s) Package using pacman", package_name);
+
     rip_check(staging_dir = bz_env_get_path(env, "staging_dir"));
     rip_check(binary_package_dir =
               bz_env_get_path(env, "binary_package_dir"));
     rip_check(package_build_dir =
               bz_env_get_path(env, "package_build_dir"));
     rip_check(pkgbuild = bz_env_get_path(env, "pacman.pkgbuild"));
-    rip_check(package_name = bz_env_get_string(env, "name"));
+    rip_check(package_file = bz_env_get_path(env, "pacman.package_file"));
     rip_check(version = bz_env_get_string(env, "pacman.version"));
     rip_check(pkgrel = bz_env_get_string(env, "pacman.pkgrel"));
     rip_check(pkgext = bz_env_get_string(env, "pacman.pkgext"));
@@ -283,6 +301,8 @@ bz_pacman__package(void *user_data)
     exec = cork_exec_new_with_params("makepkg", "-sf", NULL);
     cork_exec_set_cwd(exec, cork_path_get(package_build_dir));
     cork_exec_set_env(exec, exec_env);
+    clog_info("(%s) Create %s using pacman",
+              package_name, cork_path_get(package_file));
     return bz_subprocess_run_exec(verbose, NULL, exec);
 
 error:
@@ -295,20 +315,24 @@ static int
 bz_pacman__install__is_needed(void *user_data, bool *is_needed)
 {
     struct bz_env  *env = user_data;
+    const char  *package_name;
     struct bz_version  *package_version;
     bool  force;
 
     rii_check(bz_install_dependency_string("pacman"));
+    rip_check(package_name = bz_env_get_string(env, "name"));
     rie_check(force = bz_env_get_bool(env, "force"));
 
     if (force) {
         *is_needed = true;
+        clog_info("(%s) Force installation of package",
+                  package_name);
         return 0;
     } else {
-        const char  *package_name;
         struct bz_version  *installed;
 
-        rip_check(package_name = bz_env_get_string(env, "name"));
+        clog_info("(%s) Check whether pacman package is installed",
+                  package_name);
         rip_check(package_version = bz_env_get_version(env, "version"));
         ee_check(installed = bz_arch_native_version_installed(package_name));
 
@@ -331,15 +355,18 @@ static int
 bz_pacman__install(void *user_data)
 {
     struct bz_env  *env = user_data;
-    const char  *package_file;
+    const char  *package_name;
+    struct cork_path  *package_file;
 
     rii_check(bz_install_message(env, "pacman"));
 
-    rip_check(package_file = bz_env_get_string
-              (env, "pacman.package_file"));
+    rip_check(package_name = bz_env_get_string(env, "name"));
+    rip_check(package_file = bz_env_get_path(env, "pacman.package_file"));
+    clog_info("(%s) Install %s using pacman",
+              package_name, cork_path_get(package_file));
     return bz_subprocess_run
         (false, NULL,
-         "sudo", "pacman", "-U", "--noconfirm", package_file,
+         "sudo", "pacman", "-U", "--noconfirm", cork_path_get(package_file),
          NULL);
 }
 
@@ -352,6 +379,8 @@ bz_pacman__uninstall__is_needed(void *user_data, bool *is_needed)
     struct bz_version  *installed;
     rii_check(bz_install_dependency_string("pacman"));
     rip_check(package_name = bz_env_get_string(env, "name"));
+    clog_info("(%s) Check whether pacman package is installed",
+              package_name);
     rie_check(installed = bz_arch_native_version_installed(package_name));
     if (installed == NULL) {
         *is_needed = false;
@@ -371,6 +400,7 @@ bz_pacman__uninstall(void *user_data)
     rii_check(bz_uninstall_message(env, "pacman"));
 
     rip_check(package_name = bz_env_get_string(env, "name"));
+    clog_info("(%s) Uninstall using pacman", package_name);
     return bz_subprocess_run
         (false, NULL,
          "sudo", "pacman", "-R", "--noconfirm", package_name,

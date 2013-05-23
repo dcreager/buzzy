@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/os.h>
@@ -22,17 +23,7 @@
 #include "buzzy/value.h"
 #include "buzzy/version.h"
 
-
-#if !defined(BZ_DEBUG_PACKAGES)
-#define BZ_DEBUG_PACKAGES  0
-#endif
-
-#if BZ_DEBUG_PACKAGES
-#include <stdio.h>
-#define DEBUG(...) fprintf(stderr, __VA_ARGS__)
-#else
-#define DEBUG(...) /* no debug messages */
-#endif
+#define CLOG_CHANNEL  "package"
 
 
 /*-----------------------------------------------------------------------
@@ -366,6 +357,7 @@ bz_package_build(struct bz_package *package)
         return 0;
     } else {
         package->built = true;
+        clog_info("(%s) Build package", package->name);
         rii_check(bz_package_install_build_deps(package));
         rii_check(bz_package_install_deps(package));
         return package->build(package->user_data);
@@ -379,6 +371,7 @@ bz_package_test(struct bz_package *package)
         return 0;
     } else {
         package->tested = true;
+        clog_info("(%s) Test package", package->name);
         rii_check(bz_package_install_build_deps(package));
         rii_check(bz_package_install_deps(package));
         return package->test(package->user_data);
@@ -392,6 +385,7 @@ bz_package_install(struct bz_package *package)
         return 0;
     } else {
         package->installed = true;
+        clog_info("(%s) Install package", package->name);
         rii_check(bz_package_install_deps(package));
         return package->install(package->user_data);
     }
@@ -612,12 +606,18 @@ struct bz_package *
 bz_satisfy_dependency(struct bz_dependency *dep)
 {
     struct cork_dllist_item  *curr;
+    const char  *dep_string = bz_dependency_to_string(dep);
+    clog_info("(%s) Satisfy dependency %s", dep->package_name, dep_string);
     for (curr = cork_dllist_start(&pdbs); !cork_dllist_is_end(&pdbs, curr);
          curr = curr->next) {
         struct bz_pdb  *pdb = cork_container_of(curr, struct bz_pdb, item);
         struct bz_package  *package;
+        clog_info("(%s) Check %s for %s",
+                  dep->package_name, pdb->name, dep_string);
         rpe_check(package = bz_pdb_satisfy_dependency(pdb, dep));
         if (package != NULL) {
+            clog_info("(%s) Found package that satisfies dependency",
+                      dep->package_name);
             return package;
         }
     }

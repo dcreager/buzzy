@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/os.h>
@@ -28,17 +29,7 @@
 #include "buzzy/version.h"
 #include "buzzy/distro/arch.h"
 
-
-#if !defined(BZ_DEBUG_ARCH)
-#define BZ_DEBUG_ARCH  0
-#endif
-
-#if BZ_DEBUG_ARCH
-#include <stdio.h>
-#define DEBUG(...) fprintf(stderr, __VA_ARGS__)
-#else
-#define DEBUG(...) /* no debug messages */
-#endif
+#define CLOG_CHANNEL  "arch"
 
 
 /*-----------------------------------------------------------------------
@@ -203,7 +194,7 @@ bz_version_from_arch(const char *arch_version)
     const char  *start;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
-    DEBUG("---\nParse Arch version \"%s\"\n", arch_version);
+    clog_trace("Parse Arch version \"%s\"", arch_version);
     version = bz_version_new();
 
     %%{
@@ -212,30 +203,30 @@ bz_version_from_arch(const char *arch_version)
         action start_release {
             kind = BZ_VERSION_RELEASE;
             start = fpc;
-            DEBUG("  Create new release version part\n");
+            clog_trace("  Create new release version part");
         }
 
         action start_prerelease {
             kind = BZ_VERSION_PRERELEASE;
             start = fpc;
-            DEBUG("  Create new prerelease version part\n");
+            clog_trace("  Create new prerelease version part");
         }
 
         action start_postrelease {
             kind = BZ_VERSION_POSTRELEASE;
             start = fpc;
-            DEBUG("  Create new postrelease version part\n");
+            clog_trace("  Create new postrelease version part");
         }
 
         action add_part {
             size_t  size = fpc - start;
-            DEBUG("    String value: %.*s\n", (int) size, start);
+            clog_trace("    String value: %.*s", (int) size, start);
             bz_version_add_part(version, kind, start, size);
         }
 
         action start_revision {
             start = fpc + 1;
-            DEBUG("  Create new postrelease version part for Arch revision\n");
+            clog_trace("  Create new postrelease version part for revision");
         }
 
         action add_revision {
