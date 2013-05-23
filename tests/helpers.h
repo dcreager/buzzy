@@ -12,6 +12,7 @@
 
 #include <string.h>
 
+#include "clogger.h"
 #include "libcork/core.h"
 #include "libcork/os.h"
 
@@ -80,6 +81,11 @@ initialize_tests(void)
     cork_env_remove(NULL, "XDG_CACHE_DIRS");
     cork_env_remove(NULL, "XDG_DATA_HOME");
     cork_env_remove(NULL, "XDG_DATA_DIRS");
+    clog_set_default_format("[%L] %m");
+    if (clog_setup_logging() != 0) {
+        fprintf(stderr, "%s\n", cork_error_message());
+        exit(EXIT_FAILURE);
+    }
 }
 
 

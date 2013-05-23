@@ -66,7 +66,7 @@ bz_cmake__build(void *user_data)
     struct cork_exec  *exec;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
-    rii_check(bz_install_dependency_string("cmake"));
+    rii_check(bz_install_dependency_string("cmake", env));
     rii_check(bz_build_message(env, "cmake"));
 
     rip_check(package_name = bz_env_get_string(env, "name", true));
@@ -118,7 +118,7 @@ bz_cmake__test(void *user_data)
     bool  verbose;
     struct cork_exec  *exec;
 
-    rii_check(bz_install_dependency_string("cmake"));
+    rii_check(bz_install_dependency_string("cmake", env));
     rii_check(bz_test_message(env, "cmake"));
 
     /* $ cmake --build ${build_path} --target test */
@@ -146,7 +146,7 @@ bz_cmake__stage(void *user_data)
     struct cork_env  *exec_env;
     struct cork_exec  *exec;
 
-    rii_check(bz_install_dependency_string("cmake"));
+    rii_check(bz_install_dependency_string("cmake", env));
     rii_check(bz_stage_message(env, "cmake"));
 
     rip_check(package_name = bz_env_get_string(env, "name", true));

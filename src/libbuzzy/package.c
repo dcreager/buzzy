@@ -165,6 +165,7 @@ bz_package_list_done(struct bz_package_list *list)
 
 struct bz_package_list_fill {
     struct bz_package_list  *list;
+    struct bz_env  *env;
     struct bz_value  *ctx;
 };
 
@@ -175,7 +176,7 @@ bz_package_list_fill_one(void *user_data, struct bz_value *dep_value)
     const char  *dep_string;
     struct bz_package  *dep;
     rip_check(dep_string = bz_scalar_value_get(dep_value, state->ctx));
-    rip_check(dep = bz_satisfy_dependency_string(dep_string));
+    rip_check(dep = bz_satisfy_dependency_string(dep_string, state->env));
     cork_array_append(&state->list->packages, dep);
     return 0;
 }
@@ -185,13 +186,14 @@ bz_package_list_fill(struct bz_package_list *list, struct bz_package *package,
                      const char *var_name)
 {
     if (!list->filled) {
-        struct bz_value  *ctx = bz_env_as_value(bz_package_env(package));
+        struct bz_env  *env = bz_package_env(package);
+        struct bz_value  *ctx = bz_env_as_value(env);
         struct bz_value  *value;
         list->filled = true;
         rie_check(value = bz_map_value_get(ctx, var_name));
         if (value != NULL) {
             struct bz_package_list_fill  state = {
-                list, ctx
+                list, env, ctx
             };
             return bz_array_value_map_scalars
                 (value, &state, bz_package_list_fill_one);
@@ -438,9 +440,13 @@ bz_pdb_free(struct bz_pdb *pdb)
 }
 
 struct bz_package *
-bz_pdb_satisfy_dependency(struct bz_pdb *pdb, struct bz_dependency *dep)
+bz_pdb_satisfy_dependency(struct bz_pdb *pdb, struct bz_dependency *dep,
+                          struct bz_env *requestor)
 {
-    return pdb->satisfy(pdb->user_data, dep);
+    if (requestor == NULL) {
+        requestor = bz_global_env();
+    }
+    return pdb->satisfy(pdb->user_data, dep, requestor);
 }
 
 
@@ -466,7 +472,8 @@ bz_single_package_pdb__free(void *user_data)
 }
 
 static struct bz_package *
-bz_single_package_pdb__satisfy(void *user_data, struct bz_dependency *dep)
+bz_single_package_pdb__satisfy(void *user_data, struct bz_dependency *dep,
+                               struct bz_env *requestor)
 {
     struct bz_single_package_pdb  *pdb = user_data;
     if (strcmp(pdb->package_name, dep->package_name) == 0) {
@@ -529,18 +536,22 @@ bz_cached_pdb__free(void *user_data)
 }
 
 static struct bz_package *
-bz_cached_pdb__satisfy(void *user_data, struct bz_dependency *dep)
+bz_cached_pdb__satisfy(void *user_data, struct bz_dependency *dep,
+                       struct bz_env *requestor)
 {
     struct bz_cached_pdb  *pdb = user_data;
     const char  *dep_string = bz_dependency_to_string(dep);
     bool  is_new;
     struct cork_hash_table_entry  *entry;
 
+    /* TODO: We might want to have the cache be aware of the requestor
+     * environment when caching packages. */
     entry = cork_hash_table_get_or_create
         (&pdb->packages, (void *) dep_string, &is_new);
 
     if (is_new) {
-        struct bz_package  *package = pdb->satisfy(pdb->user_data, dep);
+        struct bz_package  *package =
+            pdb->satisfy(pdb->user_data, dep, requestor);
         entry->key = (void *) cork_strdup(dep_string);
         entry->value = package;
         return package;
@@ -603,7 +614,7 @@ bz_pdb_registry_clear(void)
 }
 
 struct bz_package *
-bz_satisfy_dependency(struct bz_dependency *dep)
+bz_satisfy_dependency(struct bz_dependency *dep, struct bz_env *requestor)
 {
     struct cork_dllist_item  *curr;
     const char  *dep_string = bz_dependency_to_string(dep);
@@ -614,7 +625,7 @@ bz_satisfy_dependency(struct bz_dependency *dep)
         struct bz_package  *package;
         clog_info("(%s) Check %s for %s",
                   dep->package_name, pdb->name, dep_string);
-        rpe_check(package = bz_pdb_satisfy_dependency(pdb, dep));
+        rpe_check(package = bz_pdb_satisfy_dependency(pdb, dep, requestor));
         if (package != NULL) {
             clog_info("(%s) Found package that satisfies dependency",
                       dep->package_name);
@@ -628,31 +639,31 @@ bz_satisfy_dependency(struct bz_dependency *dep)
 }
 
 int
-bz_install_dependency(struct bz_dependency *dep)
+bz_install_dependency(struct bz_dependency *dep, struct bz_env *requestor)
 {
     struct bz_package  *package;
-    rip_check(package = bz_satisfy_dependency(dep));
+    rip_check(package = bz_satisfy_dependency(dep, requestor));
     return bz_package_install(package);
 }
 
 struct bz_package *
-bz_satisfy_dependency_string(const char *dep_string)
+bz_satisfy_dependency_string(const char *dep_string, struct bz_env *requestor)
 {
     struct bz_dependency  *dep;
     struct bz_package  *package;
     rpp_check(dep = bz_dependency_from_string(dep_string));
-    package = bz_satisfy_dependency(dep);
+    package = bz_satisfy_dependency(dep, requestor);
     bz_dependency_free(dep);
     return package;
 }
 
 int
-bz_install_dependency_string(const char *dep_string)
+bz_install_dependency_string(const char *dep_string, struct bz_env *requestor)
 {
     struct bz_dependency  *dep;
     int  rc;
     rip_check(dep = bz_dependency_from_string(dep_string));
-    rc = bz_install_dependency(dep);
+    rc = bz_install_dependency(dep, requestor);
     bz_dependency_free(dep);
     return rc;
 }

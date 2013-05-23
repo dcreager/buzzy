@@ -250,7 +250,7 @@ satisfy_dependencies(struct cork_command *cmd, int argc, char **argv)
         struct bz_env  *env;
 
         rp_check_error(dep = bz_dependency_from_string(argv[i]));
-        rp_check_error(package = bz_satisfy_dependency(dep));
+        rp_check_error(package = bz_satisfy_dependency(dep, NULL));
         env = bz_package_env(package);
         bz_env_add_override
             (env, "verbose", bz_string_value_new((verbosity >= 0)? "1": "0"));

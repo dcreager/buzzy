@@ -91,7 +91,8 @@ struct bz_pdb;
 
 /* The pdb is responsible for freeing any packages it creates. */
 typedef struct bz_package *
-(*bz_pdb_satisfy_f)(void *user_data, struct bz_dependency *dep);
+(*bz_pdb_satisfy_f)(void *user_data, struct bz_dependency *dep,
+                    struct bz_env *requestor);
 
 
 struct bz_pdb *
@@ -102,8 +103,12 @@ bz_pdb_new(const char *pdb_name,
 void
 bz_pdb_free(struct bz_pdb *pdb);
 
+/* `requestor` is the environment that wants the dependency to be installed.
+ * You can use that to customize which package that should be used to provide
+ * the dependency.  If `requestor` is NULL, we'll use the global environment. */
 struct bz_package *
-bz_pdb_satisfy_dependency(struct bz_pdb *pdb, struct bz_dependency *dep);
+bz_pdb_satisfy_dependency(struct bz_pdb *pdb, struct bz_dependency *dep,
+                          struct bz_env *requestor);
 
 
 /*-----------------------------------------------------------------------
@@ -142,16 +147,16 @@ void
 bz_pdb_registry_clear(void);
 
 struct bz_package *
-bz_satisfy_dependency(struct bz_dependency *dep);
+bz_satisfy_dependency(struct bz_dependency *dep, struct bz_env *requestor);
 
 int
-bz_install_dependency(struct bz_dependency *dep);
+bz_install_dependency(struct bz_dependency *dep, struct bz_env *requestor);
 
 struct bz_package *
-bz_satisfy_dependency_string(const char *dep_string);
+bz_satisfy_dependency_string(const char *dep_string, struct bz_env *requestor);
 
 int
-bz_install_dependency_string(const char *dep_string);
+bz_install_dependency_string(const char *dep_string, struct bz_env *requestor);
 
 
 #endif /* BUZZY_PACKAGE_H */

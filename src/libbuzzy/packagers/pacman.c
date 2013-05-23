@@ -245,7 +245,7 @@ bz_pacman__package(void *user_data)
     struct cork_buffer  buf = CORK_BUFFER_INIT();
     bool  staging_exists;
 
-    rii_check(bz_install_dependency_string("pacman"));
+    rii_check(bz_install_dependency_string("pacman", env));
     rii_check(bz_package_message(env, "pacman"));
 
     rip_check(package_name = bz_env_get_string(env, "name", true));
@@ -320,7 +320,7 @@ bz_pacman__install__is_needed(void *user_data, bool *is_needed)
     struct bz_version  *package_version;
     bool  force;
 
-    rii_check(bz_install_dependency_string("pacman"));
+    rii_check(bz_install_dependency_string("pacman", env));
     rip_check(package_name = bz_env_get_string(env, "name", true));
     rie_check(force = bz_env_get_bool(env, "force", true));
 
@@ -378,7 +378,7 @@ bz_pacman__uninstall__is_needed(void *user_data, bool *is_needed)
     struct bz_env  *env = user_data;
     const char  *package_name;
     struct bz_version  *installed;
-    rii_check(bz_install_dependency_string("pacman"));
+    rii_check(bz_install_dependency_string("pacman", env));
     rip_check(package_name = bz_env_get_string(env, "name", true));
     clog_info("(%s) Check whether pacman package is installed",
               package_name);
