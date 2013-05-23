@@ -104,7 +104,7 @@ bz_var_ref_element__render(void *user_data, struct bz_value *ctx,
 {
     const char  *var_name = user_data;
     const char  *value;
-    rie_check(value = bz_value_get_string(ctx, var_name));
+    rie_check(value = bz_value_get_string(ctx, var_name, false));
     if (CORK_UNLIKELY(value == NULL)) {
         bz_bad_config("No variable named \"%s\"", var_name);
         return -1;

@@ -37,7 +37,7 @@ bz_git__load(void *user_data, struct bz_env *env)
 {
     struct bz_git_repo  *repo = user_data;
     struct cork_path  *repo_base_dir;
-    rip_check(repo_base_dir = bz_env_get_path(env, "repo.base_dir"));
+    rip_check(repo_base_dir = bz_env_get_path(env, "repo.base_dir", true));
     rii_check(bz_git_clone(repo->url, repo->commit, repo_base_dir));
     return bz_filesystem_repo_load(repo->repo);
 }
@@ -48,7 +48,7 @@ bz_git__update(void *user_data, struct bz_env *env)
 {
     struct bz_git_repo  *repo = user_data;
     struct cork_path  *repo_git_dir;
-    rip_check(repo_git_dir = bz_env_get_path(env, "repo.git_dir"));
+    rip_check(repo_git_dir = bz_env_get_path(env, "repo.git_dir", true));
     rii_check(bz_git_update(repo->url, repo->commit, repo_git_dir));
     return 0;
 }

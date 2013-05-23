@@ -230,7 +230,7 @@ test_arch_pdb_dep(struct bz_pdb *pdb, const char *dep_str,
     struct bz_package  *package;
     bz_mocked_actions_clear();
     fail_if_error(dep = bz_dependency_from_string(dep_str));
-    fail_if_error(package = bz_pdb_satisfy_dependency(pdb, dep));
+    fail_if_error(package = bz_pdb_satisfy_dependency(pdb, dep, NULL));
     fail_if_error(bz_package_install(package));
     test_actions(expected_actions);
     bz_dependency_free(dep);
@@ -242,7 +242,7 @@ test_arch_pdb_unknown_dep(struct bz_pdb *pdb, const char *dep_str)
     struct bz_dependency  *dep;
     struct bz_package  *package;
     fail_if_error(dep = bz_dependency_from_string(dep_str));
-    fail_if_error(package = bz_pdb_satisfy_dependency(pdb, dep));
+    fail_if_error(package = bz_pdb_satisfy_dependency(pdb, dep, NULL));
     fail_unless(package == NULL, "Should not be able to build %s", dep_str);
     bz_dependency_free(dep);
 }
@@ -333,6 +333,68 @@ START_TEST(test_arch_pdb_nonexistent_native_package_01)
 
     test_arch_pdb_unknown_dep(pdb, "jansson");
     test_arch_pdb_unknown_dep(pdb, "jansson >= 2.4");
+
+    bz_pdb_free(pdb);
+}
+END_TEST
+
+START_TEST(test_arch_pdb_uninstalled_override_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env;
+    struct bz_pdb  *pdb;
+
+    /* A package that is available in the native package database, but has not
+     * yet been installed, where we give the package name as an override. */
+    reset_everything();
+    bz_start_mocks();
+    env = bz_global_env();
+    mock_available_package("libjansson0", "2.4-1");
+    mock_uninstalled_package("libjansson0");
+    mock_package_installation("libjansson0", "2.4-1");
+
+    fail_if_error(pdb = bz_arch_native_pdb());
+    bz_env_add_override
+        (env, "native.jansson", bz_string_value_new("libjansson0"));
+
+    test_arch_pdb_dep(pdb, "jansson",
+        "[1] Install native Arch package libjansson0 2.4\n"
+    );
+
+    test_arch_pdb_dep(pdb, "jansson >= 2.4",
+        "[1] Install native Arch package libjansson0 2.4\n"
+    );
+
+    bz_pdb_free(pdb);
+}
+END_TEST
+
+START_TEST(test_arch_pdb_uninstalled_override_package_02)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env;
+    struct bz_pdb  *pdb;
+
+    /* A package that is available in the native package database, but has not
+     * yet been installed, where we give the package name as an override. */
+    reset_everything();
+    bz_start_mocks();
+    env = bz_global_env();
+    mock_available_package("libjansson0", "2.4-1");
+    mock_uninstalled_package("libjansson0");
+    mock_package_installation("libjansson0", "2.4-1");
+
+    fail_if_error(pdb = bz_arch_native_pdb());
+    bz_env_add_override
+        (env, "native.arch.jansson", bz_string_value_new("libjansson0"));
+
+    test_arch_pdb_dep(pdb, "jansson",
+        "[1] Install native Arch package libjansson0 2.4\n"
+    );
+
+    test_arch_pdb_dep(pdb, "jansson >= 2.4",
+        "[1] Install native Arch package libjansson0 2.4\n"
+    );
 
     bz_pdb_free(pdb);
 }
@@ -589,6 +651,8 @@ test_suite()
     tcase_add_test(tc_arch_pdb, test_arch_pdb_uninstalled_native_package_02);
     tcase_add_test(tc_arch_pdb, test_arch_pdb_installed_native_package_01);
     tcase_add_test(tc_arch_pdb, test_arch_pdb_nonexistent_native_package_01);
+    tcase_add_test(tc_arch_pdb, test_arch_pdb_uninstalled_override_package_01);
+    tcase_add_test(tc_arch_pdb, test_arch_pdb_uninstalled_override_package_02);
     suite_add_tcase(s, tc_arch_pdb);
 
     TCase  *tc_arch_package = tcase_create("arch-package");

@@ -126,7 +126,7 @@ const char *
 bz_repo_name(struct bz_repo *repo)
 {
     if (repo->name == NULL) {
-        repo->name = bz_env_get_string(repo->env, "repo.name");
+        repo->name = bz_env_get_string(repo->env, "repo.name", true);
     }
     return repo->name;
 }

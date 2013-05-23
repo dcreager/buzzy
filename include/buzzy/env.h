@@ -26,23 +26,24 @@ struct bz_env;
 struct bz_value *
 bz_env_get_value(struct bz_env *env, const char *name);
 
-/* All of the following return an error if the value is missing, or if it's
- * malformed.  You are not responsible for freeing any results. */
+/* All of the following return an error if the value is malformed.  If required
+ * is true, they also return an error if the value is missing.  You are not
+ * responsible for freeing any results. */
 
 bool
-bz_env_get_bool(struct bz_env *env, const char *name);
+bz_env_get_bool(struct bz_env *env, const char *name, bool required);
 
 long
-bz_env_get_long(struct bz_env *env, const char *name);
+bz_env_get_long(struct bz_env *env, const char *name, bool required);
 
 struct cork_path *
-bz_env_get_path(struct bz_env *env, const char *name);
+bz_env_get_path(struct bz_env *env, const char *name, bool required);
 
 const char *
-bz_env_get_string(struct bz_env *env, const char *name);
+bz_env_get_string(struct bz_env *env, const char *name, bool required);
 
 struct bz_version *
-bz_env_get_version(struct bz_env *env, const char *name);
+bz_env_get_version(struct bz_env *env, const char *name, bool required);
 
 
 /*-----------------------------------------------------------------------

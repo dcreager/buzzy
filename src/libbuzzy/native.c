@@ -186,6 +186,7 @@ bz_native_package_new(const char *short_distro_name,
 
 struct bz_native_pdb {
     const char  *short_distro_name;
+    const char  *slug;
     bz_native_detect_f  version_available;
     bz_native_detect_f  version_installed;
     bz_native_install_f  install;
@@ -207,48 +208,67 @@ bz_native_pdb__free(void *user_data)
     cork_array_done(&pdb->patterns);
 
     cork_strfree(pdb->short_distro_name);
+    cork_strfree(pdb->slug);
     cork_buffer_done(&pdb->buf);
     free(pdb);
 }
 
 static struct bz_package *
-bz_native_pdb_try_pattern(struct bz_native_pdb *pdb, const char *pattern,
+bz_native_pdb_try_package(struct bz_native_pdb *pdb, const char *name,
                           struct bz_dependency *dep)
 {
     struct bz_version  *available;
-    cork_buffer_printf(&pdb->buf, pattern, dep->package_name);
     clog_info("(%s) Check whether %s package %s exists",
-              dep->package_name,
-              pdb->short_distro_name, (char *) pdb->buf.buf);
-    available = pdb->version_available(pdb->buf.buf);
+              dep->package_name, pdb->short_distro_name, name);
+    available = pdb->version_available(name);
     if (available == NULL) {
         return NULL;
     } else {
         return bz_native_package_new
             (pdb->short_distro_name,
-             dep->package_name, pdb->buf.buf, available,
+             dep->package_name, name, available,
              pdb->version_installed, pdb->install, pdb->uninstall);
     }
 }
 
 static struct bz_package *
-bz_native_pdb__satisfy(void *user_data, struct bz_dependency *dep)
+bz_native_pdb__satisfy(void *user_data, struct bz_dependency *dep,
+                       struct bz_env *requestor)
 {
     size_t  i;
     struct bz_native_pdb  *pdb = user_data;
+    struct bz_package  *result;
+    const char  *name;
+
+    /* First see if the requestor has provided an explicit native package name
+     * to use. */
+
+    cork_buffer_printf(&pdb->buf, "native.%s", dep->package_name);
+    rpe_check(name = bz_env_get_string(requestor, pdb->buf.buf, false));
+    if (name != NULL) {
+        return bz_native_pdb_try_package(pdb, name, dep);
+    }
+
+    cork_buffer_printf(&pdb->buf, "native.%s.%s", pdb->slug, dep->package_name);
+    rpe_check(name = bz_env_get_string(requestor, pdb->buf.buf, false));
+    if (name != NULL) {
+        return bz_native_pdb_try_package(pdb, name, dep);
+    }
+
+    /* Otherwise try each of the standard patterns for this architecture. */
     for (i = 0; i < cork_array_size(&pdb->patterns); i++) {
         const char  *pattern = cork_array_at(&pdb->patterns, i);
-        struct bz_package  *package =
-            bz_native_pdb_try_pattern(pdb, pattern, dep);
-        if (package != NULL) {
-            return package;
+        cork_buffer_printf(&pdb->buf, pattern, dep->package_name);
+        result = bz_native_pdb_try_package(pdb, pdb->buf.buf, dep);
+        if (result != NULL) {
+            return result;
         }
     }
     return NULL;
 }
 
 struct bz_pdb *
-bz_native_pdb_new(const char *short_distro_name,
+bz_native_pdb_new(const char *short_distro_name, const char *slug,
                   bz_native_detect_f version_available,
                   bz_native_detect_f version_installed,
                   bz_native_install_f install,
@@ -263,6 +283,7 @@ bz_native_pdb_new(const char *short_distro_name,
     pdb->install = install;
     pdb->uninstall = uninstall;
     pdb->short_distro_name = cork_strdup(short_distro_name);
+    pdb->slug = cork_strdup(slug);
     cork_buffer_init(&pdb->buf);
     cork_array_init(&pdb->patterns);
     va_start(args, uninstall);

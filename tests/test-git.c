@@ -86,7 +86,7 @@ test_git_version_value(const char *git, const char *buzzy)
     fail_if_error(value = bz_git_version_value_new());
     bz_env_add_override(env, "version", value);
     bz_env_add_override(env, "source_dir", bz_string_value_new("."));
-    fail_if_error(actual = bz_env_get_string(env, "version"));
+    fail_if_error(actual = bz_env_get_string(env, "version", true));
     fail_unless_streq("Versions", buzzy, actual);
     bz_env_free(env);
 }

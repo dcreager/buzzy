@@ -140,33 +140,33 @@ bz_env_get_value(struct bz_env *env, const char *name)
 }
 
 bool
-bz_env_get_bool(struct bz_env *env, const char *name)
+bz_env_get_bool(struct bz_env *env, const char *name, bool required)
 {
-    return bz_value_get_bool(env->value, name);
+    return bz_value_get_bool(env->value, name, required);
 }
 
 long
-bz_env_get_long(struct bz_env *env, const char *name)
+bz_env_get_long(struct bz_env *env, const char *name, bool required)
 {
-    return bz_value_get_long(env->value, name);
+    return bz_value_get_long(env->value, name, required);
 }
 
 struct cork_path *
-bz_env_get_path(struct bz_env *env, const char *name)
+bz_env_get_path(struct bz_env *env, const char *name, bool required)
 {
-    return bz_value_get_path(env->value, name);
+    return bz_value_get_path(env->value, name, required);
 }
 
 const char *
-bz_env_get_string(struct bz_env *env, const char *name)
+bz_env_get_string(struct bz_env *env, const char *name, bool required)
 {
-    return bz_value_get_string(env->value, name);
+    return bz_value_get_string(env->value, name, required);
 }
 
 struct bz_version *
-bz_env_get_version(struct bz_env *env, const char *name)
+bz_env_get_version(struct bz_env *env, const char *name, bool required)
 {
-    return bz_value_get_version(env->value, name);
+    return bz_value_get_version(env->value, name, required);
 }
 
 

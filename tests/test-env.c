@@ -29,7 +29,7 @@ test_string_value(const char *content)
     struct bz_value  *value;
     const char  *actual;
     fail_if_error(value = bz_string_value_new(content));
-    fail_if_error(actual = bz_value_get_string(value, NULL));
+    fail_if_error(actual = bz_value_get_string(value, NULL, true));
     fail_unless_streq("String values", content, actual);
     bz_value_free(value);
 }
@@ -54,10 +54,10 @@ test_good_interpolated_value(const char *template_value, const char *expected)
     struct bz_value  *value;
     fail_if_error(value = bz_interpolated_value_new(template_value));
     if (expected == NULL) {
-        fail_unless_error(bz_value_get_string(value, NULL));
+        fail_unless_error(bz_value_get_string(value, NULL, true));
     } else {
         const char  *actual;
-        fail_if_error(actual = bz_value_get_string(value, NULL));
+        fail_if_error(actual = bz_value_get_string(value, NULL, true));
         fail_unless_streq("Interpolated values", expected, actual);
     }
     bz_value_free(value);
@@ -112,14 +112,14 @@ static void
 test_value(struct bz_value *value, const char *key, const char *expected)
 {
     const char  *actual;
-    fail_if_error(actual = bz_value_get_string(value, key));
+    fail_if_error(actual = bz_value_get_string(value, key, true));
     fail_unless_streq("Environment variable values", expected, actual);
 }
 
 static void
 test_value_missing(struct bz_value *value, const char *key)
 {
-    fail_unless_error(bz_value_get_string(value, key));
+    fail_unless_error(bz_value_get_string(value, key, true));
 }
 
 START_TEST(test_map_01)
@@ -152,20 +152,20 @@ static void
 test_env(struct bz_env *env, const char *key, const char *expected)
 {
     const char  *actual;
-    fail_if_error(actual = bz_env_get_string(env, key));
+    fail_if_error(actual = bz_env_get_string(env, key, true));
     fail_unless_streq("Environment variable values", expected, actual);
 }
 
 static void
 test_env_error(struct bz_env *env, const char *key)
 {
-    fail_unless_error(bz_env_get_string(env, key));
+    fail_unless_error(bz_env_get_string(env, key, true));
 }
 
 static void
 test_env_missing(struct bz_env *env, const char *key)
 {
-    fail_unless_error(bz_env_get_string(env, key));
+    fail_unless_error(bz_env_get_string(env, key, true));
 }
 
 
@@ -314,7 +314,7 @@ test_env_path(struct bz_env *env, const char *key, const char *expected)
 {
     struct cork_path  *path;
     const char  *actual;
-    fail_if_error(path = bz_env_get_path(env, key));
+    fail_if_error(path = bz_env_get_path(env, key, true));
     actual = cork_path_get(path);
     fail_unless_streq("Environment variable values", expected, actual);
 }

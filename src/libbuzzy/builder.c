@@ -30,8 +30,8 @@ bz_build_message(struct bz_env *env, const char *builder_name)
 {
     const char  *package_name;
     const char  *version;
-    rip_check(package_name = bz_env_get_string(env, "name"));
-    rip_check(version = bz_env_get_string(env, "version"));
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
     bz_log_action("Build %s %s (%s)", package_name, version, builder_name);
     return 0;
 }
@@ -41,8 +41,8 @@ bz_test_message(struct bz_env *env, const char *builder_name)
 {
     const char  *package_name;
     const char  *version;
-    rip_check(package_name = bz_env_get_string(env, "name"));
-    rip_check(version = bz_env_get_string(env, "version"));
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
     bz_log_action("Test %s %s (%s)", package_name, version, builder_name);
     return 0;
 }
@@ -52,8 +52,8 @@ bz_stage_message(struct bz_env *env, const char *builder_name)
 {
     const char  *package_name;
     const char  *version;
-    rip_check(package_name = bz_env_get_string(env, "name"));
-    rip_check(version = bz_env_get_string(env, "version"));
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
     bz_log_action("Stage %s %s (%s)", package_name, version, builder_name);
     return 0;
 }
@@ -181,7 +181,7 @@ bz_package_builder_new(struct bz_env *env)
 {
     const char  *builder_name;
     struct bz_builder_reg  *builder;
-    rpp_check(builder_name = bz_env_get_string(env, "builder"));
+    rpp_check(builder_name = bz_env_get_string(env, "builder", true));
     for (builder = builders; builder->name != NULL; builder++) {
         if (strcmp(builder_name, builder->name) == 0) {
             return builder->new_builder(env);
@@ -200,7 +200,7 @@ static int
 bz_builder_is_cmake(struct bz_value *ctx, bool *dest)
 {
     struct cork_path  *path;
-    rip_check(path = bz_value_get_path(ctx, "cmake.cmakelists"));
+    rip_check(path = bz_value_get_path(ctx, "cmake.cmakelists", true));
     return bz_file_exists(cork_path_get(path), dest);
 }
 

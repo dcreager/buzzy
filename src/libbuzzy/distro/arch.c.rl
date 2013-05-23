@@ -426,7 +426,7 @@ struct bz_pdb *
 bz_arch_native_pdb(void)
 {
     return bz_native_pdb_new
-        ("Arch",
+        ("Arch", "arch",
          bz_arch_native_version_available,
          bz_arch_native_version_installed,
          bz_arch_native__install,

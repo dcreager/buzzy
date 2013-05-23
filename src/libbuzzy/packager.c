@@ -30,8 +30,8 @@ bz_package_message(struct bz_env *env, const char *packager_name)
 {
     const char  *package_name;
     const char  *version;
-    rip_check(package_name = bz_env_get_string(env, "name"));
-    rip_check(version = bz_env_get_string(env, "version"));
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
     bz_log_action("Package %s %s (%s)", package_name, version, packager_name);
     return 0;
 }
@@ -41,8 +41,8 @@ bz_install_message(struct bz_env *env, const char *packager_name)
 {
     const char  *package_name;
     const char  *version;
-    rip_check(package_name = bz_env_get_string(env, "name"));
-    rip_check(version = bz_env_get_string(env, "version"));
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
     bz_log_action("Install %s %s (%s)", package_name, version, packager_name);
     return 0;
 }
@@ -52,8 +52,8 @@ bz_uninstall_message(struct bz_env *env, const char *packager_name)
 {
     const char  *package_name;
     const char  *version;
-    rip_check(package_name = bz_env_get_string(env, "name"));
-    rip_check(version = bz_env_get_string(env, "version"));
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(version = bz_env_get_string(env, "version", true));
     bz_log_action("Uninstall %s %s (%s)", package_name, version, packager_name);
     return 0;
 }
@@ -198,7 +198,7 @@ bz_package_packager_new(struct bz_env *env)
     const char  *packager_name;
     struct bz_packager_reg  *packager;
 
-    rpp_check(packager_name = bz_env_get_string(env, "packager"));
+    rpp_check(packager_name = bz_env_get_string(env, "packager", true));
     for (packager = packagers; packager->name != NULL; packager++) {
         if (strcmp(packager_name, packager->name) == 0) {
             return packager->new_packager(env);

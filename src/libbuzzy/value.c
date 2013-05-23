@@ -190,10 +190,12 @@ static struct { const char *s; bool b; }  bool_values[] = {
 };
 
 static int
-bz_verify_exists(struct bz_value *value, const char *name)
+bz_verify_exists(struct bz_value *value, const char *name, bool required)
 {
-    if (CORK_UNLIKELY(value == NULL)) {
-        bz_bad_config("No value for %s", name);
+    if (value == NULL) {
+        if (required) {
+            bz_bad_config("No value for %s", name);
+        }
         return -1;
     } else {
         return 0;
@@ -201,13 +203,13 @@ bz_verify_exists(struct bz_value *value, const char *name)
 }
 
 bool
-bz_value_get_bool(struct bz_value *root, const char *name)
+bz_value_get_bool(struct bz_value *root, const char *name, bool required)
 {
     struct bz_value  *value;
     const char  *content;
     size_t  i;
     xe_check(false, value = bz_value_get_nested(root, name));
-    xi_check(false, bz_verify_exists(value, name));
+    xi_check(false, bz_verify_exists(value, name, required));
     xp_check(false, content = bz_scalar_value_get(value, root));
     for (i = 0; bool_values[i].s != NULL; i++) {
         if (strcasecmp(content, bool_values[i].s) == 0) {
@@ -221,14 +223,14 @@ bz_value_get_bool(struct bz_value *root, const char *name)
 }
 
 long
-bz_value_get_long(struct bz_value *root, const char *name)
+bz_value_get_long(struct bz_value *root, const char *name, bool required)
 {
     struct bz_value  *value;
     const char  *content;
     long  result;
     char  *endptr = NULL;
     xe_check(0, value = bz_value_get_nested(root, name));
-    xi_check(0, bz_verify_exists(value, name));
+    xi_check(0, bz_verify_exists(value, name, required));
     xp_check(0, content = bz_scalar_value_get(value, root));
     result = strtol(content, &endptr, 0);
     if (!isdigit(*content) || *endptr != '\0') {
@@ -242,12 +244,12 @@ bz_value_get_long(struct bz_value *root, const char *name)
 }
 
 struct cork_path *
-bz_value_get_path(struct bz_value *root, const char *name)
+bz_value_get_path(struct bz_value *root, const char *name, bool required)
 {
     struct bz_value  *value;
     const char  *content;
     rpe_check(value = bz_value_get_nested(root, name));
-    rpi_check(bz_verify_exists(value, name));
+    rpi_check(bz_verify_exists(value, name, required));
     if (value->path != NULL) {
         cork_path_free(value->path);
     }
@@ -258,21 +260,21 @@ bz_value_get_path(struct bz_value *root, const char *name)
 }
 
 const char *
-bz_value_get_string(struct bz_value *root, const char *name)
+bz_value_get_string(struct bz_value *root, const char *name, bool required)
 {
     struct bz_value  *value;
     rpe_check(value = bz_value_get_nested(root, name));
-    rpi_check(bz_verify_exists(value, name));
+    rpi_check(bz_verify_exists(value, name, required));
     return bz_scalar_value_get(value, root);
 }
 
 struct bz_version *
-bz_value_get_version(struct bz_value *root, const char *name)
+bz_value_get_version(struct bz_value *root, const char *name, bool required)
 {
     struct bz_value  *value;
     const char  *content;
     rpe_check(value = bz_value_get_nested(root, name));
-    rpi_check(bz_verify_exists(value, name));
+    rpi_check(bz_verify_exists(value, name, required));
     if (value->version != NULL) {
         bz_version_free(value->version);
     }

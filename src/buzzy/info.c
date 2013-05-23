@@ -90,7 +90,7 @@ execute(int argc, char **argv)
         struct bz_repo  *repo = bz_repo_registry_get(i);
         struct cork_path  *repo_dir;
         rp_check_error(env = bz_repo_env(repo));
-        rp_check_error(repo_dir = bz_env_get_path(env, "repo.name"));
+        rp_check_error(repo_dir = bz_env_get_path(env, "repo.name", true));
         printf("  %s\n", cork_path_get(repo_dir));
     }
 

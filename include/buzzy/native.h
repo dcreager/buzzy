@@ -49,7 +49,7 @@ bz_native_package_new(const char *short_distro_name,
  * package names. */
 CORK_ATTR_SENTINEL
 struct bz_pdb *
-bz_native_pdb_new(const char *short_distro_name,
+bz_native_pdb_new(const char *short_distro_name, const char *slug,
                   bz_native_detect_f version_available,
                   bz_native_detect_f version_installed,
                   bz_native_install_f install,
