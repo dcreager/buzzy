@@ -85,9 +85,6 @@ bz_arch_current_architecture(void)
  * Arch version strings
  */
 
-#define cork_buffer_append_copy(dest, src) \
-    (cork_buffer_append((dest), (src)->buf, (src)->size))
-
 static bool
 handle_rev_tag(struct bz_version_part *part, struct cork_buffer *dest)
 {

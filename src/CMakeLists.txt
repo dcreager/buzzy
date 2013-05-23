@@ -24,6 +24,7 @@ set(LIBBUZZY_RAGEL
     libbuzzy/version.c.rl
     libbuzzy/distro/arch.c.rl
     libbuzzy/distro/git.c.rl
+    libbuzzy/distro/rpm.c.rl
 )
 
 set_property(
@@ -76,6 +77,7 @@ set(LIBBUZZY_SRC
     libbuzzy/distro/git.c
     libbuzzy/distro/packager.c
     libbuzzy/distro/pdb.c
+    libbuzzy/distro/rpm.c
     libbuzzy/packagers/noop.c
     libbuzzy/packagers/pacman.c
     libbuzzy/repos/filesystem.c
