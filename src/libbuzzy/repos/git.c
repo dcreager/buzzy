@@ -97,6 +97,7 @@ bz_git_repo_new(const char *url, const char *commit)
 {
     struct bz_git_repo  *repo;
     struct bz_env  *repo_env;
+    struct cork_path  *base_dir;
 
     repo = cork_new(struct bz_git_repo);
     cork_buffer_init(&repo->slug);
@@ -122,5 +123,12 @@ bz_git_repo_new(const char *url, const char *commit)
         (repo_env, repo, bz_git__free,
          bz_git__load,
          bz_git__update);
+
+    ep_check(base_dir = bz_env_get_path(repo_env, "repo.base_dir", true));
+    bz_env_set_base_path(repo_env, cork_path_get(base_dir));
     return repo->repo;
+
+error:
+    bz_repo_free(repo->repo);
+    return NULL;
 }

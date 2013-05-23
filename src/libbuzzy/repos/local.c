@@ -68,6 +68,7 @@ bz_local_filesystem_repo_new(const char *path)
     repo = cork_new(struct bz_local_filesystem_repo);
     repo->path = cork_strdup(path);
     repo_env = bz_repo_env_new_empty();
+    bz_env_set_base_path(repo_env, path);
     bz_env_add_override(repo_env, "repo.name", bz_string_value_new(path));
     bz_env_add_override(repo_env, "repo.base_dir", bz_string_value_new(path));
 

@@ -93,7 +93,8 @@ bz_filesystem_repo__create_default_package(struct bz_repo *repo)
 {
     bool  exists;
     struct bz_env  *repo_env = bz_repo_env(repo);
-    struct cork_path  *package_file = NULL;
+    struct cork_path  *package_file;
+    struct cork_path  *base_dir;
     struct bz_env  *package_env = NULL;
     struct bz_value  *package_yaml;
     struct bz_package  *package = NULL;
@@ -111,6 +112,8 @@ bz_filesystem_repo__create_default_package(struct bz_repo *repo)
 
     /* If so, create a default package from it. */
     ep_check(package_env = bz_package_env_new_empty(repo_env, "package"));
+    ep_check(base_dir = bz_env_get_path(repo_env, "repo.base_dir", true));
+    bz_env_set_base_path(package_env, cork_path_get(base_dir));
     ep_check(package_yaml = bz_yaml_value_new_from_file
              (cork_path_get(package_file)));
     bz_env_add_set(package_env, package_yaml);
