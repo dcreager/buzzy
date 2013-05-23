@@ -329,11 +329,11 @@ bz_env_set_global_default(const char *key, struct bz_value *value,
 }
 
 struct bz_var_doc *
-bz_env_get_global_default(const char *name)
+bz_env_get_global_default(const char *name, bool required)
 {
     struct bz_var_doc  *doc =
         cork_hash_table_get(&global_docs, (void *) name);
-    if (CORK_UNLIKELY(doc == NULL)) {
+    if (required && CORK_UNLIKELY(doc == NULL)) {
         bz_bad_config("No variable named %s", name);
     }
     return doc;

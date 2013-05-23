@@ -80,7 +80,7 @@ struct bz_var_doc {
 };
 
 struct bz_var_doc *
-bz_env_get_global_default(const char *name);
+bz_env_get_global_default(const char *name, bool required);
 
 /* Only needed for reproducible test cases */
 void

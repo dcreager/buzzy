@@ -85,21 +85,30 @@ execute(int argc, char **argv)
         }
     }
 
-    rp_check_error(doc = bz_env_get_global_default(argv[0]));
-    printf("%s\n", doc->name);
-
-    if (doc->short_desc[0] != '\0') {
-        printf("  %s\n", doc->short_desc);
-    }
-    if (doc->long_desc[0] != '\0') {
-        /* TODO: Word wrap this */
-        printf("\n  %s\n", doc->long_desc);
+    re_check_error(doc = bz_env_get_global_default(argv[0], false));
+    if (doc != NULL) {
+        printf("%s\n", doc->name);
+        if (doc->short_desc[0] != '\0') {
+            printf("  %s\n", doc->short_desc);
+        }
+        if (doc->long_desc[0] != '\0') {
+            /* TODO: Word wrap this */
+            printf("\n  %s\n", doc->long_desc);
+        }
     }
 
     re_check_error(value = bz_env_get_value(env, argv[0]));
     if (value == NULL) {
-        printf("\n  No current value\n");
+        if (doc == NULL) {
+            fprintf(stderr, "No variable named %s\n", argv[0]);
+            exit(EXIT_FAILURE);
+        } else {
+            printf("\n  No current value\n");
+        }
     } else {
+        if (doc == NULL) {
+            printf("No documentation for %s\n", argv[0]);
+        }
         if (bz_value_kind(value) == BZ_VALUE_SCALAR) {
             const char  *content;
             re_check_error(content = bz_scalar_value_get

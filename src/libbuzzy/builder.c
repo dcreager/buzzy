@@ -208,13 +208,18 @@ static const char *
 bz_builder__detect(void *user_data, struct bz_value *ctx)
 {
     bool  is_cmake;
+    const char  *package_name;
 
     rpi_check(bz_builder_is_cmake(ctx, &is_cmake));
     if (is_cmake) {
         return "cmake";
     }
 
-    bz_bad_config("Don't know what builder to use for this package");
+    rpe_check(package_name = bz_value_get_string(ctx, "name", false));
+    if (package_name == NULL) {
+        package_name = "an unknown package";
+    }
+    bz_bad_config("Don't know what builder to use for %s", package_name);
     return NULL;
 }
 
