@@ -69,12 +69,12 @@ bz_cmake__build(void *user_data)
     rii_check(bz_install_dependency_string("cmake"));
     rii_check(bz_build_message(env, "cmake"));
 
-    rip_check(package_name = bz_env_get_string(env, "name"));
-    rip_check(build_dir = bz_env_get_path(env, "build_dir"));
-    rip_check(source_dir = bz_env_get_path(env, "source_dir"));
-    rip_check(install_prefix = bz_env_get_path(env, "install_prefix"));
-    rip_check(build_type = bz_env_get_string(env, "cmake.build_type"));
-    rie_check(verbose = bz_env_get_bool(env, "verbose"));
+    rip_check(package_name = bz_env_get_string(env, "name", true));
+    rip_check(build_dir = bz_env_get_path(env, "build_dir", true));
+    rip_check(source_dir = bz_env_get_path(env, "source_dir", true));
+    rip_check(install_prefix = bz_env_get_path(env, "install_prefix", true));
+    rip_check(build_type = bz_env_get_string(env, "cmake.build_type", true));
+    rie_check(verbose = bz_env_get_bool(env, "verbose", true));
 
     /* Create the build path */
     rii_check(bz_create_directory(cork_path_get(build_dir)));
@@ -122,10 +122,10 @@ bz_cmake__test(void *user_data)
     rii_check(bz_test_message(env, "cmake"));
 
     /* $ cmake --build ${build_path} --target test */
-    rip_check(package_name = bz_env_get_string(env, "name"));
+    rip_check(package_name = bz_env_get_string(env, "name", true));
     clog_info("(%s) Test using cmake", package_name);
-    rip_check(build_dir = bz_env_get_path(env, "build_dir"));
-    rie_check(verbose = bz_env_get_bool(env, "verbose"));
+    rip_check(build_dir = bz_env_get_path(env, "build_dir", true));
+    rie_check(verbose = bz_env_get_bool(env, "verbose", true));
     exec = cork_exec_new("cmake");
     cork_exec_add_param(exec, "cmake");
     cork_exec_add_param(exec, "--build");
@@ -149,11 +149,11 @@ bz_cmake__stage(void *user_data)
     rii_check(bz_install_dependency_string("cmake"));
     rii_check(bz_stage_message(env, "cmake"));
 
-    rip_check(package_name = bz_env_get_string(env, "name"));
+    rip_check(package_name = bz_env_get_string(env, "name", true));
     clog_info("(%s) Stage using cmake", package_name);
-    rip_check(build_dir = bz_env_get_path(env, "build_dir"));
-    rip_check(staging_dir = bz_env_get_path(env, "staging_dir"));
-    rii_check(verbose = bz_env_get_bool(env, "verbose"));
+    rip_check(build_dir = bz_env_get_path(env, "build_dir", true));
+    rip_check(staging_dir = bz_env_get_path(env, "staging_dir", true));
+    rii_check(verbose = bz_env_get_bool(env, "verbose", true));
 
     /* Create the staging path */
     rii_check(bz_create_directory(cork_path_get(staging_dir)));

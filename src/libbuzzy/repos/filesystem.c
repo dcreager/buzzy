@@ -34,7 +34,8 @@ bz_filesystem_repo__load_repo_yaml(struct bz_repo *repo)
     struct bz_env  *repo_env = bz_repo_env(repo);
     struct cork_path  *repo_yaml_file;
 
-    rip_check(repo_yaml_file = bz_env_get_path(repo_env, "repo.repo_yaml"));
+    rip_check(repo_yaml_file = bz_env_get_path
+              (repo_env, "repo.repo_yaml", true));
     rii_check(bz_file_exists(cork_path_get(repo_yaml_file), &exists));
     if (exists) {
         const char  *repo_yaml_file_string = cork_path_get(repo_yaml_file);
@@ -56,7 +57,7 @@ bz_filesystem_repo__load_links_yaml(struct bz_repo *repo)
     struct cork_path  *links_yaml_file;
 
     rip_check(links_yaml_file =
-              bz_env_get_path(repo_env, "repo.links_yaml"));
+              bz_env_get_path(repo_env, "repo.links_yaml", true));
     rii_check(bz_file_exists(cork_path_get(links_yaml_file), &exists));
     if (exists) {
         const char  *links_yaml_file_string = cork_path_get(links_yaml_file);
@@ -75,7 +76,7 @@ bz_filesystem_repo__add_git_version(struct bz_repo *repo)
     struct cork_path  *git_dir = NULL;
 
     /* See if the repository is a git checkout. */
-    rip_check(git_dir = bz_env_get_path(repo_env, "repo.git_dir"));
+    rip_check(git_dir = bz_env_get_path(repo_env, "repo.git_dir", true));
     rii_check(bz_file_exists(cork_path_get(git_dir), &exists));
     if (!exists) {
         return 0;
@@ -99,7 +100,8 @@ bz_filesystem_repo__create_default_package(struct bz_repo *repo)
     struct bz_pdb  *pdb = NULL;
 
     /* See if the repository has a package.yaml file. */
-    rip_check(package_file = bz_env_get_path(repo_env, "repo.package_yaml"));
+    rip_check(package_file = bz_env_get_path
+              (repo_env, "repo.package_yaml", true));
     ei_check(bz_file_exists(cork_path_get(package_file), &exists));
     if (!exists) {
         return 0;

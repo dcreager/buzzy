@@ -39,7 +39,7 @@ repository and directory and while not in one.
   
     No current value
   $ buzzy doc repo.repo_yaml
-  No value for repo.base_dir
+  No variable named "repo.base_dir"
   repo.repo_yaml
     The location of the YAML file defining the repository
   [1]

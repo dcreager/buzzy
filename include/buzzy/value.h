@@ -123,23 +123,24 @@ bz_value_set_nested(struct bz_value *value, const char *key,
                     struct bz_value *element, bool overwrite);
 
 
-/* All of the following return an error if the value is missing, or if it's
- * malformed.  You are not responsible for freeing any results. */
+/* All of the following return an error if the value is malformed.  If required
+ * is true, they also return an error if the value is missing.  You are not
+ * responsible for freeing any results. */
 
 bool
-bz_value_get_bool(struct bz_value *value, const char *name);
+bz_value_get_bool(struct bz_value *value, const char *name, bool required);
 
 long
-bz_value_get_long(struct bz_value *value, const char *name);
+bz_value_get_long(struct bz_value *value, const char *name, bool required);
 
 struct cork_path *
-bz_value_get_path(struct bz_value *value, const char *name);
+bz_value_get_path(struct bz_value *value, const char *name, bool required);
 
 const char *
-bz_value_get_string(struct bz_value *value, const char *name);
+bz_value_get_string(struct bz_value *value, const char *name, bool required);
 
 struct bz_version *
-bz_value_get_version(struct bz_value *value, const char *name);
+bz_value_get_version(struct bz_value *value, const char *name, bool required);
 
 
 /* Any relative paths in this value will be interpreted relative to this base
