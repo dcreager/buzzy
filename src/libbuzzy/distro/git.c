@@ -1100,12 +1100,16 @@ bz_git_perform_update(const char *url, const char *commit,
     cork_buffer_printf(&remote_commit, "origin/%s", commit);
     ei_check(bz_subprocess_run
              (false, NULL,
-              "git", "--git-dir", cork_path_get(dest_dir),
+              "git",
+              "--git-dir", cork_path_get(dest_dir),
+              "--work-tree", cork_path_get(dest_dir),
               "fetch", "origin",
               NULL));
     ei_check(bz_subprocess_run
              (false, NULL,
-              "git", "--git-dir", cork_path_get(dest_dir),
+              "git",
+              "--git-dir", cork_path_get(dest_dir),
+              "--work-tree", cork_path_get(dest_dir),
               "reset", "--hard", remote_commit.buf,
               NULL));
     cork_buffer_done(&remote_commit);

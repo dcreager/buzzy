@@ -163,10 +163,12 @@ START_TEST(test_git_update)
     bz_start_mocks();
     bz_mock_file_exists("/test/git-repo", true);
     bz_mock_subprocess
-        ("git --git-dir /test/git-repo fetch origin",
+        ("git --git-dir /test/git-repo --work-tree /test/git-repo "
+          "fetch origin",
          NULL, NULL, 0);
     bz_mock_subprocess
-        ("git --git-dir /test/git-repo reset --hard origin/master",
+        ("git --git-dir /test/git-repo --work-tree /test/git-repo "
+           "reset --hard origin/master",
          NULL, NULL, 0);
     fail_if_error(bz_git_update(url, commit, path));
     test_actions(
@@ -174,8 +176,10 @@ START_TEST(test_git_update)
     );
     verify_commands_run(
         "$ [ -f /test/git-repo ]\n"
-        "$ git --git-dir /test/git-repo fetch origin\n"
-        "$ git --git-dir /test/git-repo reset --hard origin/master\n"
+        "$ git --git-dir /test/git-repo --work-tree /test/git-repo "
+          "fetch origin\n"
+        "$ git --git-dir /test/git-repo --work-tree /test/git-repo "
+           "reset --hard origin/master\n"
     );
 }
 END_TEST
