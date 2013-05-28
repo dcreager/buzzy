@@ -93,12 +93,11 @@ bz_cmake__build(void *user_data)
     cork_exec_set_cwd(exec, cork_path_get(build_dir));
     ei_check(bz_subprocess_run_exec(verbose, NULL, exec));
 
-    /* $ cmake --build ${build_dir} */
+    /* $ make */
     clog_info("(%s) Build using cmake", package_name);
-    exec = cork_exec_new("cmake");
-    cork_exec_add_param(exec, "cmake");
-    cork_exec_add_param(exec, "--build");
-    cork_exec_add_param(exec, cork_path_get(build_dir));
+    exec = cork_exec_new("make");
+    cork_exec_add_param(exec, "make");
+    cork_exec_set_cwd(exec, cork_path_get(build_dir));
     ei_check(bz_subprocess_run_exec(verbose, NULL, exec));
 
     cork_buffer_done(&buf);
@@ -121,17 +120,15 @@ bz_cmake__test(void *user_data)
     rii_check(bz_install_dependency_string("cmake", env));
     rii_check(bz_test_message(env, "cmake"));
 
-    /* $ cmake --build ${build_path} --target test */
+    /* $ make test */
     rip_check(package_name = bz_env_get_string(env, "name", true));
     clog_info("(%s) Test using cmake", package_name);
     rip_check(build_dir = bz_env_get_path(env, "build_dir", true));
     rie_check(verbose = bz_env_get_bool(env, "verbose", true));
-    exec = cork_exec_new("cmake");
-    cork_exec_add_param(exec, "cmake");
-    cork_exec_add_param(exec, "--build");
-    cork_exec_add_param(exec, cork_path_get(build_dir));
-    cork_exec_add_param(exec, "--target");
+    exec = cork_exec_new("make");
+    cork_exec_add_param(exec, "make");
     cork_exec_add_param(exec, "test");
+    cork_exec_set_cwd(exec, cork_path_get(build_dir));
     return bz_subprocess_run_exec(verbose, NULL, exec);
 }
 
@@ -153,18 +150,16 @@ bz_cmake__stage(void *user_data)
     clog_info("(%s) Stage using cmake", package_name);
     rip_check(build_dir = bz_env_get_path(env, "build_dir", true));
     rip_check(staging_dir = bz_env_get_path(env, "staging_dir", true));
-    rii_check(verbose = bz_env_get_bool(env, "verbose", true));
+    rie_check(verbose = bz_env_get_bool(env, "verbose", true));
 
     /* Create the staging path */
     rii_check(bz_create_directory(cork_path_get(staging_dir)));
 
-    /* $ cmake --build ${build_path} --target install */
-    exec = cork_exec_new("cmake");
-    cork_exec_add_param(exec, "cmake");
-    cork_exec_add_param(exec, "--build");
-    cork_exec_add_param(exec, cork_path_get(build_dir));
-    cork_exec_add_param(exec, "--target");
+    /* $ make install */
+    exec = cork_exec_new("make");
+    cork_exec_add_param(exec, "make");
     cork_exec_add_param(exec, "install");
+    cork_exec_set_cwd(exec, cork_path_get(build_dir));
     exec_env = cork_env_clone_current();
     cork_env_add(exec_env, "DESTDIR", cork_path_get(staging_dir));
     cork_exec_set_env(exec, exec_env);

@@ -150,13 +150,8 @@ START_TEST(test_cmake_stage_package_01)
          " -DCMAKE_INSTALL_PREFIX=/usr"
          " -DCMAKE_BUILD_TYPE=RelWithDebInfo",
          NULL, NULL, 0);
-    bz_mock_subprocess
-        ("cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build",
-         NULL, NULL, 0);
-    bz_mock_subprocess
-        ("cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build"
-         " --target install",
-         NULL, NULL, 0);
+    bz_mock_subprocess("make", NULL, NULL, 0);
+    bz_mock_subprocess("make install", NULL, NULL, 0);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_stage_package(env, false,
@@ -170,10 +165,9 @@ START_TEST(test_cmake_stage_package_01)
         "$ cmake /home/test/source"
             " -DCMAKE_INSTALL_PREFIX=/usr"
             " -DCMAKE_BUILD_TYPE=RelWithDebInfo\n"
-        "$ cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ make\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
-        "$ cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build"
-            " --target install\n"
+        "$ make install\n"
     );
     bz_env_free(env);
 }
@@ -197,13 +191,8 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
          " -DCMAKE_INSTALL_PREFIX=/usr"
          " -DCMAKE_BUILD_TYPE=RelWithDebInfo",
          NULL, NULL, 0);
-    bz_mock_subprocess
-        ("cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build",
-         NULL, NULL, 0);
-    bz_mock_subprocess
-        ("cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build"
-         " --target install",
-         NULL, NULL, 0);
+    bz_mock_subprocess("make", NULL, NULL, 0);
+    bz_mock_subprocess("make install", NULL, NULL, 0);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_stage_package(env, false,
@@ -219,10 +208,9 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
         "$ cmake /home/test/source"
             " -DCMAKE_INSTALL_PREFIX=/usr"
             " -DCMAKE_BUILD_TYPE=RelWithDebInfo\n"
-        "$ cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ make\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
-        "$ cmake --build /home/test/.cache/buzzy/build/jansson/2.4/build"
-            " --target install\n"
+        "$ make install\n"
     );
     bz_env_free(env);
 }
