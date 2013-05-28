@@ -7,14 +7,12 @@
  * ----------------------------------------------------------------------
  */
 
-#ifndef BUZZY_DISTRO_ARCH_H
-#define BUZZY_DISTRO_ARCH_H
+#ifndef BUZZY_DISTRO_RPM_H
+#define BUZZY_DISTRO_RPM_H
 
 #include <libcork/core.h>
 #include <libcork/ds.h>
-#include <libcork/os.h>
 
-#include "buzzy/env.h"
 #include "buzzy/package.h"
 #include "buzzy/version.h"
 
@@ -24,18 +22,18 @@
  */
 
 int
-bz_arch_is_present(bool *dest);
+bz_redhat_is_present(bool *dest);
 
 
 /*-----------------------------------------------------------------------
- * Arch version strings
+ * RPM version strings
  */
 
 void
-bz_version_to_arch(struct bz_version *version, struct cork_buffer *dest);
+bz_version_to_rpm(struct bz_version *version, struct cork_buffer *dest);
 
 struct bz_version *
-bz_version_from_arch(const char *arch_version);
+bz_version_from_rpm(const char *rpm);
 
 
 /*-----------------------------------------------------------------------
@@ -43,20 +41,23 @@ bz_version_from_arch(const char *arch_version);
  */
 
 /* Returns the version of the specified package that could be installed using
- * the native pacman package repositories. */
+ * the native RPM/Yum package repositories. */
 struct bz_version *
-bz_arch_native_version_available(const char *native_package_name);
+bz_yum_native_version_available(const char *native_package_name);
 
 /* Returns the version of the specified package that has been installed on the
- * current machine using pacman.  That package need not have come from the
- * default Arch package database; it should return a result for packages that we
- * build and install ourselves, too. */
+ * current machine using RPM (or anything that delegates to RPM for actual
+ * package installation, such as yum).  That package need not have come from the
+ * default native package database; it should return a result for packages that
+ * we build and install ourselves, too. */
 struct bz_version *
-bz_arch_native_version_installed(const char *native_package_name);
+bz_rpm_native_version_installed(const char *native_package_name);
 
 
+/* A package database that can install native packages that are defined in a yum
+ * database. */
 struct bz_pdb *
-bz_arch_native_pdb(void);
+bz_yum_native_pdb(void);
 
 
-#endif /* BUZZY_DISTRO_ARCH_H */
+#endif /* BUZZY_DISTRO_RPM_H */

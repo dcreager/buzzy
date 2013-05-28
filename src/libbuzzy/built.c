@@ -55,7 +55,7 @@ bz_built_package_packager(struct bz_built_package *package)
     if (package->packager == NULL) {
         struct bz_builder  *builder;
         rpp_check(builder = bz_built_package_builder(package));
-        package->packager = bz_package_packager_new(package->env);
+        rpp_check(package->packager = bz_package_packager_new(package->env));
         bz_packager_set_builder(package->packager, builder);
     }
     return package->packager;

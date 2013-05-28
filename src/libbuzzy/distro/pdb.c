@@ -15,6 +15,7 @@
 #include "buzzy/package.h"
 
 #include "buzzy/distro/arch.h"
+#include "buzzy/distro/rpm.h"
 
 
 static int
@@ -30,9 +31,23 @@ bz_detect_arch(void)
 }
 
 
+static int
+bz_detect_redhat(void)
+{
+    bool  is_redhat;
+    rii_check(bz_redhat_is_present(&is_redhat));
+    if (is_redhat) {
+        struct bz_pdb  *pdb = bz_yum_native_pdb();
+        bz_pdb_register(pdb);
+    }
+    return 0;
+}
+
+
 int
 bz_pdb_discover(void)
 {
     rii_check(bz_detect_arch());
+    rii_check(bz_detect_redhat());
     return 0;
 }

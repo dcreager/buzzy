@@ -41,6 +41,7 @@ make_test(test-env)
 make_test(test-git)
 make_test(test-os)
 make_test(test-repo)
+make_test(test-rpm)
 make_test(test-versions)
 
 #-----------------------------------------------------------------------

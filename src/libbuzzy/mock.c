@@ -24,7 +24,8 @@ static struct bz_mock  real_implementations = {
     bz_real__create_dir,
     bz_real__create_file,
     bz_real__file_exists,
-    bz_real__print_action
+    bz_real__print_action,
+    bz_real__walk_directory
 };
 
 
@@ -251,6 +252,15 @@ bz_mocked__file_exists(struct cork_path *path, bool *exists)
     return 0;
 }
 
+static int
+bz_mocked__walk_directory(const char *path, struct cork_dir_walker *walker)
+{
+    /* TODO: For now in test cases, we assume that there aren't any files in the
+     * directory that we want to walk.  We'll need to add in support for
+     * non-empty mocked directories at some point. */
+    return 0;
+}
+
 
 /*-----------------------------------------------------------------------
  * Mocking actions
@@ -273,7 +283,8 @@ static struct bz_mock  mocked_implementations = {
     bz_mocked__create_dir,
     bz_mocked__create_file,
     bz_mocked__file_exists,
-    bz_mocked__print_action
+    bz_mocked__print_action,
+    bz_mocked__walk_directory
 };
 
 

@@ -22,29 +22,6 @@
 
 
 /*-----------------------------------------------------------------------
- * Architecture values
- */
-
-static const char *
-bz_architecture_value__get(void *user_data, struct bz_value *ctx)
-{
-    struct cork_buffer  *buf = user_data;
-    if (buf->size == 0) {
-        cork_buffer_set_string(buf, bz_arch_current_architecture());
-    }
-    return buf->buf;
-}
-
-static struct bz_value *
-bz_architecture_value_new(void)
-{
-    struct cork_buffer  *buf = cork_buffer_new();
-    return bz_scalar_value_new
-        (buf, (cork_free_f) cork_buffer_free, bz_architecture_value__get);
-}
-
-
-/*-----------------------------------------------------------------------
  * pacman version values
  */
 
@@ -109,7 +86,7 @@ bz_define_variables(pacman)
 
     bz_package_variable(
         architecture, "pacman.arch",
-        bz_architecture_value_new(),
+        bz_interpolated_value_new("${arch}"),
         "The architecture to build pacman packages for",
         ""
     );
@@ -284,7 +261,6 @@ bz_pacman__package(void *user_data)
     cork_buffer_append_printf(&buf, "arch=('%s')\n", architecture);
     cork_buffer_append_printf(&buf, "license=('%s')\n", license);
     rii_check(bz_pacman_fill_deps(env, &buf, "depends", "dependencies"));
-    /* TODO: dependencies */
     cork_buffer_append_printf(&buf,
         "package () {\n"
         "    rm -rf \"${pkgdir}\"\n"

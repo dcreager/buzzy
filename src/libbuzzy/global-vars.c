@@ -10,10 +10,18 @@
 #include <libcork/core.h>
 
 #include "buzzy/env.h"
+#include "buzzy/distro/posix.h"
 
 
 bz_define_variables(global)
 {
+    bz_global_variable(
+        architecture, "arch",
+        bz_posix_architecture_value_new(),
+        "The architecture of the current machine",
+        ""
+    );
+
     bz_global_variable(
         cache_dir, "cache_dir",
         bz_path_value_new(cork_path_user_cache_path()),

@@ -56,39 +56,10 @@ bz_arch_is_present(bool *dest)
     }
 }
 
-static struct cork_buffer  architecture = CORK_BUFFER_INIT();
-
-static void
-done_architecture(void)
-{
-    cork_buffer_done(&architecture);
-}
-
-CORK_INITIALIZER(init_architecture)
-{
-    cork_cleanup_at_exit(0, done_architecture);
-}
-
-const char *
-bz_arch_current_architecture(void)
-{
-    char  *buf;
-    cork_buffer_clear(&architecture);
-    rpi_check(bz_subprocess_get_output
-              (&architecture, NULL, NULL, "uname", "-m", NULL));
-    /* Chomp the trailing newline */
-    buf = architecture.buf;
-    buf[--architecture.size] = '\0';
-    return architecture.buf;
-}
-
 
 /*-----------------------------------------------------------------------
  * Arch version strings
  */
-
-#define cork_buffer_append_copy(dest, src) \
-    (cork_buffer_append((dest), (src)->buf, (src)->size))
 
 static bool
 handle_rev_tag(struct bz_version_part *part, struct cork_buffer *dest)
@@ -200,18 +171,18 @@ bz_version_from_arch(const char *arch_version)
     version = bz_version_new();
 
     
-#line 204 "libbuzzy/distro/arch.c"
+#line 175 "libbuzzy/distro/arch.c"
 static const int arch_version_start = 1;
 
 static const int arch_version_en_main = 1;
 
 
-#line 210 "libbuzzy/distro/arch.c"
+#line 181 "libbuzzy/distro/arch.c"
 	{
 	cs = arch_version_start;
 	}
 
-#line 215 "libbuzzy/distro/arch.c"
+#line 186 "libbuzzy/distro/arch.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
@@ -225,7 +196,7 @@ st0:
 cs = 0;
 	goto _out;
 tr0:
-#line 203 "libbuzzy/distro/arch.c.rl"
+#line 174 "libbuzzy/distro/arch.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
@@ -236,7 +207,7 @@ st7:
 	if ( ++p == pe )
 		goto _test_eof7;
 case 7:
-#line 240 "libbuzzy/distro/arch.c"
+#line 211 "libbuzzy/distro/arch.c"
 	switch( (*p) ) {
 		case 45: goto tr9;
 		case 46: goto tr10;
@@ -252,13 +223,13 @@ case 7:
 		goto tr12;
 	goto st0;
 tr9:
-#line 221 "libbuzzy/distro/arch.c.rl"
+#line 192 "libbuzzy/distro/arch.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
             bz_version_add_part(version, kind, start, size);
         }
-#line 227 "libbuzzy/distro/arch.c.rl"
+#line 198 "libbuzzy/distro/arch.c.rl"
 	{
             start = p + 1;
             clog_trace("  Create new postrelease version part for revision");
@@ -268,7 +239,7 @@ st2:
 	if ( ++p == pe )
 		goto _test_eof2;
 case 2:
-#line 272 "libbuzzy/distro/arch.c"
+#line 243 "libbuzzy/distro/arch.c"
 	if ( (*p) == 49 )
 		goto st9;
 	if ( 48 <= (*p) && (*p) <= 57 )
@@ -289,7 +260,7 @@ case 9:
 		goto st8;
 	goto st0;
 tr10:
-#line 221 "libbuzzy/distro/arch.c.rl"
+#line 192 "libbuzzy/distro/arch.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
@@ -300,7 +271,7 @@ st3:
 	if ( ++p == pe )
 		goto _test_eof3;
 case 3:
-#line 304 "libbuzzy/distro/arch.c"
+#line 275 "libbuzzy/distro/arch.c"
 	if ( (*p) == 112 )
 		goto tr5;
 	if ( (*p) < 65 ) {
@@ -313,7 +284,7 @@ case 3:
 		goto tr4;
 	goto st0;
 tr4:
-#line 215 "libbuzzy/distro/arch.c.rl"
+#line 186 "libbuzzy/distro/arch.c.rl"
 	{
             kind = BZ_VERSION_POSTRELEASE;
             start = p;
@@ -321,13 +292,13 @@ tr4:
         }
 	goto st4;
 tr12:
-#line 221 "libbuzzy/distro/arch.c.rl"
+#line 192 "libbuzzy/distro/arch.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
             bz_version_add_part(version, kind, start, size);
         }
-#line 209 "libbuzzy/distro/arch.c.rl"
+#line 180 "libbuzzy/distro/arch.c.rl"
 	{
             kind = BZ_VERSION_PRERELEASE;
             start = p;
@@ -338,7 +309,7 @@ st4:
 	if ( ++p == pe )
 		goto _test_eof4;
 case 4:
-#line 342 "libbuzzy/distro/arch.c"
+#line 313 "libbuzzy/distro/arch.c"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto st10;
@@ -349,7 +320,7 @@ case 4:
 		goto st10;
 	goto st0;
 tr16:
-#line 215 "libbuzzy/distro/arch.c.rl"
+#line 186 "libbuzzy/distro/arch.c.rl"
 	{
             kind = BZ_VERSION_POSTRELEASE;
             start = p;
@@ -357,7 +328,7 @@ tr16:
         }
 	goto st10;
 tr18:
-#line 209 "libbuzzy/distro/arch.c.rl"
+#line 180 "libbuzzy/distro/arch.c.rl"
 	{
             kind = BZ_VERSION_PRERELEASE;
             start = p;
@@ -368,7 +339,7 @@ st10:
 	if ( ++p == pe )
 		goto _test_eof10;
 case 10:
-#line 372 "libbuzzy/distro/arch.c"
+#line 343 "libbuzzy/distro/arch.c"
 	switch( (*p) ) {
 		case 45: goto tr9;
 		case 46: goto tr10;
@@ -383,7 +354,7 @@ case 10:
 		goto st10;
 	goto st0;
 tr5:
-#line 215 "libbuzzy/distro/arch.c.rl"
+#line 186 "libbuzzy/distro/arch.c.rl"
 	{
             kind = BZ_VERSION_POSTRELEASE;
             start = p;
@@ -394,7 +365,7 @@ st5:
 	if ( ++p == pe )
 		goto _test_eof5;
 case 5:
-#line 398 "libbuzzy/distro/arch.c"
+#line 369 "libbuzzy/distro/arch.c"
 	if ( (*p) == 111 )
 		goto st11;
 	if ( (*p) < 65 ) {
@@ -460,13 +431,13 @@ case 13:
 		goto tr16;
 	goto st0;
 tr13:
-#line 221 "libbuzzy/distro/arch.c.rl"
+#line 192 "libbuzzy/distro/arch.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
             bz_version_add_part(version, kind, start, size);
         }
-#line 209 "libbuzzy/distro/arch.c.rl"
+#line 180 "libbuzzy/distro/arch.c.rl"
 	{
             kind = BZ_VERSION_PRERELEASE;
             start = p;
@@ -477,7 +448,7 @@ st6:
 	if ( ++p == pe )
 		goto _test_eof6;
 case 6:
-#line 481 "libbuzzy/distro/arch.c"
+#line 452 "libbuzzy/distro/arch.c"
 	if ( (*p) == 114 )
 		goto st14;
 	if ( (*p) < 65 ) {
@@ -551,7 +522,7 @@ case 15:
 	case 13: 
 	case 14: 
 	case 15: 
-#line 221 "libbuzzy/distro/arch.c.rl"
+#line 192 "libbuzzy/distro/arch.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
@@ -559,7 +530,7 @@ case 15:
         }
 	break;
 	case 8: 
-#line 232 "libbuzzy/distro/arch.c.rl"
+#line 203 "libbuzzy/distro/arch.c.rl"
 	{
             cork_buffer_set(&buf, "rev", 3);
             cork_buffer_append(&buf, start, p - start);
@@ -567,23 +538,23 @@ case 15:
                 (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
         }
 	break;
-#line 571 "libbuzzy/distro/arch.c"
+#line 542 "libbuzzy/distro/arch.c"
 	}
 	}
 
 	_out: {}
 	}
 
-#line 275 "libbuzzy/distro/arch.c.rl"
+#line 246 "libbuzzy/distro/arch.c.rl"
 
 
     /* A hack to suppress some unused variable warnings */
     (void) arch_version_en_main;
 
     if (CORK_UNLIKELY(cs < 
-#line 585 "libbuzzy/distro/arch.c"
+#line 556 "libbuzzy/distro/arch.c"
 7
-#line 280 "libbuzzy/distro/arch.c.rl"
+#line 251 "libbuzzy/distro/arch.c.rl"
 )) {
         bz_invalid_version("Invalid Arch version \"%s\"", arch_version);
         cork_buffer_done(&buf);
@@ -626,18 +597,18 @@ bz_arch_native_version_available(const char *native_package_name)
     pe = out.buf + out.size;
 
     
-#line 630 "libbuzzy/distro/arch.c"
+#line 601 "libbuzzy/distro/arch.c"
 static const int arch_version_available_start = 1;
 
 static const int arch_version_available_en_main = 1;
 
 
-#line 636 "libbuzzy/distro/arch.c"
+#line 607 "libbuzzy/distro/arch.c"
 	{
 	cs = arch_version_available_start;
 	}
 
-#line 641 "libbuzzy/distro/arch.c"
+#line 612 "libbuzzy/distro/arch.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
@@ -660,14 +631,14 @@ st0:
 cs = 0;
 	goto _out;
 tr0:
-#line 325 "libbuzzy/distro/arch.c.rl"
+#line 296 "libbuzzy/distro/arch.c.rl"
 	{ start = p; }
 	goto st2;
 st2:
 	if ( ++p == pe )
 		goto _test_eof2;
 case 2:
-#line 671 "libbuzzy/distro/arch.c"
+#line 642 "libbuzzy/distro/arch.c"
 	if ( (*p) == 10 )
 		goto tr2;
 	if ( (*p) < 48 ) {
@@ -683,14 +654,14 @@ case 2:
 		goto st2;
 	goto st0;
 tr2:
-#line 325 "libbuzzy/distro/arch.c.rl"
+#line 296 "libbuzzy/distro/arch.c.rl"
 	{ end = p; }
 	goto st3;
 st3:
 	if ( ++p == pe )
 		goto _test_eof3;
 case 3:
-#line 694 "libbuzzy/distro/arch.c"
+#line 665 "libbuzzy/distro/arch.c"
 	goto st0;
 	}
 	_test_eof2: cs = 2; goto _test_eof; 
@@ -700,16 +671,16 @@ case 3:
 	_out: {}
 	}
 
-#line 330 "libbuzzy/distro/arch.c.rl"
+#line 301 "libbuzzy/distro/arch.c.rl"
 
 
     /* A hack to suppress some unused variable warnings */
     (void) arch_version_available_en_main;
 
     if (CORK_UNLIKELY(cs < 
-#line 711 "libbuzzy/distro/arch.c"
+#line 682 "libbuzzy/distro/arch.c"
 3
-#line 335 "libbuzzy/distro/arch.c.rl"
+#line 306 "libbuzzy/distro/arch.c.rl"
 )) {
         bz_invalid_version("Unexpected output from pacman");
         cork_buffer_done(&out);
@@ -746,18 +717,18 @@ bz_arch_native_version_installed(const char *native_package_name)
     pe = out.buf + out.size;
 
     
-#line 750 "libbuzzy/distro/arch.c"
+#line 721 "libbuzzy/distro/arch.c"
 static const int arch_version_installed_start = 1;
 
 static const int arch_version_installed_en_main = 1;
 
 
-#line 756 "libbuzzy/distro/arch.c"
+#line 727 "libbuzzy/distro/arch.c"
 	{
 	cs = arch_version_installed_start;
 	}
 
-#line 761 "libbuzzy/distro/arch.c"
+#line 732 "libbuzzy/distro/arch.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
@@ -812,14 +783,14 @@ case 3:
 		goto tr3;
 	goto st0;
 tr3:
-#line 376 "libbuzzy/distro/arch.c.rl"
+#line 347 "libbuzzy/distro/arch.c.rl"
 	{ start = p; }
 	goto st4;
 st4:
 	if ( ++p == pe )
 		goto _test_eof4;
 case 4:
-#line 823 "libbuzzy/distro/arch.c"
+#line 794 "libbuzzy/distro/arch.c"
 	if ( (*p) == 10 )
 		goto tr4;
 	if ( (*p) < 48 ) {
@@ -835,14 +806,14 @@ case 4:
 		goto st4;
 	goto st0;
 tr4:
-#line 376 "libbuzzy/distro/arch.c.rl"
+#line 347 "libbuzzy/distro/arch.c.rl"
 	{ end = p; }
 	goto st5;
 st5:
 	if ( ++p == pe )
 		goto _test_eof5;
 case 5:
-#line 846 "libbuzzy/distro/arch.c"
+#line 817 "libbuzzy/distro/arch.c"
 	goto st0;
 	}
 	_test_eof2: cs = 2; goto _test_eof; 
@@ -854,16 +825,16 @@ case 5:
 	_out: {}
 	}
 
-#line 382 "libbuzzy/distro/arch.c.rl"
+#line 353 "libbuzzy/distro/arch.c.rl"
 
 
     /* A hack to suppress some unused variable warnings */
     (void) arch_version_installed_en_main;
 
     if (CORK_UNLIKELY(cs < 
-#line 865 "libbuzzy/distro/arch.c"
+#line 836 "libbuzzy/distro/arch.c"
 5
-#line 387 "libbuzzy/distro/arch.c.rl"
+#line 358 "libbuzzy/distro/arch.c.rl"
 )) {
         bz_invalid_version("Unexpected output from pacman");
         cork_buffer_done(&out);
