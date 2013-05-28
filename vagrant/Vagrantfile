@@ -2,6 +2,8 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
+  config.ssh.forward_agent = true
+
   # CentOS 6.4
   config.vm.define :rhel6 do |rhel6|
     rhel6.vm.box = "centos64"
