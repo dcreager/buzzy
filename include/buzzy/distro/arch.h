@@ -26,9 +26,6 @@
 int
 bz_arch_is_present(bool *dest);
 
-const char *
-bz_arch_current_architecture(void);
-
 
 /*-----------------------------------------------------------------------
  * Arch version strings

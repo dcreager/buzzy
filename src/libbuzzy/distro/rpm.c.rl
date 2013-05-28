@@ -9,6 +9,8 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
+#include <sys/stat.h>
 
 #include <clogger.h>
 #include <libcork/core.h>
@@ -16,10 +18,35 @@
 #include <libcork/helpers/errors.h>
 
 #include "buzzy/error.h"
+#include "buzzy/native.h"
+#include "buzzy/os.h"
 #include "buzzy/version.h"
 #include "buzzy/distro/rpm.h"
 
 #define CLOG_CHANNEL  "rpm"
+
+
+/*-----------------------------------------------------------------------
+ * Platform detection
+ */
+
+int
+bz_redhat_is_present(bool *dest)
+{
+    int  rc;
+    struct stat  info;
+    rc = stat("/etc/redhat-release", &info);
+    if (rc == 0) {
+        *dest = true;
+        return 0;
+    } else if (errno == ENOENT) {
+        *dest = false;
+        return 0;
+    } else {
+        cork_system_error_set();
+        return -1;
+    }
+}
 
 
 /*-----------------------------------------------------------------------
@@ -230,4 +257,141 @@ bz_version_from_rpm(const char *rpm_version)
     bz_version_finalize(version);
     cork_buffer_done(&buf);
     return version;
+}
+
+
+/*-----------------------------------------------------------------------
+ * Native package database
+ */
+
+struct bz_version *
+bz_yum_native_version_available(const char *native_package_name)
+{
+    int  cs;
+    char  *p;
+    char  *pe;
+    char  *v_start = NULL;
+    char  *v_end = NULL;
+    char  *r_start = NULL;
+    char  *r_end = NULL;
+    bool  successful;
+    struct cork_buffer  out = CORK_BUFFER_INIT();
+    struct cork_buffer  buf;
+    struct bz_version  *result;
+
+    rpi_check(bz_subprocess_get_output
+              (&out, NULL, &successful,
+               "yum", "info", native_package_name, NULL));
+    if (!successful) {
+        cork_buffer_done(&out);
+        return NULL;
+    }
+
+    p = out.buf;
+    pe = out.buf + out.size;
+
+    %%{
+        machine rpm_version_available;
+
+        version_char = alnum | digit | '.' | '_';
+
+        version = (version_char)+ >{ v_start = fpc; } %{ v_end = fpc; };
+        version_line = "Version" space* ':' space+ version '\n';
+
+        release = (version_char)+ >{ r_start = fpc; } %{ r_end = fpc; };
+        release_line = "Release" space* ':' space+ release '\n';
+
+        other_line = (any - '\n')* '\n';
+
+        line = version_line | release_line | other_line;
+
+        main := line*;
+
+        write data noerror nofinal;
+        write init;
+        write exec;
+    }%%
+
+    /* A hack to suppress some unused variable warnings */
+    (void) rpm_version_available_en_main;
+
+    if (CORK_UNLIKELY(cs < %%{ write first_final; }%%)) {
+        bz_invalid_version("Unexpected output from yum");
+        cork_buffer_done(&out);
+        return NULL;
+    }
+
+    if (v_start == NULL || v_end == NULL || r_start == NULL || r_end == NULL) {
+        bz_invalid_version("Unexpected output from yum");
+        cork_buffer_done(&out);
+        return NULL;
+    }
+
+    cork_buffer_init(&buf);
+    cork_buffer_append(&buf, v_start, v_end - v_start);
+    cork_buffer_append(&buf, "-", 1);
+    cork_buffer_append(&buf, r_start, r_end - r_start);
+    result = bz_version_from_rpm(buf.buf);
+    cork_buffer_done(&out);
+    cork_buffer_done(&buf);
+    return result;
+}
+
+struct bz_version *
+bz_rpm_native_version_installed(const char *native_package_name)
+{
+    bool  successful;
+    struct cork_buffer  out = CORK_BUFFER_INIT();
+    struct bz_version  *result;
+
+    rpi_check(bz_subprocess_get_output
+              (&out, NULL, &successful,
+               "rpm", "--qf", "%{V}-%{R}", "-q", native_package_name, NULL));
+
+    if (!successful) {
+        cork_buffer_done(&out);
+        return NULL;
+    }
+
+    result = bz_version_from_rpm(out.buf);
+    cork_buffer_done(&out);
+    return result;
+}
+
+
+static int
+bz_yum_native__install(const char *native_package_name,
+                       struct bz_version *version)
+{
+    /* We don't pass the --needed flag to pacman since our is_needed method
+     * should have already verified that the desired version isn't installed
+     * yet. */
+    return bz_subprocess_run
+        (false, NULL,
+         "sudo", "yum", "install", "-y", native_package_name,
+         NULL);
+}
+
+static int
+bz_yum_native__uninstall(const char *native_package_name)
+{
+    /* We don't pass the --needed flag to pacman since our is_needed method
+     * should have already verified that the desired version isn't installed
+     * yet. */
+    return bz_subprocess_run
+        (false, NULL,
+         "sudo", "yum", "remove", "-y", native_package_name,
+         NULL);
+}
+
+struct bz_pdb *
+bz_yum_native_pdb(void)
+{
+    return bz_native_pdb_new
+        ("RPM", "rpm",
+         bz_yum_native_version_available,
+         bz_rpm_native_version_installed,
+         bz_yum_native__install,
+         bz_yum_native__uninstall,
+         "%s-devel", "lib%s-devel", "%s", "lib%s", NULL);
 }
