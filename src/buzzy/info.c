@@ -88,10 +88,10 @@ execute(int argc, char **argv)
     printf("Repositories:\n");
     for (i = 0; i < repo_count; i++) {
         struct bz_repo  *repo = bz_repo_registry_get(i);
-        struct cork_path  *repo_dir;
+        const char  *repo_name;
         rp_check_error(env = bz_repo_env(repo));
-        rp_check_error(repo_dir = bz_env_get_path(env, "repo.name", true));
-        printf("  %s\n", cork_path_get(repo_dir));
+        rp_check_error(repo_name = bz_env_get_string(env, "repo.name", true));
+        printf("  %s\n", repo_name);
     }
 
     exit(EXIT_SUCCESS);
