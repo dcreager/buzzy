@@ -1,0 +1,30 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # CentOS 6.4
+  config.vm.define :rhel6 do |rhel6|
+    rhel6.vm.box = "centos64"
+    rhel6.vm.box_url = "https://s3.amazonaws.com/rj-public/centos64.box"
+    rhel6.vm.synced_folder "..", "/vagrant", id: "vagrant-root"
+
+    rhel6.vm.provision :shell, :inline => <<EOF
+    sudo yum update -y
+    sudo yum groupinstall -y "Development Tools"
+    sudo yum install -y cmake check-devel
+EOF
+  end
+
+  # Ubuntu 12.10 (quantal)
+  config.vm.define :quantal do |quantal|
+    quantal.vm.box = "quantal64"
+    quantal.vm.box_url = "https://s3.amazonaws.com/rj-public/quantal64.box"
+    quantal.vm.synced_folder "..", "/vagrant", id: "vagrant-root"
+
+    quantal.vm.provision :shell, :inline => <<EOF
+    export DEBIAN_FRONTEND=noninteractive
+    sudo apt-get update
+    sudo apt-get install -y build-essential cmake check pkg-config
+EOF
+  end
+end

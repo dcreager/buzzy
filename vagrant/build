@@ -1,0 +1,7 @@
+#!/bin/sh
+
+mkdir -p ~/build
+cd ~/build
+cmake /vagrant -DCMAKE_BUILD_TYPE=RelWithDebInfo
+make
+make test
