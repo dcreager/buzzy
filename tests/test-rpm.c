@@ -13,6 +13,8 @@
 
 #include <check.h>
 
+#include "buzzy/built.h"
+#include "buzzy/package.h"
 #include "buzzy/version.h"
 #include "buzzy/distro/rpm.h"
 
@@ -435,6 +437,338 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * Building RPM packages
+ */
+
+/* Since we're mocking the subprocess commands for each of these test cases, the
+ * tests can run on any platform; we don't need the RPM Linux packaging tools
+ * to actually be installed. */
+
+static void
+mock_rpmbuild(const char *package_name, const char *version)
+{
+    struct cork_buffer  buf = CORK_BUFFER_INIT();
+    cork_buffer_printf(&buf,
+        "rpmbuild "
+        "--define _sourcedir . "
+        "--define _rpmdir . "
+        "--define _builddir . "
+        "--define buildroot /tmp/staging "
+        "--define _srcrpmdir . "
+        "--define _specdir . "
+        "--define _build_name_fmt "
+            "%%%%{NAME}-%%%%{VERSION}-%%%%{RELEASE}.%%%%{ARCH}.rpm "
+        "--quiet -bb "
+        "/home/test/.cache/buzzy/build/%s/%s/pkg/%s.spec",
+        package_name, version, package_name
+    );
+    bz_mock_subprocess(buf.buf, NULL, NULL, 0);
+    cork_buffer_done(&buf);
+}
+
+static void
+test_create_package(struct bz_env *env, bool force,
+                    const char *expected_actions)
+{
+    struct cork_path  *binary_package_dir = cork_path_new(".");
+    struct cork_path  *staging_dir = cork_path_new("/tmp/staging");
+    struct bz_pdb  *pdb;
+    struct bz_packager  *packager;
+
+    fail_if_error(pdb = bz_yum_native_pdb());
+    bz_pdb_register(pdb);
+
+    mock_unavailable_package("librpm-build");
+    mock_unavailable_package("librpm-build-devel");
+    mock_unavailable_package("rpm-build-devel");
+    mock_available_package("rpm-build", "4.8.0");
+    mock_installed_package("rpm-build", "4.8.0");
+    bz_mock_file_exists(cork_path_get(staging_dir), true);
+    bz_env_add_override(env, "binary_package_dir",
+                        bz_path_value_new(binary_package_dir));
+    bz_env_add_override(env, "staging_dir", bz_path_value_new(staging_dir));
+    bz_env_add_override(env, "force", bz_string_value_new(force? "1": "0"));
+    bz_env_add_override(env, "verbose", bz_string_value_new("0"));
+    fail_if_error(packager = bz_rpm_packager_new(env));
+    fail_if_error(bz_packager_package(packager));
+    test_actions(expected_actions);
+    bz_packager_free(packager);
+}
+
+START_TEST(test_rpm_create_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    mock_rpmbuild("jansson", "2.4");
+    bz_mock_file_exists("./jansson-2.4-1.x86_64.rpm", false);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    test_create_package(env, false,
+        "[1] Package jansson 2.4 (RPM)\n"
+    );
+    verify_commands_run(
+        "$ uname -m\n"
+        "$ [ -f ./jansson-2.4-1.x86_64.rpm ]\n"
+        "$ yum info rpm-build-devel\n"
+        "$ yum info librpm-build-devel\n"
+        "$ yum info rpm-build\n"
+        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p .\n"
+        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+            " <<EOF\n"
+        "Summary: jansson\n"
+        "Name: jansson\n"
+        "Version: 2.4\n"
+        "Release: 1\n"
+        "License: unknown\n"
+        "Group: Buzzy\n"
+        "Source: .\n"
+        "BuildRoot: /tmp/staging\n"
+        "\n"
+        "%description\n"
+        "No package description\n"
+        "\n"
+        "%prep\n"
+        "\n"
+        "%clean\n"
+        "\n"
+        "%files\n"
+        "EOF\n"
+        "$ rpmbuild "
+            "--define _sourcedir . "
+            "--define _rpmdir . "
+            "--define _builddir . "
+            "--define buildroot /tmp/staging "
+            "--define _srcrpmdir . "
+            "--define _specdir . "
+            "--define _build_name_fmt "
+                "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
+            "--quiet -bb "
+            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+START_TEST(test_rpm_create_package_license_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    mock_rpmbuild("jansson", "2.4");
+    bz_mock_file_exists("./jansson-2.4-1.x86_64.rpm", false);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    fail_if_error(bz_env_add_override
+                  (env, "license", bz_string_value_new("MIT")));
+    test_create_package(env, false,
+        "[1] Package jansson 2.4 (RPM)\n"
+    );
+    verify_commands_run(
+        "$ uname -m\n"
+        "$ [ -f ./jansson-2.4-1.x86_64.rpm ]\n"
+        "$ yum info rpm-build-devel\n"
+        "$ yum info librpm-build-devel\n"
+        "$ yum info rpm-build\n"
+        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p .\n"
+        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+            " <<EOF\n"
+        "Summary: jansson\n"
+        "Name: jansson\n"
+        "Version: 2.4\n"
+        "Release: 1\n"
+        "License: MIT\n"
+        "Group: Buzzy\n"
+        "Source: .\n"
+        "BuildRoot: /tmp/staging\n"
+        "\n"
+        "%description\n"
+        "No package description\n"
+        "\n"
+        "%prep\n"
+        "\n"
+        "%clean\n"
+        "\n"
+        "%files\n"
+        "EOF\n"
+        "$ rpmbuild "
+            "--define _sourcedir . "
+            "--define _rpmdir . "
+            "--define _builddir . "
+            "--define buildroot /tmp/staging "
+            "--define _srcrpmdir . "
+            "--define _specdir . "
+            "--define _build_name_fmt "
+                "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
+            "--quiet -bb "
+            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+START_TEST(test_rpm_create_package_deps_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_array  *deps;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    mock_rpmbuild("jansson", "2.4");
+    bz_mock_file_exists("./jansson-2.4-1.x86_64.rpm", false);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    deps = bz_array_new();
+    bz_array_append(deps, bz_string_value_new("libfoo"));
+    bz_array_append(deps, bz_string_value_new("libbar >= 2.5~alpha1"));
+    fail_if_error(bz_env_add_override
+                  (env, "dependencies", bz_array_as_value(deps)));
+    test_create_package(env, false,
+        "[1] Package jansson 2.4 (RPM)\n"
+    );
+    verify_commands_run(
+        "$ uname -m\n"
+        "$ [ -f ./jansson-2.4-1.x86_64.rpm ]\n"
+        "$ yum info rpm-build-devel\n"
+        "$ yum info librpm-build-devel\n"
+        "$ yum info rpm-build\n"
+        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p .\n"
+        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+            " <<EOF\n"
+        "Summary: jansson\n"
+        "Name: jansson\n"
+        "Version: 2.4\n"
+        "Release: 1\n"
+        "License: unknown\n"
+        "Group: Buzzy\n"
+        "Source: .\n"
+        "BuildRoot: /tmp/staging\n"
+        "Requires: libfoo, libbar>=2.5-0.alpha1.1\n"
+        "\n"
+        "%description\n"
+        "No package description\n"
+        "\n"
+        "%prep\n"
+        "\n"
+        "%clean\n"
+        "\n"
+        "%files\n"
+        "EOF\n"
+        "$ rpmbuild "
+            "--define _sourcedir . "
+            "--define _rpmdir . "
+            "--define _builddir . "
+            "--define buildroot /tmp/staging "
+            "--define _srcrpmdir . "
+            "--define _specdir . "
+            "--define _build_name_fmt "
+                "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
+            "--quiet -bb "
+            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+START_TEST(test_rpm_create_existing_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    bz_mock_file_exists("./jansson-2.4-1.x86_64.rpm", true);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    test_create_package(env, false, "Nothing to do!\n");
+    verify_commands_run(
+        "$ uname -m\n"
+        "$ [ -f ./jansson-2.4-1.x86_64.rpm ]\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+START_TEST(test_rpm_create_existing_package_02)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    mock_rpmbuild("jansson", "2.4");
+    bz_mock_file_exists("./jansson-2.4-1.x86_64.rpm", true);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    test_create_package(env, true,
+        "[1] Package jansson 2.4 (RPM)\n"
+    );
+    verify_commands_run(
+        "$ yum info rpm-build-devel\n"
+        "$ yum info librpm-build-devel\n"
+        "$ yum info rpm-build\n"
+        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ uname -m\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p .\n"
+        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+            " <<EOF\n"
+        "Summary: jansson\n"
+        "Name: jansson\n"
+        "Version: 2.4\n"
+        "Release: 1\n"
+        "License: unknown\n"
+        "Group: Buzzy\n"
+        "Source: .\n"
+        "BuildRoot: /tmp/staging\n"
+        "\n"
+        "%description\n"
+        "No package description\n"
+        "\n"
+        "%prep\n"
+        "\n"
+        "%clean\n"
+        "\n"
+        "%files\n"
+        "EOF\n"
+        "$ rpmbuild "
+            "--define _sourcedir . "
+            "--define _rpmdir . "
+            "--define _builddir . "
+            "--define buildroot /tmp/staging "
+            "--define _srcrpmdir . "
+            "--define _specdir . "
+            "--define _build_name_fmt "
+                "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
+            "--quiet -bb "
+            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Testing harness
  */
 
@@ -459,6 +793,14 @@ test_suite()
     tcase_add_test(tc_yum_pdb, test_yum_pdb_uninstalled_override_package_01);
     tcase_add_test(tc_yum_pdb, test_yum_pdb_uninstalled_override_package_02);
     suite_add_tcase(s, tc_yum_pdb);
+
+    TCase  *tc_rpm_package = tcase_create("rpm-package");
+    tcase_add_test(tc_rpm_package, test_rpm_create_package_01);
+    tcase_add_test(tc_rpm_package, test_rpm_create_package_license_01);
+    tcase_add_test(tc_rpm_package, test_rpm_create_package_deps_01);
+    tcase_add_test(tc_rpm_package, test_rpm_create_existing_package_01);
+    tcase_add_test(tc_rpm_package, test_rpm_create_existing_package_02);
+    suite_add_tcase(s, tc_rpm_package);
 
     return s;
 }

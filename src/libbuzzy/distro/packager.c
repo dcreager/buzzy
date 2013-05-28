@@ -15,16 +15,23 @@
 #include "buzzy/distro.h"
 
 #include "buzzy/distro/arch.h"
+#include "buzzy/distro/rpm.h"
 
 
 static const char *
 bz_packager__detect(void *user_data, struct bz_value *ctx)
 {
     bool  is_arch;
+    bool  is_redhat;
 
     rpi_check(bz_arch_is_present(&is_arch));
     if (is_arch) {
         return "pacman";
+    }
+
+    rpi_check(bz_redhat_is_present(&is_redhat));
+    if (is_redhat) {
+        return "rpm";
     }
 
     bz_bad_config("Don't know what packager to use on this platform");

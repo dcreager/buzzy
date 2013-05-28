@@ -261,7 +261,6 @@ bz_pacman__package(void *user_data)
     cork_buffer_append_printf(&buf, "arch=('%s')\n", architecture);
     cork_buffer_append_printf(&buf, "license=('%s')\n", license);
     rii_check(bz_pacman_fill_deps(env, &buf, "depends", "dependencies"));
-    /* TODO: dependencies */
     cork_buffer_append_printf(&buf,
         "package () {\n"
         "    rm -rf \"${pkgdir}\"\n"

@@ -160,5 +160,8 @@ bz_noop_packager_new(struct bz_env *env);
 struct bz_packager *
 bz_pacman_packager_new(struct bz_env *env);
 
+struct bz_packager *
+bz_rpm_packager_new(struct bz_env *env);
+
 
 #endif /* BUZZY_BUILT_H */

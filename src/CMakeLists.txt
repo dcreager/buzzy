@@ -81,6 +81,7 @@ set(LIBBUZZY_SRC
     libbuzzy/distro/rpm.c
     libbuzzy/packagers/noop.c
     libbuzzy/packagers/pacman.c
+    libbuzzy/packagers/rpm.c
     libbuzzy/repos/filesystem.c
     libbuzzy/repos/git.c
     libbuzzy/repos/local.c

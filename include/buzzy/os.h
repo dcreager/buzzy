@@ -73,5 +73,8 @@ bz_create_directory(const char *path);
 int
 bz_file_exists(const char *path, bool *exists);
 
+int
+bz_walk_directory(const char *path, struct cork_dir_walker *walker);
+
 
 #endif /* BUZZY_OS_H */

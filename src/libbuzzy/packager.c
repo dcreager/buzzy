@@ -189,6 +189,7 @@ struct bz_packager_reg {
 static struct bz_packager_reg  packagers[] = {
     { "noop", bz_noop_packager_new },
     { "pacman", bz_pacman_packager_new },
+    { "rpm", bz_rpm_packager_new },
     { NULL }
 };
 

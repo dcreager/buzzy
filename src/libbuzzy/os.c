@@ -315,3 +315,17 @@ bz_file_exists(const char *path_string, bool *exists)
     cork_path_free(path);
     return rc;
 }
+
+
+int
+bz_real__walk_directory(const char *path, struct cork_dir_walker *walker)
+{
+    return cork_walk_directory(path, walker);
+}
+
+int
+bz_walk_directory(const char *path_string, struct cork_dir_walker *walker)
+{
+    clog_debug("Walk contents of %s", path_string);
+    return bz_mocked_walk_directory(path_string, walker);
+}
