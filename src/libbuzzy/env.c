@@ -7,6 +7,7 @@
  * ----------------------------------------------------------------------
  */
 
+#include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/ds.h>
 #include <libcork/helpers/errors.h>
@@ -16,17 +17,7 @@
 #include "buzzy/value.h"
 #include "buzzy/version.h"
 
-
-#if !defined(BZ_DEBUG_ENV)
-#define BZ_DEBUG_ENV  0
-#endif
-
-#if BZ_DEBUG_ENV
-#include <stdio.h>
-#define DEBUG(...) fprintf(stderr, __VA_ARGS__)
-#else
-#define DEBUG(...) /* no debug messages */
-#endif
+#define CLOG_CHANNEL  "env"
 
 
 /*-----------------------------------------------------------------------
@@ -208,12 +199,64 @@ static struct cork_hash_table  global_docs;
 static struct bz_value  *global_values = NULL;
 static struct bz_env  *global = NULL;
 
+static int
+load_config_path_list(struct cork_path_list *paths, const char *rel_path)
+{
+    struct cork_file_list  *files = NULL;
+    size_t  i;
+    size_t  count;
+    clog_debug("Searching for configuration files in %s",
+               cork_path_list_to_string(paths));
+    ep_check(files = cork_path_list_find_files(paths, rel_path));
+    count = cork_file_list_size(files);
+    for (i = 0; i < count; i++) {
+        struct cork_file  *file = cork_file_list_get(files, i);
+        const struct cork_path  *path = cork_file_path(file);
+        struct bz_value  *value;
+        clog_info("Loading configuration from %s", cork_path_get(path));
+        ep_check(value = bz_yaml_value_new_from_file(cork_path_get(path)));
+        bz_env_add_set(global, value);
+    }
+    cork_path_list_free(paths);
+    cork_file_list_free(files);
+    return 0;
+
+error:
+    cork_path_list_free(paths);
+    if (files != NULL) {
+        cork_file_list_free(files);
+    }
+    return -1;
+}
+
+static int
+load_config_files(void)
+{
+    struct cork_path_list  *paths;
+    /* Configuration directories first (e.g., $HOME/.config) */
+    rip_check(paths = cork_path_config_paths());
+    rii_check(load_config_path_list(paths, "buzzy.yaml"));
+    /* Then data directories (e.g., $PREFIX/share) */
+    rip_check(paths = cork_path_data_paths());
+    rii_check(load_config_path_list(paths, "buzzy/config.yaml"));
+    return 0;
+}
+
 static void
 global_new(void)
 {
+
     global = bz_env_new("global");
-    global_values = bz_map_new();
     cork_string_hash_table_init(&global_docs, 0);
+
+    /* Check for buzzy.yaml files in a bunch of configuration directories. */
+    if (CORK_UNLIKELY(load_config_files() != 0)) {
+        fprintf(stderr, "%s\n", cork_error_message());
+        exit(EXIT_FAILURE);
+    }
+
+    /* The precompiled default values */
+    global_values = bz_map_new();
     bz_env_add_backup_set(global, global_values);
 }
 
