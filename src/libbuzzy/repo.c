@@ -152,7 +152,12 @@ bz_repo_link(struct bz_repo *repo, size_t index)
 void
 bz_repo_add_link(struct bz_repo *repo, struct bz_repo *other)
 {
+    struct bz_value  *other_value;
     cork_array_append(&repo->links, other);
+    /* Each child repository should be able to see any variables defined in its
+     * parent repositories. */
+    other_value = bz_value_copy(bz_env_as_value(other->env));
+    bz_env_add_backup_set(repo->env, other_value);
 }
 
 int
