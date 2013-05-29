@@ -144,6 +144,9 @@ struct bz_builder *
 bz_noop_builder_new(struct bz_env *env);
 
 struct bz_builder *
+bz_autotools_builder_new(struct bz_env *env);
+
+struct bz_builder *
 bz_cmake_builder_new(struct bz_env *env);
 
 

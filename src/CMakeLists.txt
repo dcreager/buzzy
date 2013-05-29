@@ -71,6 +71,7 @@ set(LIBBUZZY_SRC
     libbuzzy/value.c
     libbuzzy/version.c
     libbuzzy/yaml.c
+    libbuzzy/builders/autotools.c
     libbuzzy/builders/cmake.c
     libbuzzy/builders/noop.c
     libbuzzy/distro/arch.c

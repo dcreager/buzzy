@@ -402,6 +402,7 @@ bz_load_variable_definitions(void)
     bz_load_variables(repo);
 
     /* builders */
+    bz_load_variables(autotools);
     bz_load_variables(cmake);
 
     /* packagers */

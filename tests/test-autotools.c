@@ -26,11 +26,12 @@
  * Helper functions
  */
 
-/* The CMake builder will try to ensure that the "cmake" package is installed,
- * so we need to provide some package database that can satisfy that dependency.
- * Since we're mocking everything, that package database doesn't have to reflect
- * the real package framework on the current host, so we're just going to
- * pretend that the current platform is Arch Linux. */
+/* The Autotools builder will try to ensure that the "autoconf" and "automake"
+ * packages are installed, so we need to provide some package database that can
+ * satisfy that dependency.  Since we're mocking everything, that package
+ * database doesn't have to reflect the real package framework on the current
+ * host, so we're just going to pretend that the current platform is Arch Linux.
+ */
 
 static void
 mock_available_package(const char *package, const char *available_version)
@@ -90,30 +91,37 @@ mock_package_installation(const char *package, const char *version)
 }
 
 static void
-mock_cmake_installed(void)
+mock_autotools_installed(void)
 {
-    mock_available_package("cmake", "2.6-1");
-    mock_installed_package("cmake", "2.6-1");
+    mock_available_package("autoconf", "2.69-1");
+    mock_installed_package("autoconf", "2.69-1");
+    mock_available_package("automake", "1.13.2-1");
+    mock_installed_package("automake", "1.13.2-1");
 }
 
 static void
-mock_cmake_uninstalled(void)
+mock_autotools_uninstalled(void)
 {
-    mock_available_package("cmake", "2.6-1");
-    mock_uninstalled_package("cmake");
-    mock_package_installation("cmake", "2.6-1");
+    mock_available_package("autoconf", "2.69-1");
+    mock_uninstalled_package("autoconf");
+    mock_package_installation("autoconf", "2.69-1");
+    mock_available_package("automake", "1.13.2-1");
+    mock_uninstalled_package("automake");
+    mock_package_installation("automake", "1.13.2-1");
 }
 
 static void
-mock_cmake_unavailable(void)
+mock_autotools_unavailable(void)
 {
-    mock_unavailable_package("cmake");
-    mock_unavailable_package("libcmake");
+    mock_unavailable_package("autoconf");
+    mock_unavailable_package("libautoconf");
+    mock_unavailable_package("automake");
+    mock_unavailable_package("libautomake");
 }
 
 
 /*-----------------------------------------------------------------------
- * CMake builder
+ * Autotools builder
  */
 
 static void
@@ -131,40 +139,42 @@ test_stage_package(struct bz_env *env, bool force,
     bz_env_add_override(env, "source_dir", bz_path_value_new(source_dir));
     bz_env_add_override(env, "force", bz_string_value_new(force? "1": "0"));
     bz_env_add_override(env, "verbose", bz_string_value_new("0"));
-    fail_if_error(builder = bz_cmake_builder_new(env));
+    fail_if_error(builder = bz_autotools_builder_new(env));
     fail_if_error(bz_builder_stage(builder));
     test_actions(expected_actions);
     bz_builder_free(builder);
 }
 
-START_TEST(test_cmake_stage_package_01)
+START_TEST(test_autotools_stage_package_01)
 {
     DESCRIBE_TEST;
     struct bz_version  *version;
     struct bz_env  *env;
     reset_everything();
     bz_start_mocks();
-    mock_cmake_installed();
+    mock_autotools_installed();
+    bz_mock_file_exists("/home/test/source/configure", false);
+    bz_mock_file_exists("/home/test/source/configure.ac", true);
+    bz_mock_subprocess("autoreconf -i", NULL, NULL, 0);
     bz_mock_subprocess
-        ("cmake /home/test/source"
-         " -DCMAKE_INSTALL_PREFIX=/usr"
-         " -DCMAKE_BUILD_TYPE=RelWithDebInfo",
-         NULL, NULL, 0);
+        ("/home/test/source/configure --prefix=/usr", NULL, NULL, 0);
     bz_mock_subprocess("make", NULL, NULL, 0);
     bz_mock_subprocess("make install", NULL, NULL, 0);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_stage_package(env, false,
-        "[1] Build jansson 2.4 (cmake)\n"
-        "[2] Stage jansson 2.4 (cmake)\n"
+        "[1] Build jansson 2.4 (autotools)\n"
+        "[2] Stage jansson 2.4 (autotools)\n"
     );
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v cmake\n"
-        "$ pacman -Q cmake\n"
+        "$ pacman -Sdp --print-format %v autoconf\n"
+        "$ pacman -Q autoconf\n"
+        "$ pacman -Sdp --print-format %v automake\n"
+        "$ pacman -Q automake\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
-        "$ cmake /home/test/source"
-            " -DCMAKE_INSTALL_PREFIX=/usr"
-            " -DCMAKE_BUILD_TYPE=RelWithDebInfo\n"
+        "$ [ -f /home/test/source/configure ]\n"
+        "$ autoreconf -i\n"
+        "$ /home/test/source/configure --prefix=/usr\n"
         "$ make\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
         "$ make install\n"
@@ -174,36 +184,40 @@ START_TEST(test_cmake_stage_package_01)
 END_TEST
 
 
-START_TEST(test_cmake_uninstalled_stage_package_01)
+START_TEST(test_autotools_uninstalled_stage_package_01)
 {
     DESCRIBE_TEST;
     struct bz_version  *version;
     struct bz_env  *env;
     reset_everything();
     bz_start_mocks();
-    mock_cmake_uninstalled();
+    mock_autotools_uninstalled();
+    bz_mock_file_exists("/home/test/source/configure", false);
+    bz_mock_file_exists("/home/test/source/configure.ac", true);
+    bz_mock_subprocess("autoreconf -i", NULL, NULL, 0);
     bz_mock_subprocess
-        ("cmake /home/test/source"
-         " -DCMAKE_INSTALL_PREFIX=/usr"
-         " -DCMAKE_BUILD_TYPE=RelWithDebInfo",
-         NULL, NULL, 0);
+        ("/home/test/source/configure --prefix=/usr", NULL, NULL, 0);
     bz_mock_subprocess("make", NULL, NULL, 0);
     bz_mock_subprocess("make install", NULL, NULL, 0);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_stage_package(env, false,
-        "[1] Install native Arch package cmake 2.6\n"
-        "[2] Build jansson 2.4 (cmake)\n"
-        "[3] Stage jansson 2.4 (cmake)\n"
+        "[1] Install native Arch package autoconf 2.69\n"
+        "[2] Install native Arch package automake 1.13.2\n"
+        "[3] Build jansson 2.4 (autotools)\n"
+        "[4] Stage jansson 2.4 (autotools)\n"
     );
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v cmake\n"
-        "$ pacman -Q cmake\n"
-        "$ sudo pacman -S --noconfirm cmake\n"
+        "$ pacman -Sdp --print-format %v autoconf\n"
+        "$ pacman -Q autoconf\n"
+        "$ sudo pacman -S --noconfirm autoconf\n"
+        "$ pacman -Sdp --print-format %v automake\n"
+        "$ pacman -Q automake\n"
+        "$ sudo pacman -S --noconfirm automake\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
-        "$ cmake /home/test/source"
-            " -DCMAKE_INSTALL_PREFIX=/usr"
-            " -DCMAKE_BUILD_TYPE=RelWithDebInfo\n"
+        "$ [ -f /home/test/source/configure ]\n"
+        "$ autoreconf -i\n"
+        "$ /home/test/source/configure --prefix=/usr\n"
         "$ make\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
         "$ make install\n"
@@ -226,25 +240,25 @@ test_unavailable(struct bz_env *env)
     bz_mock_file_exists(cork_path_get(source_dir), true);
     bz_env_add_override(env, "source_dir", bz_path_value_new(source_dir));
     bz_env_add_override(env, "verbose", bz_string_value_new("0"));
-    fail_if_error(builder = bz_cmake_builder_new(env));
+    fail_if_error(builder = bz_autotools_builder_new(env));
     fail_unless_error(bz_builder_stage(builder));
     bz_builder_free(builder);
 }
 
-START_TEST(test_cmake_unavailable_01)
+START_TEST(test_autotools_unavailable_01)
 {
     DESCRIBE_TEST;
     struct bz_version  *version;
     struct bz_env  *env;
     reset_everything();
     bz_start_mocks();
-    mock_cmake_unavailable();
+    mock_autotools_unavailable();
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_unavailable(env);
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v cmake\n"
-        "$ pacman -Sdp --print-format %v libcmake\n"
+        "$ pacman -Sdp --print-format %v autoconf\n"
+        "$ pacman -Sdp --print-format %v libautoconf\n"
     );
     bz_env_free(env);
 }
@@ -258,13 +272,14 @@ END_TEST
 Suite *
 test_suite()
 {
-    Suite  *s = suite_create("cmake");
+    Suite  *s = suite_create("autotools");
 
-    TCase  *tc_cmake_package = tcase_create("cmake");
-    tcase_add_test(tc_cmake_package, test_cmake_stage_package_01);
-    tcase_add_test(tc_cmake_package, test_cmake_uninstalled_stage_package_01);
-    tcase_add_test(tc_cmake_package, test_cmake_unavailable_01);
-    suite_add_tcase(s, tc_cmake_package);
+    TCase  *tc_autotools_package = tcase_create("autotools");
+    tcase_add_test(tc_autotools_package, test_autotools_stage_package_01);
+    tcase_add_test(tc_autotools_package,
+                   test_autotools_uninstalled_stage_package_01);
+    tcase_add_test(tc_autotools_package, test_autotools_unavailable_01);
+    suite_add_tcase(s, tc_autotools_package);
 
     return s;
 }

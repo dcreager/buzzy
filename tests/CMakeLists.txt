@@ -36,6 +36,7 @@ macro(make_test test_name)
 endmacro(make_test)
 
 make_test(test-arch)
+make_test(test-autotools)
 make_test(test-cmake)
 make_test(test-env)
 make_test(test-git)

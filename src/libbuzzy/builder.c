@@ -171,6 +171,7 @@ struct bz_builder_reg {
 };
 
 static struct bz_builder_reg  builders[] = {
+    { "autotools", bz_autotools_builder_new },
     { "cmake", bz_cmake_builder_new },
     { "noop", bz_noop_builder_new },
     { NULL }
@@ -196,24 +197,55 @@ bz_package_builder_new(struct bz_env *env)
  * Builder detection
  */
 
-static int
-bz_builder_is_cmake(struct bz_value *ctx, bool *dest)
+static bool
+bz_builder_check_file_(struct bz_value *ctx, const char *var_name)
 {
+    bool  found;
     struct cork_path  *path;
-    rip_check(path = bz_value_get_path(ctx, "cmake.cmakelists", true));
-    return bz_file_exists(cork_path_get(path), dest);
+    xp_check(false, path = bz_value_get_path(ctx, var_name, true));
+    xi_check(false, bz_file_exists(cork_path_get(path), &found));
+    return found;
 }
+
+#define bz_builder_check_file(ctx, var_name) \
+    do { \
+        bool  found; \
+        rie_check(found = bz_builder_check_file_((ctx), (var_name))); \
+        if (found) { \
+            return true; \
+        } \
+    } while (0)
+
+static bool
+bz_builder_is_autotools(struct bz_value *ctx)
+{
+    bz_builder_check_file(ctx, "autotools.configure");
+    bz_builder_check_file(ctx, "autotools.configure_in");
+    return false;
+}
+
+static bool
+bz_builder_is_cmake(struct bz_value *ctx)
+{
+    bz_builder_check_file(ctx, "cmake.cmakelists");
+    return false;
+}
+
+#define try(name) \
+    do { \
+        bool  found; \
+        rpe_check(found = bz_builder_is_##name(ctx)); \
+        if (found) { \
+            return #name; \
+        } \
+    } while (0)
 
 static const char *
 bz_builder__detect(void *user_data, struct bz_value *ctx)
 {
-    bool  is_cmake;
     const char  *package_name;
-
-    rpi_check(bz_builder_is_cmake(ctx, &is_cmake));
-    if (is_cmake) {
-        return "cmake";
-    }
+    try(autotools);
+    try(cmake);
 
     rpe_check(package_name = bz_value_get_string(ctx, "name", false));
     if (package_name == NULL) {
