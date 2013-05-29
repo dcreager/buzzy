@@ -93,11 +93,13 @@ bz_version_from_git_describe(const char *git_version)
 
         skip_leading = (alpha | '-')*;
 
-        first_release = (digit >start_part) digit* %add_to_part
-                      %add_release_part;
+        no_dot_release = (digit >start_part) digit* %add_to_part
+                       %add_release_part;
 
-        release = '.' (digit >start_part) digit* %add_to_part
-                %add_release_part;
+        dot_release = '.' (digit >start_part) digit* %add_to_part
+                    %add_release_part;
+
+        release = no_dot_release | dot_release;
 
         tag_numeric_trailer = '-' (digit >start_trailer) digit* %add_to_part;
         tag_alpha_trailer = (digit >start_trailer) alnum* %add_to_part;
@@ -117,8 +119,7 @@ bz_version_from_git_describe(const char *git_version)
                %add_postrelease_part;
 
         dash_tag = ((alpha >start_part) alpha*) -- ('pre' | 'post');
-        dash_tagged = '-' dash_tag %add_to_part tag_trailer?
-                    %add_postrelease_part;
+        dash_tagged = '-' dash_tag %add_to_part %add_postrelease_part;
 
         dash = dash_digit | dash_pre | dash_post | dash_g | dash_tagged;
 
@@ -128,14 +129,13 @@ bz_version_from_git_describe(const char *git_version)
         ddash_pre = '--pre' tag_trailer %add_prerelease_part;
 
         ddash_tag = ((alpha >start_part) alpha*) -- ('pre');
-        ddash_tagged = '--' ddash_tag %add_to_part tag_trailer?
-                     %add_prerelease_part;
+        ddash_tagged = '--' ddash_tag %add_to_part %add_prerelease_part;
 
         ddash = ddash_digit | ddash_pre | ddash_tagged;
 
         part = release | dash | ddash;
 
-        main := skip_leading first_release part**;
+        main := skip_leading no_dot_release part**;
 
         write data noerror nofinal;
         write init;

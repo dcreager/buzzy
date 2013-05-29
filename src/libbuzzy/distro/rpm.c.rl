@@ -92,26 +92,27 @@ bz_version_to_rpm(struct bz_version *version, struct cork_buffer *dest)
     size_t  i;
     size_t  count;
     bool  seen_non_release_tag = false;
+    bool  need_punct_before_digit = false;
     struct bz_version_part  *part;
 
     count = bz_version_part_count(version);
     assert(count > 0);
 
-    part = bz_version_get_part(version, 0);
-    assert(part->kind == BZ_VERSION_RELEASE);
-    cork_buffer_append_copy(dest, &part->string_value);
-
-    for (i = 1; i < count; i++) {
+    for (i = 0; i < count; i++) {
         const char  *string_value;
+        const char  *last_char;
         part = bz_version_get_part(version, i);
         string_value = part->string_value.buf;
 
         switch (part->kind) {
             case BZ_VERSION_RELEASE:
-                if (seen_non_release_tag) {
-                    cork_buffer_append(dest, ".1.", 3);
-                } else {
-                    cork_buffer_append(dest, ".", 1);
+                if (need_punct_before_digit ||
+                    !BZ_VERSION_PART_IS_INTEGRAL(part)) {
+                    if (seen_non_release_tag) {
+                        cork_buffer_append(dest, ".1.", 3);
+                    } else {
+                        cork_buffer_append(dest, ".", 1);
+                    }
                 }
                 break;
 
@@ -146,15 +147,18 @@ bz_version_to_rpm(struct bz_version *version, struct cork_buffer *dest)
                     cork_buffer_append(dest, ".1", 2);
                 } else {
                     cork_buffer_append(dest, "-1", 2);
-                    seen_non_release_tag = true;
                 }
-                break;
+                return;
 
             default:
                 break;
         }
 
         cork_buffer_append_copy(dest, &part->string_value);
+
+        assert(part->string_value.size > 0);
+        last_char = strchr(string_value, '\0') - 1;
+        need_punct_before_digit = isdigit(*last_char);
     }
 }
 
@@ -217,13 +221,13 @@ bz_version_from_rpm(const char *rpm_version)
         alpha_part = alpha+;
         part = digit_part | alpha_part;
 
-        first_release = digit+
-                      >start_release %add_part;
+        no_dot_release = digit+
+                       >start_release %add_part;
 
         release = ('.' | '_' | '+')* part
                   >start_release %add_part;
 
-        rpm_v = first_release release**;
+        rpm_v = no_dot_release release**;
 
 
         pre_first_part = '0.' (digit+ >start_prerelease)

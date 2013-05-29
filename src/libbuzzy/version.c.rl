@@ -64,27 +64,29 @@ bz_version_part_done(struct bz_version_part *part)
 
 static void
 bz_version_part_to_string(const struct bz_version_part *part,
-                          struct cork_buffer *dest)
+                          struct cork_buffer *dest, bool hide_punct)
 {
-    switch (part->kind) {
-        case BZ_VERSION_RELEASE:
-            cork_buffer_append(dest, ".", 1);
-            break;
+    if (!hide_punct) {
+        switch (part->kind) {
+            case BZ_VERSION_RELEASE:
+                cork_buffer_append(dest, ".", 1);
+                break;
 
-        case BZ_VERSION_PRERELEASE:
-            cork_buffer_append(dest, "~", 1);
-            break;
+            case BZ_VERSION_PRERELEASE:
+                cork_buffer_append(dest, "~", 1);
+                break;
 
-        case BZ_VERSION_POSTRELEASE:
-            cork_buffer_append(dest, "+", 1);
-            break;
+            case BZ_VERSION_POSTRELEASE:
+                cork_buffer_append(dest, "+", 1);
+                break;
 
-        case BZ_VERSION_FINAL:
-            cork_buffer_append(dest, "]", 1);
-            return;
+            case BZ_VERSION_FINAL:
+                cork_buffer_append(dest, "]", 1);
+                return;
 
-        default:
-            cork_unreachable();
+            default:
+                cork_unreachable();
+        }
     }
 
     cork_buffer_append(dest, part->string_value.buf, part->string_value.size);
@@ -127,33 +129,6 @@ bz_version_free(struct bz_version *version)
     free(version);
 }
 
-static void
-bz_version_add_to_string(struct bz_version *version,
-                         struct bz_version_part *part)
-{
-    if (version->string.size > 0) {
-        switch (part->kind) {
-            case BZ_VERSION_RELEASE:
-                cork_buffer_append(&version->string, ".", 1);
-                break;
-
-            case BZ_VERSION_PRERELEASE:
-                cork_buffer_append(&version->string, "~", 1);
-                break;
-
-            case BZ_VERSION_POSTRELEASE:
-                cork_buffer_append(&version->string, "+", 1);
-                break;
-
-            default:
-                cork_unreachable();
-        }
-    }
-
-    cork_buffer_append
-        (&version->string, part->string_value.buf, part->string_value.size);
-}
-
 void
 bz_version_add_part(struct bz_version *version,
                     enum bz_version_part_kind kind,
@@ -161,6 +136,7 @@ bz_version_add_part(struct bz_version *version,
 {
     char  *endptr = NULL;
     struct bz_version_part  *part;
+    bool  hide_punct;
 
     assert(string_value != NULL && *string_value != '\0');
 
@@ -175,7 +151,8 @@ bz_version_add_part(struct bz_version *version,
         part->int_value = BZ_VERSION_PART_USE_STRING;
     }
 
-    bz_version_add_to_string(version, part);
+    hide_punct = (version->string.size == 0);
+    bz_version_part_to_string(part, &version->string, hide_punct);
 }
 
 static void
@@ -201,7 +178,7 @@ bz_version_finalize(struct bz_version *version)
 #define add_compare_part(p) \
     do { \
         cork_array_append(&version->compare_parts, p); \
-        bz_version_part_to_string(p, &version->compare_string); \
+        bz_version_part_to_string(p, &version->compare_string, false); \
         DEBUG("    %s\n", (char *) version->compare_string.buf); \
     } while (0)
 
@@ -232,7 +209,7 @@ bz_version_finalize(struct bz_version *version)
                 add_compare_part(part);
             }
         } else {
-            /* We found a prerelease or postrelease part.  Any queud up "0"
+            /* We found a prerelease or postrelease part.  Any queued up "0"
              * release parts should be ignored. */
             temp_parts.size = 0;
             add_compare_part(part);
@@ -285,15 +262,19 @@ bz_version_from_string(const char *string)
             bz_version_add_part(version, kind, part_start, size);
         }
 
-        part             = alnum+
+        alpha_part       = alpha+
                            >initialize_part %add_part;
+        digit_part       = digit+
+                           >initialize_part %add_part;
+        part             = alpha_part | digit_part;
+        no_dot_part      = part >release_part;
         release_part     = '.' %release_part part;
         prerelease_part  = '~' %prerelease_part part;
         postrelease_part = '+' %postrelease_part part;
-        first_part       = part >release_part;
-        rest_part        = (release_part | prerelease_part | postrelease_part);
+        rest_part        = (no_dot_part | release_part |
+                            prerelease_part | postrelease_part);
 
-        main := first_part rest_part*;
+        main := no_dot_part rest_part**;
 
         write data noerror nofinal;
         write init;

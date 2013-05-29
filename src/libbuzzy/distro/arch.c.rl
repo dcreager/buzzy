@@ -59,35 +59,23 @@ bz_arch_is_present(bool *dest)
  * Arch version strings
  */
 
-static bool
+static void
 handle_rev_tag(struct bz_version_part *part, struct cork_buffer *dest)
 {
-    size_t  i;
-    const char  *part_string = part->string_value.buf;
-
     /* We already know this is a postrelease part, and that it's at the end of
-     * the Arch version.  Check whether it has the form "revXX", where XX
-     * consists only of digits. */
-    if (part->string_value.size <= 3) {
-        return false;
-    }
-    if (memcmp(part_string, "rev", 3) != 0) {
-        return false;
-    }
-    for (i = 3; i < part->string_value.size; i++) {
-        if (!isdigit(part_string[i])) {
-            return false;
+     * the Arch version.  Check whether it consists only of digits. */
+    if (BZ_VERSION_PART_IS_INTEGRAL(part)) {
+        /* Is it rev1?  We ignore that. */
+        if (part->int_value == 1) {
+            return;
         }
+        cork_buffer_append(dest, "-", 1);
+    } else {
+        /* If not, then we have to add back in the `+rev` that we skipped over
+         * in the previous iteration. */
+        cork_buffer_append(dest, ".rev.", 5);
     }
-
-    /* Is it rev1?  We ignore that. */
-    if (part->string_value.size == 4 && part_string[3] == '1') {
-        return true;
-    }
-
-    cork_buffer_append(dest, "-", 1);
-    cork_buffer_append(dest, part_string + 3, part->string_value.size - 3);
-    return true;
+    cork_buffer_append_copy(dest, &part->string_value);
 }
 
 void
@@ -96,22 +84,28 @@ bz_version_to_arch(struct bz_version *version, struct cork_buffer *dest)
     size_t  i;
     size_t  count;
     struct bz_version_part  *part;
+    bool  have_rev = false;
+    bool  need_punct_before_digit = false;
 
     count = bz_version_part_count(version);
     assert(count > 0);
 
-    part = bz_version_get_part(version, 0);
-    assert(part->kind == BZ_VERSION_RELEASE);
-    cork_buffer_append_copy(dest, &part->string_value);
-
-    for (i = 1; i < count; i++) {
+    for (i = 0; i < count; i++) {
         const char  *string_value;
+        const char  *last_char;
         part = bz_version_get_part(version, i);
         string_value = part->string_value.buf;
         switch (part->kind) {
             case BZ_VERSION_RELEASE:
-                cork_buffer_append(dest, ".", 1);
-                cork_buffer_append_copy(dest, &part->string_value);
+                if (have_rev) {
+                    handle_rev_tag(part, dest);
+                } else {
+                    if (need_punct_before_digit ||
+                        !BZ_VERSION_PART_IS_INTEGRAL(part)) {
+                        cork_buffer_append(dest, ".", 1);
+                    }
+                    cork_buffer_append_copy(dest, &part->string_value);
+                }
                 break;
 
             case BZ_VERSION_PRERELEASE:
@@ -134,8 +128,10 @@ bz_version_to_arch(struct bz_version *version, struct cork_buffer *dest)
                 /* Treat a +revXX tag specially, if it occurs at the end of the
                  * Buzzy version.  That kind of tag should become the Arch
                  * version release tag. */
-                if (i == count-2 && handle_rev_tag(part, dest)) {
-                    break;
+                if (i == count-3 &&
+                    strcmp(part->string_value.buf, "rev") == 0) {
+                    have_rev = true;
+                    continue;
                 }
 
                 if (isalpha(*string_value)) {
@@ -146,9 +142,16 @@ bz_version_to_arch(struct bz_version *version, struct cork_buffer *dest)
                 cork_buffer_append_copy(dest, &part->string_value);
                 break;
 
+            case BZ_VERSION_FINAL:
+                return;
+
             default:
                 break;
         }
+
+        assert(part->string_value.size > 0);
+        last_char = strchr(string_value, '\0') - 1;
+        need_punct_before_digit = isdigit(*last_char);
     }
 }
 
@@ -207,24 +210,24 @@ bz_version_from_arch(const char *arch_version)
                 (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
         }
 
-        first_release = digit+
-                      >start_release %add_part;
+        no_dot_release = digit+
+                       >start_release %add_part;
 
-        release = '.' digit+
-                  >start_release %add_part;
+        dot_release = '.' digit+
+                    >start_release %add_part;
 
-        pre_prerelease = "pre" (alnum+ >start_prerelease)
-                       %add_part;
+        release = no_dot_release | dot_release;
 
-        other_prerelease = ((alpha alnum+) - pre_prerelease)
+        pre_prerelease = "pre" (digit >start_prerelease digit*) %add_part;
+
+        other_prerelease = ((alpha+) - pre_prerelease)
                          >start_prerelease %add_part;
 
         prerelease = pre_prerelease | other_prerelease;
 
-        post_postrelease = ".post" (alnum+ >start_postrelease)
-                         %add_part;
+        post_postrelease = ".post" (digit >start_postrelease digit*) %add_part;
 
-        other_postrelease = ('.' alpha >start_postrelease alnum+)
+        other_postrelease = ('.' alpha >start_postrelease alpha*)
                           %add_part;
 
         postrelease = post_postrelease | other_postrelease;
@@ -238,7 +241,7 @@ bz_version_from_arch(const char *arch_version)
 
         part = release | prerelease | postrelease;
 
-        main := first_release part** rev?;
+        main := no_dot_release part** rev?;
 
         write data noerror nofinal;
         write init;

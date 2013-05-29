@@ -133,7 +133,7 @@ START_TEST(test_rpm_versions)
     test_version_to_rpm("2.0~1", "2.0-0.pre1.1");
     test_version_to_rpm("2.0+hotfix1", "2.0-2.hotfix1.1");
     test_version_to_rpm("2.0+1", "2.0-2.post1.1");
-    test_version_to_rpm("2.0+git123abc456", "2.0-2.git123abc456.1");
+    test_version_to_rpm("2.0+git20130529", "2.0-2.git20130529.1");
     test_version_to_rpm("2.0+rev2", "2.0-2.rev2.1");
 
     /* A bunch of examples from
