@@ -266,7 +266,10 @@ error:
 static struct bz_value *
 bz_yaml_value_new_from_node(yaml_document_t *doc, yaml_node_t *node)
 {
-    if (node->type == YAML_SCALAR_NODE) {
+    if (node == NULL) {
+        /* A missing node is treated just like an empty map. */
+        return bz_map_new();
+    } else if (node->type == YAML_SCALAR_NODE) {
         return bz_yaml_string_new(doc, node);
     } else if (node->type == YAML_SEQUENCE_NODE) {
         return bz_yaml_array_new(doc, node);
