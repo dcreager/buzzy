@@ -1,0 +1,5 @@
+# This file can be used to provide default values without having to precompile
+# them into the executable.  Presumably we might eventually have enough default
+# values, or the values themselves could be somehow too cumbersome to put into
+# the executable, and so here we have a place where they could go.  For now,
+# though, we're not using this mechanism, and so this file is empty.
