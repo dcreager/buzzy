@@ -147,7 +147,6 @@ bz_packager_package(struct bz_packager *packager)
 int
 bz_packager_install(struct bz_packager *packager)
 {
-    rii_check(bz_packager_package(packager));
     if (!packager->installed) {
         bool  is_needed;
         packager->installed = true;
@@ -163,13 +162,11 @@ bz_packager_install(struct bz_packager *packager)
 int
 bz_packager_uninstall(struct bz_packager *packager)
 {
-    rii_check(bz_packager_package(packager));
     if (!packager->uninstalled) {
         bool  is_needed;
         packager->uninstalled = true;
         rii_check(packager->uninstall_needed(packager->user_data, &is_needed));
         if (is_needed) {
-            rii_check(bz_packager_package(packager));
             return packager->uninstall(packager->user_data);
         }
     }
