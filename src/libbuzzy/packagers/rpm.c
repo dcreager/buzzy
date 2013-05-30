@@ -203,7 +203,7 @@ bz_rpm_fill_one_dep(void *user_data, struct bz_value *dep_value)
     }
     cork_buffer_append_string(&state->dep_buf, dep->package_name);
     if (dep->min_version != NULL) {
-        cork_buffer_append(&state->dep_buf, ">=", 2);
+        cork_buffer_append(&state->dep_buf, " >= ", 4);
         bz_version_to_rpm(dep->min_version, &state->dep_buf);
     }
     bz_dependency_free(dep);

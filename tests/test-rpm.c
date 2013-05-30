@@ -660,7 +660,7 @@ START_TEST(test_rpm_create_package_deps_01)
         "Group: Buzzy\n"
         "Source: .\n"
         "BuildRoot: /tmp/staging\n"
-        "Requires: libfoo, libbar>=2.5-0.alpha1.1\n"
+        "Requires: libfoo, libbar >= 2.5-0.alpha1.1\n"
         "\n"
         "%description\n"
         "No package description\n"
