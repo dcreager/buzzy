@@ -656,7 +656,7 @@ bz_yum_native_version_available(const char *native_package_name)
 
     rpi_check(bz_subprocess_get_output
               (&out, NULL, &successful,
-               "yum", "info", native_package_name, NULL));
+               "yum", "info", "--cacheonly", native_package_name, NULL));
     if (!successful) {
         cork_buffer_done(&out);
         return NULL;
