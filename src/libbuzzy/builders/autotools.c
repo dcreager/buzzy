@@ -26,14 +26,14 @@
 bz_define_variables(autotools)
 {
     bz_package_variable(
-        install_prefix, "autotools.configure_in",
+        configure_in, "autotools.configure_in",
         bz_interpolated_value_new("${source_dir}/configure.ac"),
         "The location of the package's configure.{ac,in} file",
         ""
     );
 
     bz_package_variable(
-        install_prefix, "autotools.configure",
+        configure, "autotools.configure",
         bz_interpolated_value_new("${source_dir}/configure"),
         "The location of the package's configure script",
         ""
@@ -60,7 +60,6 @@ bz_autotools__build(void *user_data)
     const char  *package_name;
     struct cork_path  *build_dir;
     struct cork_path  *source_dir;
-    struct cork_path  *install_prefix;
     struct cork_path  *configure;
     bool  exists;
     bool  verbose;
@@ -74,7 +73,6 @@ bz_autotools__build(void *user_data)
     rip_check(package_name = bz_env_get_string(env, "name", true));
     rip_check(build_dir = bz_env_get_path(env, "build_dir", true));
     rip_check(source_dir = bz_env_get_path(env, "source_dir", true));
-    rip_check(install_prefix = bz_env_get_path(env, "install_prefix", true));
     rip_check(configure = bz_env_get_path(env, "autotools.configure", true));
     rie_check(verbose = bz_env_get_bool(env, "verbose", true));
 
@@ -93,11 +91,25 @@ bz_autotools__build(void *user_data)
         ei_check(bz_subprocess_run_exec(verbose, NULL, exec));
     }
 
+#define add_dir(buzzy_name, param_name) \
+    do { \
+        struct cork_path  *value; \
+        ep_check(value = bz_env_get_path(env, buzzy_name, true)); \
+        cork_buffer_printf(&buf, "--" param_name "=%s", cork_path_get(value)); \
+        cork_exec_add_param(exec, buf.buf); \
+    } while (0)
+
     /* $ ./configure ... */
     exec = cork_exec_new(cork_path_get(configure));
     cork_exec_add_param(exec, cork_path_get(configure));
-    cork_buffer_printf(&buf, "--prefix=%s", cork_path_get(install_prefix));
-    cork_exec_add_param(exec, buf.buf);
+    add_dir("prefix", "prefix");
+    add_dir("exec_prefix", "exec-prefix");
+    add_dir("bin_dir", "bindir");
+    add_dir("sbin_dir", "sbindir");
+    add_dir("lib_dir", "libdir");
+    add_dir("libexec_dir", "libexecdir");
+    add_dir("share_dir", "datadir");
+    add_dir("man_dir", "mandir");
     cork_exec_set_cwd(exec, cork_path_get(build_dir));
     ei_check(bz_subprocess_run_exec(verbose, NULL, exec));
 

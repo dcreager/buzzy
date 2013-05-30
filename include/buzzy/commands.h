@@ -195,6 +195,7 @@ bz_load_repositories(void)
 
     ri_check_error(bz_load_variable_definitions());
     ri_check_error(bz_pdb_discover());
+    ri_check_error(bz_distro_add_env_overrides());
 
     rp_check_error(cwd = cork_path_cwd());
     rp_check_error(base_repo =

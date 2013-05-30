@@ -157,7 +157,16 @@ START_TEST(test_autotools_stage_package_01)
     bz_mock_file_exists("/home/test/source/configure.ac", true);
     bz_mock_subprocess("autoreconf -i", NULL, NULL, 0);
     bz_mock_subprocess
-        ("/home/test/source/configure --prefix=/usr", NULL, NULL, 0);
+        ("/home/test/source/configure"
+         " --prefix=/usr"
+         " --exec-prefix=/usr"
+         " --bindir=/usr/bin"
+         " --sbindir=/usr/sbin"
+         " --libdir=/usr/lib"
+         " --libexecdir=/usr/lib"
+         " --datadir=/usr/share"
+         " --mandir=/usr/share/man",
+         NULL, NULL, 0);
     bz_mock_subprocess("make", NULL, NULL, 0);
     bz_mock_subprocess("make install", NULL, NULL, 0);
     fail_if_error(version = bz_version_from_string("2.4"));
@@ -174,7 +183,15 @@ START_TEST(test_autotools_stage_package_01)
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
         "$ [ -f /home/test/source/configure ]\n"
         "$ autoreconf -i\n"
-        "$ /home/test/source/configure --prefix=/usr\n"
+        "$ /home/test/source/configure"
+            " --prefix=/usr"
+            " --exec-prefix=/usr"
+            " --bindir=/usr/bin"
+            " --sbindir=/usr/sbin"
+            " --libdir=/usr/lib"
+            " --libexecdir=/usr/lib"
+            " --datadir=/usr/share"
+            " --mandir=/usr/share/man\n"
         "$ make\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
         "$ make install\n"
@@ -196,7 +213,16 @@ START_TEST(test_autotools_uninstalled_stage_package_01)
     bz_mock_file_exists("/home/test/source/configure.ac", true);
     bz_mock_subprocess("autoreconf -i", NULL, NULL, 0);
     bz_mock_subprocess
-        ("/home/test/source/configure --prefix=/usr", NULL, NULL, 0);
+        ("/home/test/source/configure"
+         " --prefix=/usr"
+         " --exec-prefix=/usr"
+         " --bindir=/usr/bin"
+         " --sbindir=/usr/sbin"
+         " --libdir=/usr/lib"
+         " --libexecdir=/usr/lib"
+         " --datadir=/usr/share"
+         " --mandir=/usr/share/man",
+         NULL, NULL, 0);
     bz_mock_subprocess("make", NULL, NULL, 0);
     bz_mock_subprocess("make install", NULL, NULL, 0);
     fail_if_error(version = bz_version_from_string("2.4"));
@@ -217,7 +243,15 @@ START_TEST(test_autotools_uninstalled_stage_package_01)
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
         "$ [ -f /home/test/source/configure ]\n"
         "$ autoreconf -i\n"
-        "$ /home/test/source/configure --prefix=/usr\n"
+        "$ /home/test/source/configure"
+            " --prefix=/usr"
+            " --exec-prefix=/usr"
+            " --bindir=/usr/bin"
+            " --sbindir=/usr/sbin"
+            " --libdir=/usr/lib"
+            " --libexecdir=/usr/lib"
+            " --datadir=/usr/share"
+            " --mandir=/usr/share/man\n"
         "$ make\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
         "$ make install\n"

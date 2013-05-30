@@ -18,6 +18,9 @@
  */
 
 int
+bz_distro_add_env_overrides(void);
+
+int
 bz_pdb_discover(void);
 
 

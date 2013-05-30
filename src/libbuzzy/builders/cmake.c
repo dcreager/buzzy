@@ -26,14 +26,14 @@
 bz_define_variables(cmake)
 {
     bz_package_variable(
-        install_prefix, "cmake.build_type",
+        build_type, "cmake.build_type",
         bz_string_value_new("RelWithDebInfo"),
         "The CMake build type for this package",
         ""
     );
 
     bz_package_variable(
-        install_prefix, "cmake.cmakelists",
+        cmakelists, "cmake.cmakelists",
         bz_interpolated_value_new("${source_dir}/CMakeLists.txt"),
         "The location of the top-level CMake build script",
         ""
@@ -60,7 +60,8 @@ bz_cmake__build(void *user_data)
     const char  *package_name;
     struct cork_path  *build_dir;
     struct cork_path  *source_dir;
-    struct cork_path  *install_prefix;
+    struct cork_path  *prefix;
+    const char  *lib_dir_name;
     const char  *build_type;
     bool  verbose;
     struct cork_exec  *exec;
@@ -72,7 +73,8 @@ bz_cmake__build(void *user_data)
     rip_check(package_name = bz_env_get_string(env, "name", true));
     rip_check(build_dir = bz_env_get_path(env, "build_dir", true));
     rip_check(source_dir = bz_env_get_path(env, "source_dir", true));
-    rip_check(install_prefix = bz_env_get_path(env, "install_prefix", true));
+    rip_check(prefix = bz_env_get_path(env, "prefix", true));
+    rip_check(lib_dir_name = bz_env_get_string(env, "lib_dir_name", true));
     rip_check(build_type = bz_env_get_string(env, "cmake.build_type", true));
     rie_check(verbose = bz_env_get_bool(env, "verbose", true));
 
@@ -85,7 +87,9 @@ bz_cmake__build(void *user_data)
     cork_exec_add_param(exec, "cmake");
     cork_exec_add_param(exec, cork_path_get(source_dir));
     cork_buffer_printf
-        (&buf, "-DCMAKE_INSTALL_PREFIX=%s", cork_path_get(install_prefix));
+        (&buf, "-DCMAKE_INSTALL_PREFIX=%s", cork_path_get(prefix));
+    cork_exec_add_param(exec, buf.buf);
+    cork_buffer_printf(&buf, "-DCMAKE_INSTALL_LIBDIR=%s", lib_dir_name);
     cork_exec_add_param(exec, buf.buf);
     cork_buffer_printf
         (&buf, "-DCMAKE_BUILD_TYPE=%s", build_type);

@@ -75,6 +75,7 @@ set(LIBBUZZY_SRC
     libbuzzy/builders/cmake.c
     libbuzzy/builders/noop.c
     libbuzzy/distro/arch.c
+    libbuzzy/distro/env.c
     libbuzzy/distro/git.c
     libbuzzy/distro/packager.c
     libbuzzy/distro/pdb.c
