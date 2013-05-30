@@ -64,20 +64,23 @@ START_TEST(test_versions)
 {
     DESCRIBE_TEST;
 
-    test_version_string("2.0",       "2.0");
-    test_version_string("2.0.0",     "2.0.0");
-    test_version_string("2.0~alpha", "2.0~alpha");
-    test_version_string("2.0+dev",   "2.0+dev");
-    test_version_string("2.0.1",     "2.0.1");
-    test_version_string("2.1",       "2.1");
+    test_version_string("2.0",         "2.0");
+    test_version_string("2.0.0",       "2.0.0");
+    test_version_string("2.0~alpha",   "2.0~alpha");
+    test_version_string("2.0~alpha1",  "2.0~alpha1");
+    test_version_string("2.0~alpha.1", "2.0~alpha.1");
+    test_version_string("2.0+dev",     "2.0+dev");
+    test_version_string("2.0.1",       "2.0.1");
+    test_version_string("2.1",         "2.1");
 
-    test_version_compare_string("2.0",        "[.2]");
-    test_version_compare_string("2.0.0",      "[.2]");
-    test_version_compare_string("2.0~alpha",  "[.2~alpha]");
-    test_version_compare_string("2.0~alpha1", "[.2~alpha.1]");
-    test_version_compare_string("2.0+dev",    "[.2+dev]");
-    test_version_compare_string("2.0.1",      "[.2.0.1]");
-    test_version_compare_string("2.1",        "[.2.1]");
+    test_version_compare_string("2.0",         "[.2]");
+    test_version_compare_string("2.0.0",       "[.2]");
+    test_version_compare_string("2.0~alpha",   "[.2~alpha]");
+    test_version_compare_string("2.0~alpha1",  "[.2~alpha1]");
+    test_version_compare_string("2.0~alpha.1", "[.2~alpha.1]");
+    test_version_compare_string("2.0+dev",     "[.2+dev]");
+    test_version_compare_string("2.0.1",       "[.2.0.1]");
+    test_version_compare_string("2.1",         "[.2.1]");
 
     /* Basic version comparisons */
     test_version_cmp("2.0",   "2.0.0",  0);
@@ -103,8 +106,8 @@ START_TEST(test_versions)
     test_version_cmp("2.0+dev", "2.1",       -1);
 
     /* Comparing multiple alpha prereleases */
-    test_version_cmp("2.0~alpha1", "2.0~alpha2",  -1);
-    test_version_cmp("2.0~alpha9", "2.0~alpha10", -1);
+    test_version_cmp("2.0~alpha.1", "2.0~alpha.2",  -1);
+    test_version_cmp("2.0~alpha.9", "2.0~alpha.10", -1);
 }
 END_TEST
 

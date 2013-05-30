@@ -204,10 +204,9 @@ bz_version_from_arch(const char *arch_version)
         }
 
         action add_revision {
-            cork_buffer_set(&buf, "rev", 3);
-            cork_buffer_append(&buf, start, fpc - start);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
+            bz_version_add_part(version, BZ_VERSION_POSTRELEASE, "rev", 3);
+            cork_buffer_set(&buf, start, fpc - start);
+            bz_version_add_part(version, BZ_VERSION_RELEASE, buf.buf, buf.size);
         }
 
         no_dot_release = digit+

@@ -262,11 +262,8 @@ bz_version_from_string(const char *string)
             bz_version_add_part(version, kind, part_start, size);
         }
 
-        alpha_part       = alpha+
+        part             = alnum+
                            >initialize_part %add_part;
-        digit_part       = digit+
-                           >initialize_part %add_part;
-        part             = alpha_part | digit_part;
         no_dot_part      = part >release_part;
         release_part     = '.' %release_part part;
         prerelease_part  = '~' %prerelease_part part;

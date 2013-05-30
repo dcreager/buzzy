@@ -144,7 +144,7 @@ START_TEST(test_arch_versions)
     test_arch_version("2.0+1", "2.0.post1");
     test_arch_version("2.0+git.20130529", "2.0.git20130529");
     test_version_from_arch("2.0", "2.0-1");
-    test_arch_version("2.0+rev2", "2.0-2");
+    test_arch_version("2.0+rev.2", "2.0-2");
 }
 END_TEST
 
