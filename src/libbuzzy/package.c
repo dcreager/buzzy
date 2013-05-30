@@ -105,9 +105,72 @@ bz_define_variables(package)
     );
 
     bz_package_variable(
-        install_prefix, "install_prefix",
+        prefix, "prefix",
         bz_string_value_new("/usr"),
-        "The installation prefix for the package",
+        "The installation prefix for platform-agnostic files",
+        ""
+    );
+
+    bz_package_variable(
+        prefix, "exec_prefix",
+        bz_interpolated_value_new("${prefix}"),
+        "The installation prefix for platform-specific files",
+        ""
+    );
+
+    bz_package_variable(
+        bin_dir, "bin_dir",
+        bz_interpolated_value_new("${exec_prefix}/bin"),
+        "The installation location for binaries",
+        ""
+    );
+
+    bz_package_variable(
+        sbin_dir, "sbin_dir",
+        bz_interpolated_value_new("${exec_prefix}/sbin"),
+        "The installation location for superuser binaries",
+        ""
+    );
+
+    bz_package_variable(
+        lib_dir, "lib_dir_name",
+        bz_interpolated_value_new("lib"),
+        "The base name of the installation location for libraries",
+        ""
+    );
+
+    bz_package_variable(
+        lib_dir, "lib_dir",
+        bz_interpolated_value_new("${exec_prefix}/${lib_dir_name}"),
+        "The installation location for libraries",
+        ""
+    );
+
+    bz_package_variable(
+        libexec_dir, "libexec_dir",
+        bz_interpolated_value_new("${exec_prefix}/lib"),
+        "The installation location for internal binaries",
+        ""
+    );
+
+    bz_package_variable(
+        share_dir, "share_dir",
+        bz_interpolated_value_new("${prefix}/share"),
+        "The installation location for data files",
+        ""
+    );
+
+    bz_package_variable(
+        doc_dir, "doc_dir",
+        bz_interpolated_value_new("${share_dir}/doc"),
+        "The installation location for documentation",
+        ""
+    );
+
+    bz_package_variable(
+        man_dir, "man_dir",
+        bz_interpolated_value_new("${share_dir}/man"),
+        "The installation location for manuals",
         ""
     );
 

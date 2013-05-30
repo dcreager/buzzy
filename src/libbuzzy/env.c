@@ -311,7 +311,7 @@ bz_repo_env_new_empty(void)
     struct bz_value  *global_default_set;
     ensure_global_created();
     env = bz_env_new("repository");
-    global_default_set = bz_value_copy(global_values);
+    global_default_set = bz_value_copy(bz_env_as_value(global));
     bz_env_add_backup_set(env, global_default_set);
     return env;
 }
@@ -327,7 +327,7 @@ bz_package_env_new_empty(struct bz_env *repo_env, const char *env_name)
         struct bz_value  *repo_set = bz_env_as_value(repo_env);
         bz_env_add_backup_set(env, bz_value_copy(repo_set));
     }
-    global_default_set = bz_value_copy(global_values);
+    global_default_set = bz_value_copy(bz_env_as_value(global));
     bz_env_add_backup_set(env, global_default_set);
     return env;
 }

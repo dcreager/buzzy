@@ -148,6 +148,7 @@ START_TEST(test_cmake_stage_package_01)
     bz_mock_subprocess
         ("cmake /home/test/source"
          " -DCMAKE_INSTALL_PREFIX=/usr"
+         " -DCMAKE_INSTALL_LIBDIR=lib"
          " -DCMAKE_BUILD_TYPE=RelWithDebInfo",
          NULL, NULL, 0);
     bz_mock_subprocess("make", NULL, NULL, 0);
@@ -164,6 +165,7 @@ START_TEST(test_cmake_stage_package_01)
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
         "$ cmake /home/test/source"
             " -DCMAKE_INSTALL_PREFIX=/usr"
+            " -DCMAKE_INSTALL_LIBDIR=lib"
             " -DCMAKE_BUILD_TYPE=RelWithDebInfo\n"
         "$ make\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
@@ -185,6 +187,7 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
     bz_mock_subprocess
         ("cmake /home/test/source"
          " -DCMAKE_INSTALL_PREFIX=/usr"
+         " -DCMAKE_INSTALL_LIBDIR=lib"
          " -DCMAKE_BUILD_TYPE=RelWithDebInfo",
          NULL, NULL, 0);
     bz_mock_subprocess("make", NULL, NULL, 0);
@@ -203,6 +206,7 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
         "$ cmake /home/test/source"
             " -DCMAKE_INSTALL_PREFIX=/usr"
+            " -DCMAKE_INSTALL_LIBDIR=lib"
             " -DCMAKE_BUILD_TYPE=RelWithDebInfo\n"
         "$ make\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
