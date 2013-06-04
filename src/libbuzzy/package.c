@@ -574,17 +574,22 @@ struct bz_cached_pdb {
     cork_free_f  free_user_data;
     bz_pdb_satisfy_f  satisfy;
     struct cork_hash_table  packages;
+    struct cork_hash_table  unique_packages;
 };
 
 static enum cork_hash_table_map_result
 bz_cached_pdb__free_package(struct cork_hash_table_entry *entry, void *ud)
 {
     const char  *dep_string = entry->key;
-    struct bz_package  *package = entry->value;
     cork_strfree(dep_string);
-    if (package != NULL) {
-        bz_package_free(package);
-    }
+    return CORK_HASH_TABLE_MAP_DELETE;
+}
+
+static enum cork_hash_table_map_result
+bz_cached_pdb__free_unique(struct cork_hash_table_entry *entry, void *ud)
+{
+    struct bz_package  *package = entry->key;
+    bz_package_free(package);
     return CORK_HASH_TABLE_MAP_DELETE;
 }
 
@@ -594,6 +599,9 @@ bz_cached_pdb__free(void *user_data)
     struct bz_cached_pdb  *pdb = user_data;
     cork_hash_table_map(&pdb->packages, bz_cached_pdb__free_package, NULL);
     cork_hash_table_done(&pdb->packages);
+    cork_hash_table_map
+        (&pdb->unique_packages, bz_cached_pdb__free_unique, NULL);
+    cork_hash_table_done(&pdb->unique_packages);
     cork_free_user_data(pdb);
     free(pdb);
 }
@@ -617,6 +625,10 @@ bz_cached_pdb__satisfy(void *user_data, struct bz_dependency *dep,
             pdb->satisfy(pdb->user_data, dep, requestor);
         entry->key = (void *) cork_strdup(dep_string);
         entry->value = package;
+        if (package != NULL) {
+            cork_hash_table_put
+                (&pdb->unique_packages, package, NULL, NULL, NULL, NULL);
+        }
         return package;
     } else {
         return entry->value;
@@ -633,6 +645,7 @@ bz_cached_pdb_new(const char *pdb_name,
     pdb->free_user_data = free_user_data;
     pdb->satisfy = satisfy;
     cork_string_hash_table_init(&pdb->packages, 0);
+    cork_pointer_hash_table_init(&pdb->unique_packages, 0);
     return bz_pdb_new
         (pdb_name, pdb, bz_cached_pdb__free, bz_cached_pdb__satisfy);
 }
