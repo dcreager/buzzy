@@ -38,7 +38,7 @@ mock_available_package(const char *package, const char *available_version)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "pacman -Sdp --print-format %%v %s", package);
+    cork_buffer_printf(&buf1, "pacman -Sddp --print-format %%v %s", package);
     cork_buffer_printf(&buf2, "%s\n", available_version);
     bz_mock_subprocess(buf1.buf, buf2.buf, NULL, 0);
     cork_buffer_done(&buf1);
@@ -50,7 +50,7 @@ mock_unavailable_package(const char *package)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "pacman -Sdp --print-format %%v %s", package);
+    cork_buffer_printf(&buf1, "pacman -Sddp --print-format %%v %s", package);
     cork_buffer_printf(&buf2, "error: target not found: %s\n", package);
     bz_mock_subprocess(buf1.buf, NULL, buf2.buf, 1);
     cork_buffer_done(&buf1);
@@ -176,9 +176,9 @@ START_TEST(test_autotools_stage_package_01)
         "[2] Stage jansson 2.4 (autotools)\n"
     );
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v autoconf\n"
+        "$ pacman -Sddp --print-format %v autoconf\n"
         "$ pacman -Q autoconf\n"
-        "$ pacman -Sdp --print-format %v automake\n"
+        "$ pacman -Sddp --print-format %v automake\n"
         "$ pacman -Q automake\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
         "$ [ -f /home/test/source/configure ]\n"
@@ -234,10 +234,10 @@ START_TEST(test_autotools_uninstalled_stage_package_01)
         "[4] Stage jansson 2.4 (autotools)\n"
     );
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v autoconf\n"
+        "$ pacman -Sddp --print-format %v autoconf\n"
         "$ pacman -Q autoconf\n"
         "$ sudo pacman -S --noconfirm autoconf\n"
-        "$ pacman -Sdp --print-format %v automake\n"
+        "$ pacman -Sddp --print-format %v automake\n"
         "$ pacman -Q automake\n"
         "$ sudo pacman -S --noconfirm automake\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
@@ -291,8 +291,8 @@ START_TEST(test_autotools_unavailable_01)
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_unavailable(env);
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v autoconf\n"
-        "$ pacman -Sdp --print-format %v libautoconf\n"
+        "$ pacman -Sddp --print-format %v autoconf\n"
+        "$ pacman -Sddp --print-format %v libautoconf\n"
     );
     bz_env_free(env);
 }

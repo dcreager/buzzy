@@ -37,7 +37,7 @@ mock_available_package(const char *package, const char *available_version)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "pacman -Sdp --print-format %%v %s", package);
+    cork_buffer_printf(&buf1, "pacman -Sddp --print-format %%v %s", package);
     cork_buffer_printf(&buf2, "%s\n", available_version);
     bz_mock_subprocess(buf1.buf, buf2.buf, NULL, 0);
     cork_buffer_done(&buf1);
@@ -49,7 +49,7 @@ mock_unavailable_package(const char *package)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "pacman -Sdp --print-format %%v %s", package);
+    cork_buffer_printf(&buf1, "pacman -Sddp --print-format %%v %s", package);
     cork_buffer_printf(&buf2, "error: target not found: %s\n", package);
     bz_mock_subprocess(buf1.buf, NULL, buf2.buf, 1);
     cork_buffer_done(&buf1);
@@ -160,7 +160,7 @@ START_TEST(test_cmake_stage_package_01)
         "[2] Stage jansson 2.4 (cmake)\n"
     );
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v cmake\n"
+        "$ pacman -Sddp --print-format %v cmake\n"
         "$ pacman -Q cmake\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
         "$ cmake /home/test/source"
@@ -200,7 +200,7 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
         "[3] Stage jansson 2.4 (cmake)\n"
     );
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v cmake\n"
+        "$ pacman -Sddp --print-format %v cmake\n"
         "$ pacman -Q cmake\n"
         "$ sudo pacman -S --noconfirm cmake\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
@@ -247,8 +247,8 @@ START_TEST(test_cmake_unavailable_01)
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     test_unavailable(env);
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v cmake\n"
-        "$ pacman -Sdp --print-format %v libcmake\n"
+        "$ pacman -Sddp --print-format %v cmake\n"
+        "$ pacman -Sddp --print-format %v libcmake\n"
     );
     bz_env_free(env);
 }

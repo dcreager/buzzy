@@ -32,7 +32,7 @@ mock_available_package(const char *package, const char *available_version)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "pacman -Sdp --print-format %%v %s", package);
+    cork_buffer_printf(&buf1, "pacman -Sddp --print-format %%v %s", package);
     cork_buffer_printf(&buf2, "%s\n", available_version);
     bz_mock_subprocess(buf1.buf, buf2.buf, NULL, 0);
     cork_buffer_done(&buf1);
@@ -44,7 +44,7 @@ mock_unavailable_package(const char *package)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "pacman -Sdp --print-format %%v %s", package);
+    cork_buffer_printf(&buf1, "pacman -Sddp --print-format %%v %s", package);
     cork_buffer_printf(&buf2, "error: target not found: %s\n", package);
     bz_mock_subprocess(buf1.buf, NULL, buf2.buf, 1);
     cork_buffer_done(&buf1);
@@ -453,7 +453,7 @@ START_TEST(test_arch_create_package_01)
     verify_commands_run(
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
-        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ pacman -Sddp --print-format %v pacman\n"
         "$ pacman -Q pacman\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
@@ -496,7 +496,7 @@ START_TEST(test_arch_create_package_license_01)
     verify_commands_run(
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
-        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ pacman -Sddp --print-format %v pacman\n"
         "$ pacman -Q pacman\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
@@ -543,7 +543,7 @@ START_TEST(test_arch_create_package_deps_01)
     verify_commands_run(
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
-        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ pacman -Sddp --print-format %v pacman\n"
         "$ pacman -Q pacman\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
@@ -604,7 +604,7 @@ START_TEST(test_arch_create_existing_package_02)
         "[1] Package jansson 2.4 (pacman)\n"
     );
     verify_commands_run(
-        "$ pacman -Sdp --print-format %v pacman\n"
+        "$ pacman -Sddp --print-format %v pacman\n"
         "$ pacman -Q pacman\n"
         "$ uname -m\n"
         "$ [ -f /tmp/staging ]\n"

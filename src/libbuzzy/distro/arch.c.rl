@@ -281,7 +281,7 @@ bz_arch_native_version_available(const char *native_package_name)
 
     rpi_check(bz_subprocess_get_output
               (&out, NULL, &successful,
-               "pacman", "-Sdp", "--print-format", "%v",
+               "pacman", "-Sddp", "--print-format", "%v",
                native_package_name, NULL));
     if (!successful) {
         cork_buffer_done(&out);
