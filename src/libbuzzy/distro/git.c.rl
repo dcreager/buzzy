@@ -264,7 +264,8 @@ error:
 
 static int
 bz_git_perform_update(const char *url, const char *commit,
-                      struct cork_path *dest_dir)
+                      struct cork_path *git_dir,
+                      struct cork_path *work_tree)
 {
     /* Otherwise perform a fetch + reset.  Assume that we've already checked out
      * the right branch. */
@@ -273,15 +274,15 @@ bz_git_perform_update(const char *url, const char *commit,
     ei_check(bz_subprocess_run
              (false, NULL,
               "git",
-              "--git-dir", cork_path_get(dest_dir),
-              "--work-tree", cork_path_get(dest_dir),
+              "--git-dir", cork_path_get(git_dir),
+              "--work-tree", cork_path_get(work_tree),
               "fetch", "origin",
               NULL));
     ei_check(bz_subprocess_run
              (false, NULL,
               "git",
-              "--git-dir", cork_path_get(dest_dir),
-              "--work-tree", cork_path_get(dest_dir),
+              "--git-dir", cork_path_get(git_dir),
+              "--work-tree", cork_path_get(work_tree),
               "reset", "--hard", remote_commit.buf,
               NULL));
     cork_buffer_done(&remote_commit);
@@ -309,19 +310,20 @@ bz_git_clone(const char *url, const char *commit, struct cork_path *dest_dir)
 }
 
 int
-bz_git_update(const char *url, const char *commit, struct cork_path *dest_dir)
+bz_git_update(const char *url, const char *commit,
+              struct cork_path *git_dir, struct cork_path *work_tree)
 {
     bool  exists;
 
     /* If the destination directory doesn't exist yet, perform a clone instead
      * of an update. */
-    rii_check(bz_file_exists(cork_path_get(dest_dir), &exists));
+    rii_check(bz_file_exists(cork_path_get(work_tree), &exists));
     if (exists) {
         bz_log_action("Update %s (%s)", url, commit);
-        return bz_git_perform_update(url, commit, dest_dir);
+        return bz_git_perform_update(url, commit, git_dir, work_tree);
     } else {
         bz_log_action("Clone %s (%s)", url, commit);
-        return bz_git_perform_clone(url, commit, dest_dir);
+        return bz_git_perform_clone(url, commit, work_tree);
     }
 
 }

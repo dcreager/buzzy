@@ -159,26 +159,27 @@ START_TEST(test_git_update)
     DESCRIBE_TEST;
     const char  *url = "git://github.com/redjack/git-repo.git";
     const char  *commit = "master";
-    struct cork_path  *path = cork_path_new("/test/git-repo");
+    struct cork_path  *work_tree = cork_path_new("/test/git-repo");
+    struct cork_path  *git_dir = cork_path_new("/test/git-repo/.git");
     bz_start_mocks();
     bz_mock_file_exists("/test/git-repo", true);
     bz_mock_subprocess
-        ("git --git-dir /test/git-repo --work-tree /test/git-repo "
+        ("git --git-dir /test/git-repo/.git --work-tree /test/git-repo "
           "fetch origin",
          NULL, NULL, 0);
     bz_mock_subprocess
-        ("git --git-dir /test/git-repo --work-tree /test/git-repo "
+        ("git --git-dir /test/git-repo/.git --work-tree /test/git-repo "
            "reset --hard origin/master",
          NULL, NULL, 0);
-    fail_if_error(bz_git_update(url, commit, path));
+    fail_if_error(bz_git_update(url, commit, git_dir, work_tree));
     test_actions(
         "[1] Update git://github.com/redjack/git-repo.git (master)\n"
     );
     verify_commands_run(
         "$ [ -f /test/git-repo ]\n"
-        "$ git --git-dir /test/git-repo --work-tree /test/git-repo "
+        "$ git --git-dir /test/git-repo/.git --work-tree /test/git-repo "
           "fetch origin\n"
-        "$ git --git-dir /test/git-repo --work-tree /test/git-repo "
+        "$ git --git-dir /test/git-repo/.git --work-tree /test/git-repo "
            "reset --hard origin/master\n"
     );
 }
@@ -189,14 +190,15 @@ START_TEST(test_git_update_new)
     DESCRIBE_TEST;
     const char  *url = "git://github.com/redjack/git-repo.git";
     const char  *commit = "master";
-    struct cork_path  *path = cork_path_new("/test/git-repo");
+    struct cork_path  *work_tree = cork_path_new("/test/git-repo");
+    struct cork_path  *git_dir = cork_path_new("/test/git-repo/.git");
     bz_start_mocks();
     bz_mock_file_exists("/test/git-repo", false);
     bz_mock_subprocess
         ("git clone --recursive --branch master "
          "git://github.com/redjack/git-repo.git /test/git-repo",
          NULL, NULL, 0);
-    fail_if_error(bz_git_update(url, commit, path));
+    fail_if_error(bz_git_update(url, commit, git_dir, work_tree));
     test_actions(
         "[1] Clone git://github.com/redjack/git-repo.git (master)\n"
     );

@@ -35,7 +35,8 @@ int
 bz_git_clone(const char *url, const char *commit, struct cork_path *dest_dir);
 
 int
-bz_git_update(const char *url, const char *commit, struct cork_path *dest_dir);
+bz_git_update(const char *url, const char *commit,
+              struct cork_path *git_dir, struct cork_path *work_tree);
 
 
 #endif /* BUZZY_DISTRO_GIT_H */
