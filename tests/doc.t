@@ -62,7 +62,7 @@ repository and directory and while not in one.
   $ mkdir -p repo2/.buzzy
   $ cat > repo2/.buzzy/package.yaml <<EOF
   > name: test
-  > version: 1.0~rc1
+  > version: 1.0~rc.1
   > EOF
   $ cd repo2
   $ buzzy doc repo.base_dir
@@ -84,7 +84,7 @@ repository and directory and while not in one.
   version
     The version of the package
   
-    Current value: 1.0~rc1
+    Current value: 1.0~rc.1
   $ buzzy doc source_dir
   source_dir
     Where the package's extracted source archive should be placed

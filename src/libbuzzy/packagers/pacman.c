@@ -314,10 +314,16 @@ bz_pacman__install__is_needed(void *user_data, bool *is_needed)
         ee_check(installed = bz_arch_native_version_installed(package_name));
 
         if (installed == NULL) {
+            clog_info("(%s) Package is not installed", package_name);
             *is_needed = true;
             return 0;
         } else {
             *is_needed = (bz_version_cmp(installed, package_version) < 0);
+            clog_info("(%s) Installed version %s is %s than %s",
+                      package_name,
+                      bz_version_to_string(installed),
+                      *is_needed? "older": "newer",
+                      bz_version_to_string(package_version));
             bz_version_free(installed);
             return 0;
         }
@@ -360,8 +366,11 @@ bz_pacman__uninstall__is_needed(void *user_data, bool *is_needed)
               package_name);
     rie_check(installed = bz_arch_native_version_installed(package_name));
     if (installed == NULL) {
+        clog_info("(%s) Package is not installed", package_name);
         *is_needed = false;
     } else {
+        clog_info("(%s) Version %s is installed",
+                  package_name, bz_version_to_string(installed));
         *is_needed = true;
         bz_version_free(installed);
     }

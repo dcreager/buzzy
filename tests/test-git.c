@@ -37,32 +37,33 @@ START_TEST(test_git_versions)
     DESCRIBE_TEST;
 
     test_git_version("1.0", "1.0");
-    test_git_version("1.0-4-g1a2b3c4", "1.0+4+git1a2b3c4");
+    test_git_version("1.0-4-g1a2b3c4", "1.0+4+git");
+    test_git_version("1.0-4-g12ab34c", "1.0+4+git");
     test_git_version("1.0-dev", "1.0+dev");
-    test_git_version("1.0-dev4-g1a2b3c4", "1.0+dev.4+git1a2b3c4");
-    test_git_version("1.0-dev-4-g1a2b3c4", "1.0+dev+4+git1a2b3c4");
+    test_git_version("1.0-dev4-g1a2b3c4", "1.0+dev.4+git");
+    test_git_version("1.0-dev-4-g1a2b3c4", "1.0+dev+4+git");
     test_git_version("1.0-devel", "1.0+devel");
-    test_git_version("1.0-devel-4-g1a2b3c4", "1.0+devel+4+git1a2b3c4");
+    test_git_version("1.0-devel-4-g1a2b3c4", "1.0+devel+4+git");
     test_git_version("1.0-pre1", "1.0~1");
     test_git_version("1.0--pre1", "1.0~1");
     test_git_version("1.0--beta1", "1.0~beta.1");
 
     test_git_version("v1.0", "1.0");
-    test_git_version("v1.0-4-g1a2b3c4", "1.0+4+git1a2b3c4");
+    test_git_version("v1.0-4-g1a2b3c4", "1.0+4+git");
     test_git_version("v1.0-dev", "1.0+dev");
-    test_git_version("v1.0-dev-4-g1a2b3c4", "1.0+dev+4+git1a2b3c4");
+    test_git_version("v1.0-dev-4-g1a2b3c4", "1.0+dev+4+git");
     test_git_version("v1.0-devel", "1.0+devel");
-    test_git_version("v1.0-devel-4-g1a2b3c4", "1.0+devel+4+git1a2b3c4");
+    test_git_version("v1.0-devel-4-g1a2b3c4", "1.0+devel+4+git");
     test_git_version("v1.0-pre1", "1.0~1");
     test_git_version("v1.0--pre1", "1.0~1");
     test_git_version("v1.0--beta1", "1.0~beta.1");
 
     test_git_version("test-pkg-1.0", "1.0");
-    test_git_version("test-pkg-1.0-4-g1a2b3c4", "1.0+4+git1a2b3c4");
+    test_git_version("test-pkg-1.0-4-g1a2b3c4", "1.0+4+git");
     test_git_version("test-pkg-1.0-dev", "1.0+dev");
-    test_git_version("test-pkg-1.0-dev-4-g1a2b3c4", "1.0+dev+4+git1a2b3c4");
+    test_git_version("test-pkg-1.0-dev-4-g1a2b3c4", "1.0+dev+4+git");
     test_git_version("test-pkg-1.0-devel", "1.0+devel");
-    test_git_version("test-pkg-1.0-devel-4-g1a2b3c4", "1.0+devel+4+git1a2b3c4");
+    test_git_version("test-pkg-1.0-devel-4-g1a2b3c4", "1.0+devel+4+git");
     test_git_version("test-pkg-1.0-pre1", "1.0~1");
     test_git_version("test-pkg-1.0--pre1", "1.0~1");
     test_git_version("test-pkg-1.0--beta1", "1.0~beta.1");
@@ -96,12 +97,12 @@ START_TEST(test_git_version_values)
     DESCRIBE_TEST;
 
     test_git_version_value("1.0\n", "1.0");
-    test_git_version_value("1.0-4-g1a2b3c4\n", "1.0+4+git1a2b3c4");
+    test_git_version_value("1.0-4-g1a2b3c4\n", "1.0+4+git");
     test_git_version_value("1.0-dev\n", "1.0+dev");
-    test_git_version_value("1.0-dev4-g1a2b3c4\n", "1.0+dev.4+git1a2b3c4");
-    test_git_version_value("1.0-dev-4-g1a2b3c4\n", "1.0+dev+4+git1a2b3c4");
+    test_git_version_value("1.0-dev4-g1a2b3c4\n", "1.0+dev.4+git");
+    test_git_version_value("1.0-dev-4-g1a2b3c4\n", "1.0+dev+4+git");
     test_git_version_value("1.0-devel\n", "1.0+devel");
-    test_git_version_value("1.0-devel-4-g1a2b3c4\n", "1.0+devel+4+git1a2b3c4");
+    test_git_version_value("1.0-devel-4-g1a2b3c4\n", "1.0+devel+4+git");
     test_git_version_value("1.0-pre1\n", "1.0~1");
     test_git_version_value("1.0--pre1\n", "1.0~1");
     test_git_version_value("1.0--beta1\n", "1.0~beta.1");

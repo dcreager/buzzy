@@ -90,7 +90,7 @@ bz_version_cmp(const struct bz_version *v1, const struct bz_version *v2);
 struct bz_version *
 bz_version_new(void);
 
-void
+int
 bz_version_add_part(struct bz_version *version,
                     enum bz_version_part_kind kind,
                     const char *string_value, size_t size);

@@ -48,25 +48,24 @@ bz_version_from_git_describe(const char *git_version)
     const char  *eof = pe;
     struct bz_version  *version;
     const char  *start;
-    const char  *git_start;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
     DEBUG("---\nParse git version \"%s\"\n", git_version);
     version = bz_version_new();
 
     
-#line 59 "libbuzzy/distro/git.c"
+#line 58 "libbuzzy/distro/git.c"
 static const int git_version_start = 1;
 
 static const int git_version_en_main = 1;
 
 
-#line 65 "libbuzzy/distro/git.c"
+#line 64 "libbuzzy/distro/git.c"
 	{
 	cs = git_version_start;
 	}
 
-#line 70 "libbuzzy/distro/git.c"
+#line 69 "libbuzzy/distro/git.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
@@ -91,7 +90,7 @@ st0:
 cs = 0;
 	goto _out;
 tr2:
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -99,18 +98,18 @@ tr2:
         }
 	goto st9;
 tr20:
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 73 "libbuzzy/distro/git.c.rl"
+#line 72 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add release part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_RELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_RELEASE, buf.buf, buf.size));
         }
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -121,7 +120,7 @@ st9:
 	if ( ++p == pe )
 		goto _test_eof9;
 case 9:
-#line 125 "libbuzzy/distro/git.c"
+#line 124 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto tr18;
 		case 46: goto tr19;
@@ -130,79 +129,49 @@ case 9:
 		goto tr20;
 	goto st0;
 tr18:
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 73 "libbuzzy/distro/git.c.rl"
+#line 72 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add release part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_RELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_RELEASE, buf.buf, buf.size));
         }
 	goto st2;
 tr21:
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 80 "libbuzzy/distro/git.c.rl"
+#line 79 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add prerelease part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_PRERELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_PRERELEASE, buf.buf, buf.size));
         }
 	goto st2;
 tr32:
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 87 "libbuzzy/distro/git.c.rl"
+#line 86 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add postrelease part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
-        }
-	goto st2;
-tr43:
-#line 117 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_set(&buf, "git", 3); }
-#line 118 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_append(&buf, git_start, p - git_start); }
-#line 87 "libbuzzy/distro/git.c.rl"
-	{
-            DEBUG("  Add postrelease part\n");
-            DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
-        }
-	goto st2;
-tr46:
-#line 117 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_set(&buf, "git", 3); }
-#line 118 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_append(&buf, git_start, p - git_start); }
-#line 87 "libbuzzy/distro/git.c.rl"
-	{
-            DEBUG("  Add postrelease part\n");
-            DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
-        }
-#line 69 "libbuzzy/distro/git.c.rl"
-	{
-            cork_buffer_append(&buf, start, p - start);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size));
         }
 	goto st2;
 st2:
 	if ( ++p == pe )
 		goto _test_eof2;
 case 2:
-#line 206 "libbuzzy/distro/git.c"
+#line 175 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto st3;
 		case 103: goto tr6;
@@ -233,7 +202,7 @@ case 3:
 		goto tr9;
 	goto st0;
 tr8:
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -241,7 +210,7 @@ tr8:
         }
 	goto st10;
 tr14:
-#line 64 "libbuzzy/distro/git.c.rl"
+#line 63 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             DEBUG("  Looking for a trailer\n");
@@ -251,7 +220,7 @@ st10:
 	if ( ++p == pe )
 		goto _test_eof10;
 case 10:
-#line 255 "libbuzzy/distro/git.c"
+#line 224 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto tr21;
 		case 46: goto tr22;
@@ -260,84 +229,54 @@ case 10:
 		goto st10;
 	goto st0;
 tr19:
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 73 "libbuzzy/distro/git.c.rl"
+#line 72 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add release part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_RELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_RELEASE, buf.buf, buf.size));
         }
 	goto st4;
 tr22:
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 80 "libbuzzy/distro/git.c.rl"
+#line 79 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add prerelease part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_PRERELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_PRERELEASE, buf.buf, buf.size));
         }
 	goto st4;
 tr33:
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 87 "libbuzzy/distro/git.c.rl"
+#line 86 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add postrelease part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
-        }
-	goto st4;
-tr44:
-#line 117 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_set(&buf, "git", 3); }
-#line 118 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_append(&buf, git_start, p - git_start); }
-#line 87 "libbuzzy/distro/git.c.rl"
-	{
-            DEBUG("  Add postrelease part\n");
-            DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
-        }
-	goto st4;
-tr47:
-#line 117 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_set(&buf, "git", 3); }
-#line 118 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_append(&buf, git_start, p - git_start); }
-#line 87 "libbuzzy/distro/git.c.rl"
-	{
-            DEBUG("  Add postrelease part\n");
-            DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
-        }
-#line 69 "libbuzzy/distro/git.c.rl"
-	{
-            cork_buffer_append(&buf, start, p - start);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size));
         }
 	goto st4;
 st4:
 	if ( ++p == pe )
 		goto _test_eof4;
 case 4:
-#line 336 "libbuzzy/distro/git.c"
+#line 275 "libbuzzy/distro/git.c"
 	if ( 48 <= (*p) && (*p) <= 57 )
 		goto tr11;
 	goto st0;
 tr11:
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -345,18 +284,18 @@ tr11:
         }
 	goto st11;
 tr25:
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 80 "libbuzzy/distro/git.c.rl"
+#line 79 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add prerelease part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_PRERELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_PRERELEASE, buf.buf, buf.size));
         }
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -364,18 +303,18 @@ tr25:
         }
 	goto st11;
 tr35:
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 87 "libbuzzy/distro/git.c.rl"
+#line 86 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add postrelease part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size));
         }
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -386,7 +325,7 @@ st11:
 	if ( ++p == pe )
 		goto _test_eof11;
 case 11:
-#line 390 "libbuzzy/distro/git.c"
+#line 329 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto tr18;
 		case 46: goto tr19;
@@ -395,7 +334,7 @@ case 11:
 		goto st11;
 	goto st0;
 tr9:
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -406,7 +345,7 @@ st12:
 	if ( ++p == pe )
 		goto _test_eof12;
 case 12:
-#line 410 "libbuzzy/distro/git.c"
+#line 349 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto tr21;
 		case 46: goto tr22;
@@ -462,7 +401,7 @@ case 14:
 		goto st12;
 	goto st0;
 tr10:
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -473,7 +412,7 @@ st15:
 	if ( ++p == pe )
 		goto _test_eof15;
 case 15:
-#line 477 "libbuzzy/distro/git.c"
+#line 416 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto tr21;
 		case 46: goto tr22;
@@ -525,7 +464,7 @@ case 6:
 		goto tr14;
 	goto st0;
 tr13:
-#line 64 "libbuzzy/distro/git.c.rl"
+#line 63 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             DEBUG("  Looking for a trailer\n");
@@ -535,7 +474,7 @@ st17:
 	if ( ++p == pe )
 		goto _test_eof17;
 case 17:
-#line 539 "libbuzzy/distro/git.c"
+#line 478 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto tr21;
 		case 46: goto tr22;
@@ -550,7 +489,7 @@ case 17:
 		goto st17;
 	goto st0;
 tr4:
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -558,7 +497,7 @@ tr4:
         }
 	goto st18;
 tr17:
-#line 64 "libbuzzy/distro/git.c.rl"
+#line 63 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             DEBUG("  Looking for a trailer\n");
@@ -568,7 +507,7 @@ st18:
 	if ( ++p == pe )
 		goto _test_eof18;
 case 18:
-#line 572 "libbuzzy/distro/git.c"
+#line 511 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto tr32;
 		case 46: goto tr33;
@@ -577,7 +516,7 @@ case 18:
 		goto st18;
 	goto st0;
 tr5:
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -588,7 +527,7 @@ st19:
 	if ( ++p == pe )
 		goto _test_eof19;
 case 19:
-#line 592 "libbuzzy/distro/git.c"
+#line 531 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto tr32;
 		case 46: goto tr33;
@@ -685,7 +624,7 @@ case 23:
 		goto st19;
 	goto st0;
 tr6:
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -696,7 +635,7 @@ st24:
 	if ( ++p == pe )
 		goto _test_eof24;
 case 24:
-#line 700 "libbuzzy/distro/git.c"
+#line 639 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto tr32;
 		case 46: goto tr33;
@@ -716,16 +655,23 @@ case 24:
 	goto st0;
 tr41:
 #line 116 "libbuzzy/distro/git.c.rl"
-	{ git_start = p; }
+	{ cork_buffer_set(&buf, "git", 3); }
+#line 86 "libbuzzy/distro/git.c.rl"
+	{
+            DEBUG("  Add postrelease part\n");
+            DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size));
+        }
 	goto st25;
 st25:
 	if ( ++p == pe )
 		goto _test_eof25;
 case 25:
-#line 726 "libbuzzy/distro/git.c"
+#line 672 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
-		case 45: goto tr43;
-		case 46: goto tr44;
+		case 45: goto st2;
+		case 46: goto st4;
 	}
 	if ( (*p) > 57 ) {
 		if ( 97 <= (*p) && (*p) <= 102 )
@@ -735,16 +681,23 @@ case 25:
 	goto st0;
 tr42:
 #line 116 "libbuzzy/distro/git.c.rl"
-	{ git_start = p; }
+	{ cork_buffer_set(&buf, "git", 3); }
+#line 86 "libbuzzy/distro/git.c.rl"
+	{
+            DEBUG("  Add postrelease part\n");
+            DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size));
+        }
 	goto st26;
 st26:
 	if ( ++p == pe )
 		goto _test_eof26;
 case 26:
-#line 745 "libbuzzy/distro/git.c"
+#line 698 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
-		case 45: goto tr46;
-		case 46: goto tr47;
+		case 45: goto tr32;
+		case 46: goto tr33;
 		case 112: goto st20;
 	}
 	if ( (*p) < 65 ) {
@@ -760,7 +713,7 @@ case 26:
 		goto st19;
 	goto st0;
 tr7:
-#line 58 "libbuzzy/distro/git.c.rl"
+#line 57 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             cork_buffer_clear(&buf);
@@ -771,7 +724,7 @@ st27:
 	if ( ++p == pe )
 		goto _test_eof27;
 case 27:
-#line 775 "libbuzzy/distro/git.c"
+#line 728 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto tr32;
 		case 46: goto tr33;
@@ -843,7 +796,7 @@ case 8:
 		goto tr17;
 	goto st0;
 tr16:
-#line 64 "libbuzzy/distro/git.c.rl"
+#line 63 "libbuzzy/distro/git.c.rl"
 	{
             start = p;
             DEBUG("  Looking for a trailer\n");
@@ -853,7 +806,7 @@ st30:
 	if ( ++p == pe )
 		goto _test_eof30;
 case 30:
-#line 857 "libbuzzy/distro/git.c"
+#line 810 "libbuzzy/distro/git.c"
 	switch( (*p) ) {
 		case 45: goto tr32;
 		case 46: goto tr33;
@@ -925,16 +878,16 @@ case 31:
 	switch ( cs ) {
 	case 9: 
 	case 11: 
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 73 "libbuzzy/distro/git.c.rl"
+#line 72 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add release part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_RELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_RELEASE, buf.buf, buf.size));
         }
 	break;
 	case 10: 
@@ -944,16 +897,16 @@ case 31:
 	case 15: 
 	case 16: 
 	case 17: 
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 80 "libbuzzy/distro/git.c.rl"
+#line 79 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add prerelease part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_PRERELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_PRERELEASE, buf.buf, buf.size));
         }
 	break;
 	case 18: 
@@ -963,80 +916,54 @@ case 31:
 	case 22: 
 	case 23: 
 	case 24: 
+	case 26: 
 	case 27: 
 	case 28: 
 	case 29: 
 	case 30: 
 	case 31: 
-#line 69 "libbuzzy/distro/git.c.rl"
+#line 68 "libbuzzy/distro/git.c.rl"
 	{
             cork_buffer_append(&buf, start, p - start);
         }
-#line 87 "libbuzzy/distro/git.c.rl"
+#line 86 "libbuzzy/distro/git.c.rl"
 	{
             DEBUG("  Add postrelease part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size));
         }
 	break;
-	case 25: 
-#line 117 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_set(&buf, "git", 3); }
-#line 118 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_append(&buf, git_start, p - git_start); }
-#line 87 "libbuzzy/distro/git.c.rl"
-	{
-            DEBUG("  Add postrelease part\n");
-            DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
-        }
-	break;
-	case 26: 
-#line 117 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_set(&buf, "git", 3); }
-#line 118 "libbuzzy/distro/git.c.rl"
-	{ cork_buffer_append(&buf, git_start, p - git_start); }
-#line 87 "libbuzzy/distro/git.c.rl"
-	{
-            DEBUG("  Add postrelease part\n");
-            DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
-        }
-#line 69 "libbuzzy/distro/git.c.rl"
-	{
-            cork_buffer_append(&buf, start, p - start);
-        }
-	break;
-#line 1014 "libbuzzy/distro/git.c"
+#line 938 "libbuzzy/distro/git.c"
 	}
 	}
 
 	_out: {}
 	}
 
-#line 143 "libbuzzy/distro/git.c.rl"
+#line 142 "libbuzzy/distro/git.c.rl"
 
 
     /* A hack to suppress some unused variable warnings */
     (void) git_version_en_main;
 
     if (CORK_UNLIKELY(cs < 
-#line 1028 "libbuzzy/distro/git.c"
+#line 952 "libbuzzy/distro/git.c"
 9
-#line 148 "libbuzzy/distro/git.c.rl"
+#line 147 "libbuzzy/distro/git.c.rl"
 )) {
         bz_invalid_version("Invalid git version \"%s\"", git_version);
-        cork_buffer_done(&buf);
-        bz_version_free(version);
-        return NULL;
+        goto error;
     }
 
     bz_version_finalize(version);
     cork_buffer_done(&buf);
     return version;
+
+error:
+    cork_buffer_done(&buf);
+    bz_version_free(version);
+    return NULL;
 }
 
 

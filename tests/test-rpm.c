@@ -125,16 +125,24 @@ test_version_from_rpm(const char *buzzy, const char *rpm)
     bz_version_free(version);
 }
 
+static void
+test_rpm_version(const char *buzzy, const char *rpm)
+{
+    test_version_to_rpm(buzzy, rpm);
+    test_version_from_rpm(buzzy, rpm);
+}
+
 START_TEST(test_rpm_versions)
 {
     DESCRIBE_TEST;
-    test_version_to_rpm("2.0", "2.0-1");
-    test_version_to_rpm("2.0~alpha", "2.0-0.alpha.1");
-    test_version_to_rpm("2.0~1", "2.0-0.pre1.1");
-    test_version_to_rpm("2.0+hotfix1", "2.0-2.hotfix1.1");
-    test_version_to_rpm("2.0+1", "2.0-2.post1.1");
-    test_version_to_rpm("2.0+git20130529", "2.0-2.git20130529.1");
-    test_version_to_rpm("2.0+rev2", "2.0-2.rev2.1");
+    test_rpm_version("2.0", "2.0-1");
+    test_rpm_version("2.0~alpha", "2.0-0.alpha.1");
+    test_rpm_version("2.0~alpha.1", "2.0-0.alpha.1.1.1");
+    test_rpm_version("2.0~1", "2.0-0.1.1");
+    test_rpm_version("2.0+hotfix.1", "2.0-2.hotfix.1.1.1");
+    test_rpm_version("2.0+1", "2.0-2.1.1");
+    test_rpm_version("2.0+git+20130529", "2.0-2.git.2.20130529.1");
+    test_rpm_version("2.0+rev+2", "2.0-2.rev.2.2.1");
 
     /* A bunch of examples from
      * https://fedoraproject.org/wiki/Packaging:NamingGuidelines#Package_Versioning
@@ -634,7 +642,7 @@ START_TEST(test_rpm_create_package_deps_01)
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     deps = bz_array_new();
     bz_array_append(deps, bz_string_value_new("libfoo"));
-    bz_array_append(deps, bz_string_value_new("libbar >= 2.5~alpha1"));
+    bz_array_append(deps, bz_string_value_new("libbar >= 2.5~alpha.1"));
     fail_if_error(bz_env_add_override
                   (env, "dependencies", bz_array_as_value(deps)));
     test_create_package(env, false,
@@ -660,7 +668,7 @@ START_TEST(test_rpm_create_package_deps_01)
         "Group: Buzzy\n"
         "Source: .\n"
         "BuildRoot: /tmp/staging\n"
-        "Requires: libfoo, libbar >= 2.5-0.alpha1.1\n"
+        "Requires: libfoo, libbar >= 2.5-0.alpha.1.1.1\n"
         "\n"
         "%description\n"
         "No package description\n"

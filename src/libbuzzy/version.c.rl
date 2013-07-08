@@ -129,30 +129,46 @@ bz_version_free(struct bz_version *version)
     free(version);
 }
 
-void
+#define is_digit(ch)  ((ch) >= '0' && (ch) <= '9')
+
+int
 bz_version_add_part(struct bz_version *version,
                     enum bz_version_part_kind kind,
                     const char *string_value, size_t size)
 {
-    char  *endptr = NULL;
+    size_t  i;
     struct bz_version_part  *part;
+    bool  is_numeric;
     bool  hide_punct;
 
     assert(string_value != NULL && *string_value != '\0');
+
+    is_numeric = is_digit(string_value[0]);
+    for (i = 1; i < size; i++) {
+        if (is_digit(string_value[i]) != is_numeric) {
+            bz_invalid_version
+                ("Version part %.*s must be all numeric or all alpha",
+                 (int) size, string_value);
+            return -1;
+        }
+    }
 
     part = cork_array_append_get(&version->parts);
     part->kind = kind;
     cork_buffer_init(&part->string_value);
     cork_buffer_set(&part->string_value, string_value, size);
 
-    part->int_value = strtoul(part->string_value.buf, &endptr, 10);
-    if (*endptr != '\0') {
-        /* The string value contains some non-digit characters. */
+    if (is_numeric) {
+        /* We've already verified that there are only digits, so the strtoul
+         * call must always succeed. */
+        part->int_value = strtoul(part->string_value.buf, NULL, 10);
+    } else {
         part->int_value = BZ_VERSION_PART_USE_STRING;
     }
 
     hide_punct = (version->string.size == 0);
     bz_version_part_to_string(part, &version->string, hide_punct);
+    return 0;
 }
 
 static void
@@ -259,7 +275,7 @@ bz_version_from_string(const char *string)
         action add_part {
             size_t  size = fpc - part_start;
             DEBUG("    String value: %.*s\n", (int) size, part_start);
-            bz_version_add_part(version, kind, part_start, size);
+            ei_check(bz_version_add_part(version, kind, part_start, size));
         }
 
         part             = alnum+
@@ -283,12 +299,15 @@ bz_version_from_string(const char *string)
 
     if (CORK_UNLIKELY(cs < %%{ write first_final; }%%)) {
         bz_invalid_version("Invalid version \"%s\"", string);
-        bz_version_free(version);
-        return NULL;
+        goto error;
     }
 
     bz_version_finalize(version);
     return version;
+
+error:
+    bz_version_free(version);
+    return NULL;
 }
 
 const char *

@@ -139,12 +139,17 @@ START_TEST(test_arch_versions)
     DESCRIBE_TEST;
     test_arch_version("2.0", "2.0");
     test_arch_version("2.0~alpha", "2.0alpha");
+    test_arch_version("2.0~alpha.1", "2.0alpha1");
     test_arch_version("2.0~1", "2.0pre1");
     test_arch_version("2.0+hotfix.1", "2.0.hotfix1");
     test_arch_version("2.0+1", "2.0.post1");
     test_arch_version("2.0+git.20130529", "2.0.git20130529");
+    test_arch_version("2.0+git+20130529", "2.0.git.post20130529");
+    test_arch_version("2.0+git.123+abc.3", "2.0.git123.abc3");
+    test_arch_version("2.0+git+123+abc+3", "2.0.git.post123.abc.post3");
+
     test_version_from_arch("2.0", "2.0-1");
-    test_arch_version("2.0+rev.2", "2.0-2");
+    test_version_from_arch("2.0+rev.2", "2.0-2");
 }
 END_TEST
 
@@ -534,7 +539,7 @@ START_TEST(test_arch_create_package_deps_01)
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     deps = bz_array_new();
     bz_array_append(deps, bz_string_value_new("libfoo"));
-    bz_array_append(deps, bz_string_value_new("libbar >= 2.5~alpha1"));
+    bz_array_append(deps, bz_string_value_new("libbar >= 2.5~alpha.1"));
     fail_if_error(bz_env_add_override
                   (env, "dependencies", bz_array_as_value(deps)));
     test_create_package(env, false,

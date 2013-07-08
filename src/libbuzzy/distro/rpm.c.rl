@@ -99,10 +99,7 @@ bz_version_to_rpm(struct bz_version *version, struct cork_buffer *dest)
     assert(count > 0);
 
     for (i = 0; i < count; i++) {
-        const char  *string_value;
-        const char  *last_char;
         part = bz_version_get_part(version, i);
-        string_value = part->string_value.buf;
 
         switch (part->kind) {
             case BZ_VERSION_RELEASE:
@@ -124,9 +121,6 @@ bz_version_to_rpm(struct bz_version *version, struct cork_buffer *dest)
                     seen_non_release_tag = true;
                 }
                 assert(part->string_value.size > 0);
-                if (!isalpha(*string_value)) {
-                    cork_buffer_append(dest, "pre", 3);
-                }
                 break;
 
             case BZ_VERSION_POSTRELEASE:
@@ -137,9 +131,6 @@ bz_version_to_rpm(struct bz_version *version, struct cork_buffer *dest)
                     seen_non_release_tag = true;
                 }
                 assert(part->string_value.size > 0);
-                if (!isalpha(*string_value)) {
-                    cork_buffer_append(dest, "post", 4);
-                }
                 break;
 
             case BZ_VERSION_FINAL:
@@ -156,30 +147,27 @@ bz_version_to_rpm(struct bz_version *version, struct cork_buffer *dest)
 
         cork_buffer_append_copy(dest, &part->string_value);
 
-        assert(part->string_value.size > 0);
-        last_char = strchr(string_value, '\0') - 1;
-        need_punct_before_digit = isdigit(*last_char);
+        need_punct_before_digit = true;
     }
 }
 
 
-struct bz_version *
-bz_version_from_rpm(const char *rpm_version)
+static struct bz_version *
+bz_version_from_rpm_ours(const char *rpm_version)
 {
     int  cs;
     const char  *p = rpm_version;
     const char  *pe = strchr(rpm_version, '\0');
-    const char  *eof = pe;
     struct bz_version  *version;
     enum bz_version_part_kind  kind;
     const char  *start;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
-    clog_trace("Parse RPM version \"%s\"", rpm_version);
+    clog_trace("Parse our RPM version \"%s\"", rpm_version);
     version = bz_version_new();
 
     %%{
-        machine rpm_version;
+        machine rpm_version_our;
 
         action start_release {
             kind = BZ_VERSION_RELEASE;
@@ -202,7 +190,7 @@ bz_version_from_rpm(const char *rpm_version)
         action add_part {
             size_t  size = fpc - start;
             clog_trace("    String value: %.*s", (int) size, start);
-            bz_version_add_part(version, kind, start, size);
+            ei_check(bz_version_add_part(version, kind, start, size));
         }
 
         action start_revision {
@@ -213,8 +201,107 @@ bz_version_from_rpm(const char *rpm_version)
         action add_revision {
             cork_buffer_set(&buf, "rev", 3);
             cork_buffer_append(&buf, start, fpc - start);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size));
+        }
+
+        digit_part = digit+;
+        alpha_part = alpha+;
+        part = digit_part | alpha_part;
+
+        no_dot_release = digit+
+                       >start_release %add_part;
+
+        release = ('.' | '_' | '+')* part
+                  >start_release %add_part;
+
+        rpm_v = no_dot_release release**;
+
+
+        r_pre_part   = '0.' part >start_prerelease %add_part;
+        r_rel_part = '1.' part >start_release %add_part;
+        r_post_part  = '2.' part >start_postrelease %add_part;
+        r_final_part = '1';
+
+        r_part = r_pre_part | r_rel_part | r_post_part;
+        rpm_r = (r_part '.')* r_final_part;
+
+        main := rpm_v '-' rpm_r;
+
+        write data noerror nofinal;
+        write init;
+        write exec;
+    }%%
+
+    /* A hack to suppress some unused variable warnings */
+    (void) rpm_version_our_en_main;
+
+    if (CORK_UNLIKELY(cs < %%{ write first_final; }%%)) {
+        goto error;
+    }
+
+    bz_version_finalize(version);
+    cork_buffer_done(&buf);
+    return version;
+
+error:
+    cork_buffer_done(&buf);
+    bz_version_free(version);
+    return NULL;
+}
+
+static struct bz_version *
+bz_version_from_rpm_any(const char *rpm_version)
+{
+    int  cs;
+    const char  *p = rpm_version;
+    const char  *pe = strchr(rpm_version, '\0');
+    const char  *eof = pe;
+    struct bz_version  *version;
+    enum bz_version_part_kind  kind;
+    const char  *start;
+    struct cork_buffer  buf = CORK_BUFFER_INIT();
+
+    clog_trace("Parse any RPM version \"%s\"", rpm_version);
+    version = bz_version_new();
+
+    %%{
+        machine rpm_version_any;
+
+        action start_release {
+            kind = BZ_VERSION_RELEASE;
+            start = fpc;
+            clog_trace("  Create new release version part");
+        }
+
+        action start_prerelease {
+            kind = BZ_VERSION_PRERELEASE;
+            start = fpc;
+            clog_trace("  Create new prerelease version part");
+        }
+
+        action start_postrelease {
+            kind = BZ_VERSION_POSTRELEASE;
+            start = fpc;
+            clog_trace("  Create new postrelease version part");
+        }
+
+        action add_part {
+            size_t  size = fpc - start;
+            clog_trace("    String value: %.*s", (int) size, start);
+            ei_check(bz_version_add_part(version, kind, start, size));
+        }
+
+        action start_revision {
+            start = fpc + 1;
+            clog_trace("  Create new postrelease version part for revision");
+        }
+
+        action add_revision {
+            cork_buffer_set(&buf, "rev", 3);
+            cork_buffer_append(&buf, start, fpc - start);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size));
         }
 
         digit_part = digit+;
@@ -249,17 +336,32 @@ bz_version_from_rpm(const char *rpm_version)
     }%%
 
     /* A hack to suppress some unused variable warnings */
-    (void) rpm_version_en_main;
+    (void) rpm_version_any_en_main;
 
     if (CORK_UNLIKELY(cs < %%{ write first_final; }%%)) {
-        bz_invalid_version("Invalid RPM version \"%s\"", rpm_version);
-        cork_buffer_done(&buf);
-        bz_version_free(version);
-        return NULL;
+        goto error;
     }
 
     bz_version_finalize(version);
     cork_buffer_done(&buf);
+    return version;
+
+error:
+    cork_buffer_done(&buf);
+    bz_version_free(version);
+    return NULL;
+}
+
+struct bz_version *
+bz_version_from_rpm(const char *rpm_version)
+{
+    struct bz_version  *version = bz_version_from_rpm_ours(rpm_version);
+    if (version == NULL) {
+        version = bz_version_from_rpm_any(rpm_version);
+    }
+    if (version == NULL) {
+        bz_invalid_version("Invalid RPM version \"%s\"", rpm_version);
+    }
     return version;
 }
 

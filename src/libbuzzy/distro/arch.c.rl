@@ -59,32 +59,12 @@ bz_arch_is_present(bool *dest)
  * Arch version strings
  */
 
-static void
-handle_rev_tag(struct bz_version_part *part, struct cork_buffer *dest)
-{
-    /* We already know this is a postrelease part, and that it's at the end of
-     * the Arch version.  Check whether it consists only of digits. */
-    if (BZ_VERSION_PART_IS_INTEGRAL(part)) {
-        /* Is it rev1?  We ignore that. */
-        if (part->int_value == 1) {
-            return;
-        }
-        cork_buffer_append(dest, "-", 1);
-    } else {
-        /* If not, then we have to add back in the `+rev` that we skipped over
-         * in the previous iteration. */
-        cork_buffer_append(dest, ".rev.", 5);
-    }
-    cork_buffer_append_copy(dest, &part->string_value);
-}
-
 void
 bz_version_to_arch(struct bz_version *version, struct cork_buffer *dest)
 {
     size_t  i;
     size_t  count;
     struct bz_version_part  *part;
-    bool  have_rev = false;
     bool  need_punct_before_digit = false;
 
     count = bz_version_part_count(version);
@@ -97,15 +77,11 @@ bz_version_to_arch(struct bz_version *version, struct cork_buffer *dest)
         string_value = part->string_value.buf;
         switch (part->kind) {
             case BZ_VERSION_RELEASE:
-                if (have_rev) {
-                    handle_rev_tag(part, dest);
-                } else {
-                    if (need_punct_before_digit ||
-                        !BZ_VERSION_PART_IS_INTEGRAL(part)) {
-                        cork_buffer_append(dest, ".", 1);
-                    }
-                    cork_buffer_append_copy(dest, &part->string_value);
+                if (need_punct_before_digit ||
+                    !BZ_VERSION_PART_IS_INTEGRAL(part)) {
+                    cork_buffer_append(dest, ".", 1);
                 }
+                cork_buffer_append_copy(dest, &part->string_value);
                 break;
 
             case BZ_VERSION_PRERELEASE:
@@ -124,16 +100,6 @@ bz_version_to_arch(struct bz_version *version, struct cork_buffer *dest)
                  * with an alphanumeric, and has a "." separating it from the
                  * preceding numeric release tag. */
                 assert(part->string_value.size > 0);
-
-                /* Treat a +revXX tag specially, if it occurs at the end of the
-                 * Buzzy version.  That kind of tag should become the Arch
-                 * version release tag. */
-                if (i == count-3 &&
-                    strcmp(part->string_value.buf, "rev") == 0) {
-                    have_rev = true;
-                    continue;
-                }
-
                 if (isalpha(*string_value)) {
                     cork_buffer_append(dest, ".", 1);
                 } else {
@@ -156,8 +122,8 @@ bz_version_to_arch(struct bz_version *version, struct cork_buffer *dest)
 }
 
 
-struct bz_version *
-bz_version_from_arch(const char *arch_version)
+static struct bz_version *
+bz_version_from_arch_ours(const char *arch_version)
 {
     int  cs;
     const char  *p = arch_version;
@@ -168,11 +134,11 @@ bz_version_from_arch(const char *arch_version)
     const char  *start;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
-    clog_trace("Parse Arch version \"%s\"", arch_version);
+    clog_trace("Parse our Arch version \"%s\"", arch_version);
     version = bz_version_new();
 
     %%{
-        machine arch_version;
+        machine arch_version_ours;
 
         action start_release {
             kind = BZ_VERSION_RELEASE;
@@ -198,15 +164,110 @@ bz_version_from_arch(const char *arch_version)
             bz_version_add_part(version, kind, start, size);
         }
 
+        no_dot_release = digit+
+                       >start_release %add_part;
+
+        dot_release = '.' digit+
+                    >start_release %add_part;
+
+        release = no_dot_release | dot_release;
+
+        pre_prerelease = "pre" (digit >start_prerelease digit*) %add_part;
+
+        not_pre = (alpha >start_prerelease alpha*) - 'pre';
+
+        other_prerelease = (not_pre) %add_part
+                           ((digit >start_release digit*) %add_part)?;
+
+        prerelease = pre_prerelease | other_prerelease;
+
+        post_postrelease = ".post" (digit >start_postrelease digit*) %add_part;
+
+        not_post = (alpha >start_postrelease alpha*) - 'post';
+
+        other_postrelease = ('.' not_post) %add_part
+                            ((digit >start_release digit*) %add_part)?;
+
+        postrelease = post_postrelease | other_postrelease;
+
+        rev = "-1";
+
+        part = release | prerelease | postrelease;
+
+        main := no_dot_release part** rev?;
+
+        write data noerror nofinal;
+        write init;
+        write exec;
+    }%%
+
+    /* A hack to suppress some unused variable warnings */
+    (void) arch_version_ours_en_main;
+
+    if (CORK_UNLIKELY(cs < %%{ write first_final; }%%)) {
+        cork_buffer_done(&buf);
+        bz_version_free(version);
+        return NULL;
+    }
+
+    bz_version_finalize(version);
+    cork_buffer_done(&buf);
+    return version;
+}
+
+static struct bz_version *
+bz_version_from_arch_any(const char *arch_version)
+{
+    int  cs;
+    const char  *p = arch_version;
+    const char  *pe = strchr(arch_version, '\0');
+    const char  *eof = pe;
+    struct bz_version  *version;
+    enum bz_version_part_kind  kind;
+    const char  *start;
+    struct cork_buffer  buf = CORK_BUFFER_INIT();
+
+    clog_trace("Parse any Arch version \"%s\"", arch_version);
+    version = bz_version_new();
+
+    %%{
+        machine arch_version_any;
+
+        action start_release {
+            kind = BZ_VERSION_RELEASE;
+            start = fpc;
+            clog_trace("  Create new release version part");
+        }
+
+        action start_prerelease {
+            kind = BZ_VERSION_PRERELEASE;
+            start = fpc;
+            clog_trace("  Create new prerelease version part");
+        }
+
+        action start_postrelease {
+            kind = BZ_VERSION_POSTRELEASE;
+            start = fpc;
+            clog_trace("  Create new postrelease version part");
+        }
+
+        action add_part {
+            size_t  size = fpc - start;
+            clog_trace("    String value: %.*s", (int) size, start);
+            ei_check(bz_version_add_part(version, kind, start, size));
+        }
+
         action start_revision {
             start = fpc + 1;
             clog_trace("  Create new postrelease version part for revision");
         }
 
         action add_revision {
-            bz_version_add_part(version, BZ_VERSION_POSTRELEASE, "rev", 3);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_POSTRELEASE, "rev", 3));
             cork_buffer_set(&buf, start, fpc - start);
-            bz_version_add_part(version, BZ_VERSION_RELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_RELEASE, buf.buf, buf.size));
         }
 
         no_dot_release = digit+
@@ -219,15 +280,19 @@ bz_version_from_arch(const char *arch_version)
 
         pre_prerelease = "pre" (digit >start_prerelease digit*) %add_part;
 
-        other_prerelease = ((alpha+) - pre_prerelease)
-                         >start_prerelease %add_part;
+        not_pre = (alpha >start_prerelease alpha*) - 'pre';
+
+        other_prerelease = (not_pre) %add_part
+                           ((digit >start_prerelease digit*) %add_part)?;
 
         prerelease = pre_prerelease | other_prerelease;
 
         post_postrelease = ".post" (digit >start_postrelease digit*) %add_part;
 
-        other_postrelease = ('.' alpha >start_postrelease alpha*)
-                          %add_part;
+        not_post = (alpha >start_postrelease alpha*) - 'post';
+
+        other_postrelease = ('.' not_post) %add_part
+                            ((digit >start_postrelease digit*) %add_part)?;
 
         postrelease = post_postrelease | other_postrelease;
 
@@ -248,17 +313,32 @@ bz_version_from_arch(const char *arch_version)
     }%%
 
     /* A hack to suppress some unused variable warnings */
-    (void) arch_version_en_main;
+    (void) arch_version_any_en_main;
 
     if (CORK_UNLIKELY(cs < %%{ write first_final; }%%)) {
-        bz_invalid_version("Invalid Arch version \"%s\"", arch_version);
-        cork_buffer_done(&buf);
-        bz_version_free(version);
-        return NULL;
+        goto error;
     }
 
     bz_version_finalize(version);
     cork_buffer_done(&buf);
+    return version;
+
+error:
+    cork_buffer_done(&buf);
+    bz_version_free(version);
+    return NULL;
+}
+
+struct bz_version *
+bz_version_from_arch(const char *arch_version)
+{
+    struct bz_version  *version = bz_version_from_arch_ours(arch_version);
+    if (version == NULL) {
+        version = bz_version_from_arch_any(arch_version);
+    }
+    if (version == NULL) {
+        bz_invalid_version("Invalid Arch version \"%s\"", arch_version);
+    }
     return version;
 }
 

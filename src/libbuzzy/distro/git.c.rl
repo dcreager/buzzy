@@ -46,7 +46,6 @@ bz_version_from_git_describe(const char *git_version)
     const char  *eof = pe;
     struct bz_version  *version;
     const char  *start;
-    const char  *git_start;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
     DEBUG("---\nParse git version \"%s\"\n", git_version);
@@ -73,22 +72,22 @@ bz_version_from_git_describe(const char *git_version)
         action add_release_part {
             DEBUG("  Add release part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_RELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_RELEASE, buf.buf, buf.size));
         }
 
         action add_prerelease_part {
             DEBUG("  Add prerelease part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_PRERELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_PRERELEASE, buf.buf, buf.size));
         }
 
         action add_postrelease_part {
             DEBUG("  Add postrelease part\n");
             DEBUG("    String value: %.*s\n", (int) buf.size, (char *) buf.buf);
-            bz_version_add_part
-                (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size);
+            ei_check(bz_version_add_part
+                     (version, BZ_VERSION_POSTRELEASE, buf.buf, buf.size));
         }
 
         skip_leading = (alpha | '-')*;
@@ -112,11 +111,11 @@ bz_version_from_git_describe(const char *git_version)
 
         dash_post = '-post' tag_trailer %add_postrelease_part;
 
-        hex = 'a'..'f' | digit;
-        dash_g = '-g' (hex >{ git_start = fpc; }) hex*
-               %{ cork_buffer_set(&buf, "git", 3); }
-               %{ cork_buffer_append(&buf, git_start, fpc - git_start); }
-               %add_postrelease_part;
+        hex = ('0'..'9') | ('a'..'f');
+        dash_g = '-g'
+                 %{ cork_buffer_set(&buf, "git", 3); }
+                 %add_postrelease_part
+                 hex+;
 
         dash_tag = ((alpha >start_part) alpha*) -- ('pre' | 'post');
         dash_tagged = '-' dash_tag %add_to_part %add_postrelease_part;
@@ -147,14 +146,17 @@ bz_version_from_git_describe(const char *git_version)
 
     if (CORK_UNLIKELY(cs < %%{ write first_final; }%%)) {
         bz_invalid_version("Invalid git version \"%s\"", git_version);
-        cork_buffer_done(&buf);
-        bz_version_free(version);
-        return NULL;
+        goto error;
     }
 
     bz_version_finalize(version);
     cork_buffer_done(&buf);
     return version;
+
+error:
+    cork_buffer_done(&buf);
+    bz_version_free(version);
+    return NULL;
 }
 
 

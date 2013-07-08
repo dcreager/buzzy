@@ -64,19 +64,19 @@ START_TEST(test_versions)
 {
     DESCRIBE_TEST;
 
-    test_version_string("2.0",         "2.0");
-    test_version_string("2.0.0",       "2.0.0");
-    test_version_string("2.0~alpha",   "2.0~alpha");
-    test_version_string("2.0~alpha1",  "2.0~alpha1");
-    test_version_string("2.0~alpha.1", "2.0~alpha.1");
-    test_version_string("2.0+dev",     "2.0+dev");
-    test_version_string("2.0.1",       "2.0.1");
-    test_version_string("2.1",         "2.1");
+    test_version_string("2.0",          "2.0");
+    test_version_string("2.0.0",        "2.0.0");
+    test_version_string("2.0~alpha",    "2.0~alpha");
+    test_version_string("2.0~alpha.1",  "2.0~alpha.1");
+    test_version_string("2.0~alpha.9",  "2.0~alpha.9");
+    test_version_string("2.0~alpha.10", "2.0~alpha.10");
+    test_version_string("2.0+dev",      "2.0+dev");
+    test_version_string("2.0.1",        "2.0.1");
+    test_version_string("2.1",          "2.1");
 
     test_version_compare_string("2.0",         "[.2]");
     test_version_compare_string("2.0.0",       "[.2]");
     test_version_compare_string("2.0~alpha",   "[.2~alpha]");
-    test_version_compare_string("2.0~alpha1",  "[.2~alpha1]");
     test_version_compare_string("2.0~alpha.1", "[.2~alpha.1]");
     test_version_compare_string("2.0+dev",     "[.2+dev]");
     test_version_compare_string("2.0.1",       "[.2.0.1]");
@@ -128,6 +128,8 @@ test_dependency_string(const char *in, const char *expected)
 
 START_TEST(test_dependencies)
 {
+    DESCRIBE_TEST;
+
     /* A slew of versions */
     test_dependency_string("foo >= 2.0",       "foo >= 2.0");
     test_dependency_string("foo >= 2.0.0",     "foo >= 2.0.0");

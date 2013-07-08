@@ -101,10 +101,7 @@ bz_version_to_rpm(struct bz_version *version, struct cork_buffer *dest)
     assert(count > 0);
 
     for (i = 0; i < count; i++) {
-        const char  *string_value;
-        const char  *last_char;
         part = bz_version_get_part(version, i);
-        string_value = part->string_value.buf;
 
         switch (part->kind) {
             case BZ_VERSION_RELEASE:
@@ -126,9 +123,6 @@ bz_version_to_rpm(struct bz_version *version, struct cork_buffer *dest)
                     seen_non_release_tag = true;
                 }
                 assert(part->string_value.size > 0);
-                if (!isalpha(*string_value)) {
-                    cork_buffer_append(dest, "pre", 3);
-                }
                 break;
 
             case BZ_VERSION_POSTRELEASE:
@@ -139,9 +133,6 @@ bz_version_to_rpm(struct bz_version *version, struct cork_buffer *dest)
                     seen_non_release_tag = true;
                 }
                 assert(part->string_value.size > 0);
-                if (!isalpha(*string_value)) {
-                    cork_buffer_append(dest, "post", 4);
-                }
                 break;
 
             case BZ_VERSION_FINAL:
@@ -158,41 +149,38 @@ bz_version_to_rpm(struct bz_version *version, struct cork_buffer *dest)
 
         cork_buffer_append_copy(dest, &part->string_value);
 
-        assert(part->string_value.size > 0);
-        last_char = strchr(string_value, '\0') - 1;
-        need_punct_before_digit = isdigit(*last_char);
+        need_punct_before_digit = true;
     }
 }
 
 
-struct bz_version *
-bz_version_from_rpm(const char *rpm_version)
+static struct bz_version *
+bz_version_from_rpm_ours(const char *rpm_version)
 {
     int  cs;
     const char  *p = rpm_version;
     const char  *pe = strchr(rpm_version, '\0');
-    const char  *eof = pe;
     struct bz_version  *version;
     enum bz_version_part_kind  kind;
     const char  *start;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
-    clog_trace("Parse RPM version \"%s\"", rpm_version);
+    clog_trace("Parse our RPM version \"%s\"", rpm_version);
     version = bz_version_new();
 
     
-#line 185 "libbuzzy/distro/rpm.c"
-static const int rpm_version_start = 1;
+#line 173 "libbuzzy/distro/rpm.c"
+static const int rpm_version_our_start = 1;
 
-static const int rpm_version_en_main = 1;
+static const int rpm_version_our_en_main = 1;
 
 
-#line 191 "libbuzzy/distro/rpm.c"
+#line 179 "libbuzzy/distro/rpm.c"
 	{
-	cs = rpm_version_start;
+	cs = rpm_version_our_start;
 	}
 
-#line 196 "libbuzzy/distro/rpm.c"
+#line 184 "libbuzzy/distro/rpm.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
@@ -206,7 +194,7 @@ st0:
 cs = 0;
 	goto _out;
 tr0:
-#line 184 "libbuzzy/distro/rpm.c.rl"
+#line 172 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
@@ -214,13 +202,13 @@ tr0:
         }
 	goto st2;
 tr4:
-#line 202 "libbuzzy/distro/rpm.c.rl"
+#line 190 "libbuzzy/distro/rpm.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
-            bz_version_add_part(version, kind, start, size);
+            ei_check(bz_version_add_part(version, kind, start, size));
         }
-#line 184 "libbuzzy/distro/rpm.c.rl"
+#line 172 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
@@ -231,7 +219,7 @@ st2:
 	if ( ++p == pe )
 		goto _test_eof2;
 case 2:
-#line 235 "libbuzzy/distro/rpm.c"
+#line 223 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 43: goto tr2;
 		case 45: goto tr3;
@@ -248,18 +236,18 @@ case 2:
 		goto tr5;
 	goto st0;
 tr2:
-#line 202 "libbuzzy/distro/rpm.c.rl"
+#line 190 "libbuzzy/distro/rpm.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
-            bz_version_add_part(version, kind, start, size);
+            ei_check(bz_version_add_part(version, kind, start, size));
         }
 	goto st3;
 st3:
 	if ( ++p == pe )
 		goto _test_eof3;
 case 3:
-#line 263 "libbuzzy/distro/rpm.c"
+#line 251 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 43: goto st3;
 		case 46: goto st3;
@@ -275,21 +263,21 @@ case 3:
 		goto tr8;
 	goto st0;
 tr7:
-#line 184 "libbuzzy/distro/rpm.c.rl"
+#line 172 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
             clog_trace("  Create new release version part");
         }
 	goto st4;
-tr18:
-#line 202 "libbuzzy/distro/rpm.c.rl"
+tr23:
+#line 190 "libbuzzy/distro/rpm.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
-            bz_version_add_part(version, kind, start, size);
+            ei_check(bz_version_add_part(version, kind, start, size));
         }
-#line 184 "libbuzzy/distro/rpm.c.rl"
+#line 172 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
@@ -300,7 +288,7 @@ st4:
 	if ( ++p == pe )
 		goto _test_eof4;
 case 4:
-#line 304 "libbuzzy/distro/rpm.c"
+#line 292 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 43: goto tr2;
 		case 45: goto tr3;
@@ -317,18 +305,404 @@ case 4:
 		goto tr5;
 	goto st0;
 tr3:
-#line 202 "libbuzzy/distro/rpm.c.rl"
+#line 190 "libbuzzy/distro/rpm.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
-            bz_version_add_part(version, kind, start, size);
+            ei_check(bz_version_add_part(version, kind, start, size));
         }
 	goto st5;
 st5:
 	if ( ++p == pe )
 		goto _test_eof5;
 case 5:
-#line 332 "libbuzzy/distro/rpm.c"
+#line 320 "libbuzzy/distro/rpm.c"
+	switch( (*p) ) {
+		case 48: goto st6;
+		case 49: goto st14;
+		case 50: goto st11;
+	}
+	goto st0;
+st6:
+	if ( ++p == pe )
+		goto _test_eof6;
+case 6:
+	if ( (*p) == 46 )
+		goto st7;
+	goto st0;
+st7:
+	if ( ++p == pe )
+		goto _test_eof7;
+case 7:
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr14;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto tr15;
+	} else
+		goto tr15;
+	goto st0;
+tr18:
+#line 172 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_RELEASE;
+            start = p;
+            clog_trace("  Create new release version part");
+        }
+	goto st8;
+tr14:
+#line 178 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_PRERELEASE;
+            start = p;
+            clog_trace("  Create new prerelease version part");
+        }
+	goto st8;
+tr21:
+#line 184 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_POSTRELEASE;
+            start = p;
+            clog_trace("  Create new postrelease version part");
+        }
+	goto st8;
+st8:
+	if ( ++p == pe )
+		goto _test_eof8;
+case 8:
+#line 375 "libbuzzy/distro/rpm.c"
+	if ( (*p) == 46 )
+		goto tr3;
+	if ( 48 <= (*p) && (*p) <= 57 )
+		goto st8;
+	goto st0;
+tr19:
+#line 172 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_RELEASE;
+            start = p;
+            clog_trace("  Create new release version part");
+        }
+	goto st9;
+tr15:
+#line 178 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_PRERELEASE;
+            start = p;
+            clog_trace("  Create new prerelease version part");
+        }
+	goto st9;
+tr22:
+#line 184 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_POSTRELEASE;
+            start = p;
+            clog_trace("  Create new postrelease version part");
+        }
+	goto st9;
+st9:
+	if ( ++p == pe )
+		goto _test_eof9;
+case 9:
+#line 409 "libbuzzy/distro/rpm.c"
+	if ( (*p) == 46 )
+		goto tr3;
+	if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto st9;
+	} else if ( (*p) >= 65 )
+		goto st9;
+	goto st0;
+st14:
+	if ( ++p == pe )
+		goto _test_eof14;
+case 14:
+	if ( (*p) == 46 )
+		goto st10;
+	goto st0;
+st10:
+	if ( ++p == pe )
+		goto _test_eof10;
+case 10:
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr18;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto tr19;
+	} else
+		goto tr19;
+	goto st0;
+st11:
+	if ( ++p == pe )
+		goto _test_eof11;
+case 11:
+	if ( (*p) == 46 )
+		goto st12;
+	goto st0;
+st12:
+	if ( ++p == pe )
+		goto _test_eof12;
+case 12:
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr21;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto tr22;
+	} else
+		goto tr22;
+	goto st0;
+tr8:
+#line 172 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_RELEASE;
+            start = p;
+            clog_trace("  Create new release version part");
+        }
+	goto st13;
+tr5:
+#line 190 "libbuzzy/distro/rpm.c.rl"
+	{
+            size_t  size = p - start;
+            clog_trace("    String value: %.*s", (int) size, start);
+            ei_check(bz_version_add_part(version, kind, start, size));
+        }
+#line 172 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_RELEASE;
+            start = p;
+            clog_trace("  Create new release version part");
+        }
+	goto st13;
+st13:
+	if ( ++p == pe )
+		goto _test_eof13;
+case 13:
+#line 484 "libbuzzy/distro/rpm.c"
+	switch( (*p) ) {
+		case 43: goto tr2;
+		case 45: goto tr3;
+		case 46: goto tr2;
+		case 95: goto tr2;
+	}
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr23;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto st13;
+	} else
+		goto st13;
+	goto st0;
+	}
+	_test_eof2: cs = 2; goto _test_eof; 
+	_test_eof3: cs = 3; goto _test_eof; 
+	_test_eof4: cs = 4; goto _test_eof; 
+	_test_eof5: cs = 5; goto _test_eof; 
+	_test_eof6: cs = 6; goto _test_eof; 
+	_test_eof7: cs = 7; goto _test_eof; 
+	_test_eof8: cs = 8; goto _test_eof; 
+	_test_eof9: cs = 9; goto _test_eof; 
+	_test_eof14: cs = 14; goto _test_eof; 
+	_test_eof10: cs = 10; goto _test_eof; 
+	_test_eof11: cs = 11; goto _test_eof; 
+	_test_eof12: cs = 12; goto _test_eof; 
+	_test_eof13: cs = 13; goto _test_eof; 
+
+	_test_eof: {}
+	_out: {}
+	}
+
+#line 234 "libbuzzy/distro/rpm.c.rl"
+
+
+    /* A hack to suppress some unused variable warnings */
+    (void) rpm_version_our_en_main;
+
+    if (CORK_UNLIKELY(cs < 
+#line 526 "libbuzzy/distro/rpm.c"
+14
+#line 239 "libbuzzy/distro/rpm.c.rl"
+)) {
+        goto error;
+    }
+
+    bz_version_finalize(version);
+    cork_buffer_done(&buf);
+    return version;
+
+error:
+    cork_buffer_done(&buf);
+    bz_version_free(version);
+    return NULL;
+}
+
+static struct bz_version *
+bz_version_from_rpm_any(const char *rpm_version)
+{
+    int  cs;
+    const char  *p = rpm_version;
+    const char  *pe = strchr(rpm_version, '\0');
+    const char  *eof = pe;
+    struct bz_version  *version;
+    enum bz_version_part_kind  kind;
+    const char  *start;
+    struct cork_buffer  buf = CORK_BUFFER_INIT();
+
+    clog_trace("Parse any RPM version \"%s\"", rpm_version);
+    version = bz_version_new();
+
+    
+#line 559 "libbuzzy/distro/rpm.c"
+static const int rpm_version_any_start = 1;
+
+static const int rpm_version_any_en_main = 1;
+
+
+#line 565 "libbuzzy/distro/rpm.c"
+	{
+	cs = rpm_version_any_start;
+	}
+
+#line 570 "libbuzzy/distro/rpm.c"
+	{
+	if ( p == pe )
+		goto _test_eof;
+	switch ( cs )
+	{
+case 1:
+	if ( 48 <= (*p) && (*p) <= 57 )
+		goto tr0;
+	goto st0;
+st0:
+cs = 0;
+	goto _out;
+tr0:
+#line 271 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_RELEASE;
+            start = p;
+            clog_trace("  Create new release version part");
+        }
+	goto st2;
+tr4:
+#line 289 "libbuzzy/distro/rpm.c.rl"
+	{
+            size_t  size = p - start;
+            clog_trace("    String value: %.*s", (int) size, start);
+            ei_check(bz_version_add_part(version, kind, start, size));
+        }
+#line 271 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_RELEASE;
+            start = p;
+            clog_trace("  Create new release version part");
+        }
+	goto st2;
+st2:
+	if ( ++p == pe )
+		goto _test_eof2;
+case 2:
+#line 609 "libbuzzy/distro/rpm.c"
+	switch( (*p) ) {
+		case 43: goto tr2;
+		case 45: goto tr3;
+		case 46: goto tr2;
+		case 95: goto tr2;
+	}
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr4;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto tr5;
+	} else
+		goto tr5;
+	goto st0;
+tr2:
+#line 289 "libbuzzy/distro/rpm.c.rl"
+	{
+            size_t  size = p - start;
+            clog_trace("    String value: %.*s", (int) size, start);
+            ei_check(bz_version_add_part(version, kind, start, size));
+        }
+	goto st3;
+st3:
+	if ( ++p == pe )
+		goto _test_eof3;
+case 3:
+#line 637 "libbuzzy/distro/rpm.c"
+	switch( (*p) ) {
+		case 43: goto st3;
+		case 46: goto st3;
+		case 95: goto st3;
+	}
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr7;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto tr8;
+	} else
+		goto tr8;
+	goto st0;
+tr7:
+#line 271 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_RELEASE;
+            start = p;
+            clog_trace("  Create new release version part");
+        }
+	goto st4;
+tr18:
+#line 289 "libbuzzy/distro/rpm.c.rl"
+	{
+            size_t  size = p - start;
+            clog_trace("    String value: %.*s", (int) size, start);
+            ei_check(bz_version_add_part(version, kind, start, size));
+        }
+#line 271 "libbuzzy/distro/rpm.c.rl"
+	{
+            kind = BZ_VERSION_RELEASE;
+            start = p;
+            clog_trace("  Create new release version part");
+        }
+	goto st4;
+st4:
+	if ( ++p == pe )
+		goto _test_eof4;
+case 4:
+#line 678 "libbuzzy/distro/rpm.c"
+	switch( (*p) ) {
+		case 43: goto tr2;
+		case 45: goto tr3;
+		case 46: goto tr2;
+		case 95: goto tr2;
+	}
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto st4;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto tr5;
+	} else
+		goto tr5;
+	goto st0;
+tr3:
+#line 289 "libbuzzy/distro/rpm.c.rl"
+	{
+            size_t  size = p - start;
+            clog_trace("    String value: %.*s", (int) size, start);
+            ei_check(bz_version_add_part(version, kind, start, size));
+        }
+	goto st5;
+st5:
+	if ( ++p == pe )
+		goto _test_eof5;
+case 5:
+#line 706 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 48: goto st6;
 		case 49: goto tr11;
@@ -351,13 +725,13 @@ case 7:
 		goto tr14;
 	goto st0;
 tr21:
-#line 202 "libbuzzy/distro/rpm.c.rl"
+#line 289 "libbuzzy/distro/rpm.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
-            bz_version_add_part(version, kind, start, size);
+            ei_check(bz_version_add_part(version, kind, start, size));
         }
-#line 184 "libbuzzy/distro/rpm.c.rl"
+#line 271 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
@@ -365,7 +739,7 @@ tr21:
         }
 	goto st10;
 tr12:
-#line 196 "libbuzzy/distro/rpm.c.rl"
+#line 283 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_POSTRELEASE;
             start = p;
@@ -373,7 +747,7 @@ tr12:
         }
 	goto st10;
 tr14:
-#line 190 "libbuzzy/distro/rpm.c.rl"
+#line 277 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_PRERELEASE;
             start = p;
@@ -384,7 +758,7 @@ st10:
 	if ( ++p == pe )
 		goto _test_eof10;
 case 10:
-#line 388 "libbuzzy/distro/rpm.c"
+#line 762 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 43: goto tr20;
 		case 46: goto tr20;
@@ -400,18 +774,18 @@ case 10:
 		goto tr22;
 	goto st0;
 tr20:
-#line 202 "libbuzzy/distro/rpm.c.rl"
+#line 289 "libbuzzy/distro/rpm.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
-            bz_version_add_part(version, kind, start, size);
+            ei_check(bz_version_add_part(version, kind, start, size));
         }
 	goto st8;
 st8:
 	if ( ++p == pe )
 		goto _test_eof8;
 case 8:
-#line 415 "libbuzzy/distro/rpm.c"
+#line 789 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 43: goto st8;
 		case 46: goto st8;
@@ -427,7 +801,7 @@ case 8:
 		goto tr17;
 	goto st0;
 tr16:
-#line 184 "libbuzzy/distro/rpm.c.rl"
+#line 271 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
@@ -435,13 +809,13 @@ tr16:
         }
 	goto st11;
 tr24:
-#line 202 "libbuzzy/distro/rpm.c.rl"
+#line 289 "libbuzzy/distro/rpm.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
-            bz_version_add_part(version, kind, start, size);
+            ei_check(bz_version_add_part(version, kind, start, size));
         }
-#line 184 "libbuzzy/distro/rpm.c.rl"
+#line 271 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
@@ -452,7 +826,7 @@ st11:
 	if ( ++p == pe )
 		goto _test_eof11;
 case 11:
-#line 456 "libbuzzy/distro/rpm.c"
+#line 830 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 43: goto tr20;
 		case 46: goto tr20;
@@ -468,7 +842,7 @@ case 11:
 		goto tr22;
 	goto st0;
 tr17:
-#line 184 "libbuzzy/distro/rpm.c.rl"
+#line 271 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
@@ -476,13 +850,13 @@ tr17:
         }
 	goto st12;
 tr22:
-#line 202 "libbuzzy/distro/rpm.c.rl"
+#line 289 "libbuzzy/distro/rpm.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
-            bz_version_add_part(version, kind, start, size);
+            ei_check(bz_version_add_part(version, kind, start, size));
         }
-#line 184 "libbuzzy/distro/rpm.c.rl"
+#line 271 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
@@ -493,7 +867,7 @@ st12:
 	if ( ++p == pe )
 		goto _test_eof12;
 case 12:
-#line 497 "libbuzzy/distro/rpm.c"
+#line 871 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 43: goto tr20;
 		case 46: goto tr20;
@@ -509,7 +883,7 @@ case 12:
 		goto st12;
 	goto st0;
 tr11:
-#line 196 "libbuzzy/distro/rpm.c.rl"
+#line 283 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_POSTRELEASE;
             start = p;
@@ -520,7 +894,7 @@ st13:
 	if ( ++p == pe )
 		goto _test_eof13;
 case 13:
-#line 524 "libbuzzy/distro/rpm.c"
+#line 898 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 43: goto tr20;
 		case 46: goto tr20;
@@ -536,7 +910,7 @@ case 13:
 		goto tr22;
 	goto st0;
 tr8:
-#line 184 "libbuzzy/distro/rpm.c.rl"
+#line 271 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
@@ -544,13 +918,13 @@ tr8:
         }
 	goto st9;
 tr5:
-#line 202 "libbuzzy/distro/rpm.c.rl"
+#line 289 "libbuzzy/distro/rpm.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
-            bz_version_add_part(version, kind, start, size);
+            ei_check(bz_version_add_part(version, kind, start, size));
         }
-#line 184 "libbuzzy/distro/rpm.c.rl"
+#line 271 "libbuzzy/distro/rpm.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             start = p;
@@ -561,7 +935,7 @@ st9:
 	if ( ++p == pe )
 		goto _test_eof9;
 case 9:
-#line 565 "libbuzzy/distro/rpm.c"
+#line 939 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 43: goto tr2;
 		case 45: goto tr3;
@@ -598,39 +972,54 @@ case 9:
 	case 10: 
 	case 11: 
 	case 12: 
-#line 202 "libbuzzy/distro/rpm.c.rl"
+#line 289 "libbuzzy/distro/rpm.c.rl"
 	{
             size_t  size = p - start;
             clog_trace("    String value: %.*s", (int) size, start);
-            bz_version_add_part(version, kind, start, size);
+            ei_check(bz_version_add_part(version, kind, start, size));
         }
 	break;
-#line 609 "libbuzzy/distro/rpm.c"
+#line 983 "libbuzzy/distro/rpm.c"
 	}
 	}
 
 	_out: {}
 	}
 
-#line 249 "libbuzzy/distro/rpm.c.rl"
+#line 336 "libbuzzy/distro/rpm.c.rl"
 
 
     /* A hack to suppress some unused variable warnings */
-    (void) rpm_version_en_main;
+    (void) rpm_version_any_en_main;
 
     if (CORK_UNLIKELY(cs < 
-#line 623 "libbuzzy/distro/rpm.c"
+#line 997 "libbuzzy/distro/rpm.c"
 10
-#line 254 "libbuzzy/distro/rpm.c.rl"
+#line 341 "libbuzzy/distro/rpm.c.rl"
 )) {
-        bz_invalid_version("Invalid RPM version \"%s\"", rpm_version);
-        cork_buffer_done(&buf);
-        bz_version_free(version);
-        return NULL;
+        goto error;
     }
 
     bz_version_finalize(version);
     cork_buffer_done(&buf);
+    return version;
+
+error:
+    cork_buffer_done(&buf);
+    bz_version_free(version);
+    return NULL;
+}
+
+struct bz_version *
+bz_version_from_rpm(const char *rpm_version)
+{
+    struct bz_version  *version = bz_version_from_rpm_ours(rpm_version);
+    if (version == NULL) {
+        version = bz_version_from_rpm_any(rpm_version);
+    }
+    if (version == NULL) {
+        bz_invalid_version("Invalid RPM version \"%s\"", rpm_version);
+    }
     return version;
 }
 
@@ -666,36 +1055,36 @@ bz_yum_native_version_available(const char *native_package_name)
     pe = out.buf + out.size;
 
     
-#line 670 "libbuzzy/distro/rpm.c"
+#line 1059 "libbuzzy/distro/rpm.c"
 static const int rpm_version_available_start = 49;
 
 static const int rpm_version_available_en_main = 49;
 
 
-#line 676 "libbuzzy/distro/rpm.c"
+#line 1065 "libbuzzy/distro/rpm.c"
 	{
 	cs = rpm_version_available_start;
 	}
 
-#line 681 "libbuzzy/distro/rpm.c"
+#line 1070 "libbuzzy/distro/rpm.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
 	switch ( cs )
 	{
 tr13:
-#line 305 "libbuzzy/distro/rpm.c.rl"
+#line 407 "libbuzzy/distro/rpm.c.rl"
 	{ r_end = p; }
 	goto st49;
 tr35:
-#line 302 "libbuzzy/distro/rpm.c.rl"
+#line 404 "libbuzzy/distro/rpm.c.rl"
 	{ v_end = p; }
 	goto st49;
 st49:
 	if ( ++p == pe )
 		goto _test_eof49;
 case 49:
-#line 699 "libbuzzy/distro/rpm.c"
+#line 1088 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 10: goto st49;
 		case 82: goto st1;
@@ -776,18 +1165,18 @@ case 7:
 		goto st7;
 	goto st0;
 tr21:
-#line 305 "libbuzzy/distro/rpm.c.rl"
+#line 407 "libbuzzy/distro/rpm.c.rl"
 	{ r_end = p; }
 	goto st50;
 tr43:
-#line 302 "libbuzzy/distro/rpm.c.rl"
+#line 404 "libbuzzy/distro/rpm.c.rl"
 	{ v_end = p; }
 	goto st50;
 st50:
 	if ( ++p == pe )
 		goto _test_eof50;
 case 50:
-#line 791 "libbuzzy/distro/rpm.c"
+#line 1180 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 10: goto st50;
 		case 32: goto st7;
@@ -856,14 +1245,14 @@ case 51:
 		goto tr12;
 	goto st0;
 tr12:
-#line 305 "libbuzzy/distro/rpm.c.rl"
+#line 407 "libbuzzy/distro/rpm.c.rl"
 	{ r_start = p; }
 	goto st10;
 st10:
 	if ( ++p == pe )
 		goto _test_eof10;
 case 10:
-#line 867 "libbuzzy/distro/rpm.c"
+#line 1256 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 10: goto tr13;
 		case 46: goto st10;
@@ -879,14 +1268,14 @@ case 10:
 		goto st10;
 	goto st0;
 tr58:
-#line 305 "libbuzzy/distro/rpm.c.rl"
+#line 407 "libbuzzy/distro/rpm.c.rl"
 	{ r_start = p; }
 	goto st11;
 st11:
 	if ( ++p == pe )
 		goto _test_eof11;
 case 11:
-#line 890 "libbuzzy/distro/rpm.c"
+#line 1279 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 10: goto tr13;
 		case 46: goto st10;
@@ -1021,14 +1410,14 @@ case 17:
 		goto st10;
 	goto st0;
 tr59:
-#line 305 "libbuzzy/distro/rpm.c.rl"
+#line 407 "libbuzzy/distro/rpm.c.rl"
 	{ r_start = p; }
 	goto st18;
 st18:
 	if ( ++p == pe )
 		goto _test_eof18;
 case 18:
-#line 1032 "libbuzzy/distro/rpm.c"
+#line 1421 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 10: goto tr13;
 		case 46: goto st10;
@@ -1175,18 +1564,18 @@ case 25:
 		goto st25;
 	goto st0;
 tr29:
-#line 305 "libbuzzy/distro/rpm.c.rl"
+#line 407 "libbuzzy/distro/rpm.c.rl"
 	{ r_end = p; }
 	goto st52;
 tr50:
-#line 302 "libbuzzy/distro/rpm.c.rl"
+#line 404 "libbuzzy/distro/rpm.c.rl"
 	{ v_end = p; }
 	goto st52;
 st52:
 	if ( ++p == pe )
 		goto _test_eof52;
 case 52:
-#line 1190 "libbuzzy/distro/rpm.c"
+#line 1579 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 10: goto st52;
 		case 32: goto st25;
@@ -1255,14 +1644,14 @@ case 53:
 		goto tr34;
 	goto st0;
 tr34:
-#line 302 "libbuzzy/distro/rpm.c.rl"
+#line 404 "libbuzzy/distro/rpm.c.rl"
 	{ v_start = p; }
 	goto st28;
 st28:
 	if ( ++p == pe )
 		goto _test_eof28;
 case 28:
-#line 1266 "libbuzzy/distro/rpm.c"
+#line 1655 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 10: goto tr35;
 		case 46: goto st28;
@@ -1278,14 +1667,14 @@ case 28:
 		goto st28;
 	goto st0;
 tr60:
-#line 302 "libbuzzy/distro/rpm.c.rl"
+#line 404 "libbuzzy/distro/rpm.c.rl"
 	{ v_start = p; }
 	goto st29;
 st29:
 	if ( ++p == pe )
 		goto _test_eof29;
 case 29:
-#line 1289 "libbuzzy/distro/rpm.c"
+#line 1678 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 10: goto tr35;
 		case 46: goto st28;
@@ -1420,14 +1809,14 @@ case 35:
 		goto st28;
 	goto st0;
 tr61:
-#line 302 "libbuzzy/distro/rpm.c.rl"
+#line 404 "libbuzzy/distro/rpm.c.rl"
 	{ v_start = p; }
 	goto st36;
 st36:
 	if ( ++p == pe )
 		goto _test_eof36;
 case 36:
-#line 1431 "libbuzzy/distro/rpm.c"
+#line 1820 "libbuzzy/distro/rpm.c"
 	switch( (*p) ) {
 		case 10: goto tr35;
 		case 46: goto st28;
@@ -1674,16 +2063,16 @@ case 48:
 	_test_eof: {}
 	}
 
-#line 317 "libbuzzy/distro/rpm.c.rl"
+#line 419 "libbuzzy/distro/rpm.c.rl"
 
 
     /* A hack to suppress some unused variable warnings */
     (void) rpm_version_available_en_main;
 
     if (CORK_UNLIKELY(cs < 
-#line 1685 "libbuzzy/distro/rpm.c"
+#line 2074 "libbuzzy/distro/rpm.c"
 49
-#line 322 "libbuzzy/distro/rpm.c.rl"
+#line 424 "libbuzzy/distro/rpm.c.rl"
 )) {
         bz_invalid_version("Unexpected output from yum");
         cork_buffer_done(&out);
