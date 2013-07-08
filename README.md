@@ -26,7 +26,7 @@ I'm looking at you, Python on RHEL5!)
 
 We use Buzzy to build native packages of Buzzy itself.  (It would be kind of
 lame of us not to, don't you think?)  You can find binary package releases at
-our [Github download page](https://github.com/redjack/buzzy/downloads/).  So the
+our [Github releases page](https://github.com/redjack/buzzy/releases/).  So the
 easiest way to install Buzzy is to download one of those binaries and install it
 using your normal package manager.  Buzzy (purposefully) has no runtime
 dependencies, so the single binary is all you need.
