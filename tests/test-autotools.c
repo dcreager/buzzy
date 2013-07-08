@@ -201,6 +201,132 @@ START_TEST(test_autotools_stage_package_01)
 END_TEST
 
 
+START_TEST(test_autotools_stage_package_with_args_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_array  *args;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    mock_autotools_installed();
+    bz_mock_file_exists("/home/test/source/configure", false);
+    bz_mock_file_exists("/home/test/source/configure.ac", true);
+    bz_mock_subprocess("autoreconf -i", NULL, NULL, 0);
+    bz_mock_subprocess
+        ("/home/test/source/configure"
+         " --prefix=/usr"
+         " --exec-prefix=/usr"
+         " --bindir=/usr/bin"
+         " --sbindir=/usr/sbin"
+         " --libdir=/usr/lib"
+         " --libexecdir=/usr/lib"
+         " --datadir=/usr/share"
+         " --mandir=/usr/share/man"
+         " --with-foo"
+         " --enable-bar",
+         NULL, NULL, 0);
+    bz_mock_subprocess("make", NULL, NULL, 0);
+    bz_mock_subprocess("make install", NULL, NULL, 0);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    args = bz_array_new();
+    bz_array_append(args, bz_string_value_new("--with-foo"));
+    bz_array_append(args, bz_string_value_new("--enable-bar"));
+    bz_env_add_override
+        (env, "autotools.configure.args", bz_array_as_value(args));
+    test_stage_package(env, false,
+        "[1] Build jansson 2.4 (autotools)\n"
+        "[2] Stage jansson 2.4 (autotools)\n"
+    );
+    verify_commands_run(
+        "$ pacman -Sddp --print-format %v autoconf\n"
+        "$ pacman -Q autoconf\n"
+        "$ pacman -Sddp --print-format %v automake\n"
+        "$ pacman -Q automake\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ [ -f /home/test/source/configure ]\n"
+        "$ autoreconf -i\n"
+        "$ /home/test/source/configure"
+            " --prefix=/usr"
+            " --exec-prefix=/usr"
+            " --bindir=/usr/bin"
+            " --sbindir=/usr/sbin"
+            " --libdir=/usr/lib"
+            " --libexecdir=/usr/lib"
+            " --datadir=/usr/share"
+            " --mandir=/usr/share/man"
+            " --with-foo"
+            " --enable-bar\n"
+        "$ make\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
+        "$ make install\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+
+START_TEST(test_autotools_stage_package_with_args_02)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    mock_autotools_installed();
+    bz_mock_file_exists("/home/test/source/configure", false);
+    bz_mock_file_exists("/home/test/source/configure.ac", true);
+    bz_mock_subprocess("autoreconf -i", NULL, NULL, 0);
+    bz_mock_subprocess
+        ("/home/test/source/configure"
+         " --prefix=/usr"
+         " --exec-prefix=/usr"
+         " --bindir=/usr/bin"
+         " --sbindir=/usr/sbin"
+         " --libdir=/usr/lib"
+         " --libexecdir=/usr/lib"
+         " --datadir=/usr/share"
+         " --mandir=/usr/share/man"
+         " --with-foo",
+         NULL, NULL, 0);
+    bz_mock_subprocess("make", NULL, NULL, 0);
+    bz_mock_subprocess("make install", NULL, NULL, 0);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    bz_env_add_override
+        (env, "autotools.configure.args", bz_string_value_new("--with-foo"));
+    test_stage_package(env, false,
+        "[1] Build jansson 2.4 (autotools)\n"
+        "[2] Stage jansson 2.4 (autotools)\n"
+    );
+    verify_commands_run(
+        "$ pacman -Sddp --print-format %v autoconf\n"
+        "$ pacman -Q autoconf\n"
+        "$ pacman -Sddp --print-format %v automake\n"
+        "$ pacman -Q automake\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ [ -f /home/test/source/configure ]\n"
+        "$ autoreconf -i\n"
+        "$ /home/test/source/configure"
+            " --prefix=/usr"
+            " --exec-prefix=/usr"
+            " --bindir=/usr/bin"
+            " --sbindir=/usr/sbin"
+            " --libdir=/usr/lib"
+            " --libexecdir=/usr/lib"
+            " --datadir=/usr/share"
+            " --mandir=/usr/share/man"
+            " --with-foo\n"
+        "$ make\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
+        "$ make install\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+
 START_TEST(test_autotools_uninstalled_stage_package_01)
 {
     DESCRIBE_TEST;
@@ -310,6 +436,10 @@ test_suite()
 
     TCase  *tc_autotools_package = tcase_create("autotools");
     tcase_add_test(tc_autotools_package, test_autotools_stage_package_01);
+    tcase_add_test(tc_autotools_package,
+                   test_autotools_stage_package_with_args_01);
+    tcase_add_test(tc_autotools_package,
+                   test_autotools_stage_package_with_args_02);
     tcase_add_test(tc_autotools_package,
                    test_autotools_uninstalled_stage_package_01);
     tcase_add_test(tc_autotools_package, test_autotools_unavailable_01);

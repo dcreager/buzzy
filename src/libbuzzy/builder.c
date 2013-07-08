@@ -219,8 +219,8 @@ bz_builder_check_file_(struct bz_value *ctx, const char *var_name)
 static bool
 bz_builder_is_autotools(struct bz_value *ctx)
 {
-    bz_builder_check_file(ctx, "autotools.configure");
-    bz_builder_check_file(ctx, "autotools.configure_in");
+    bz_builder_check_file(ctx, "autotools.configure.configure");
+    bz_builder_check_file(ctx, "autotools.configure.configure_in");
     return false;
 }
 
