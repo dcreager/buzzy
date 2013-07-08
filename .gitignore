@@ -1,0 +1,13 @@
+/build/
+/.build/
+
+RELEASE-VERSION
+buzzy.pc
+
+/buzzy*.tar.gz
+/buzzy*.tar.bz2
+
+*.[oa]
+*.os
+*.so
+*.dylib
