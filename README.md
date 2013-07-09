@@ -11,9 +11,9 @@ systems:
 
 * Arch Linux
 * RedHat Enterprise Linux 5 and 6
+* Mac OS X (using Homebrew)
 
-We plan to add support for other Linux distributions, and other operating
-systems.
+We plan to add support for other Linux distributions and operating systems.
 
 Buzzy is written in C, with all of its library dependencies included in the
 source repository.  Then means that you don't need any language runtimes to
