@@ -259,7 +259,7 @@ bz_native_pdb__satisfy(void *user_data, struct bz_dependency *dep,
     for (i = 0; i < cork_array_size(&pdb->patterns); i++) {
         const char  *pattern = cork_array_at(&pdb->patterns, i);
         cork_buffer_printf(&pdb->buf, pattern, dep->package_name);
-        result = bz_native_pdb_try_package(pdb, pdb->buf.buf, dep);
+        rpe_check(result = bz_native_pdb_try_package(pdb, pdb->buf.buf, dep));
         if (result != NULL) {
             return result;
         }

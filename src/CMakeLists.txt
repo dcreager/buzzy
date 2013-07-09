@@ -24,6 +24,7 @@ set(LIBBUZZY_RAGEL
     libbuzzy/version.c.rl
     libbuzzy/distro/arch.c.rl
     libbuzzy/distro/git.c.rl
+    libbuzzy/distro/homebrew.c.rl
     libbuzzy/distro/rpm.c.rl
 )
 
@@ -77,6 +78,7 @@ set(LIBBUZZY_SRC
     libbuzzy/distro/arch.c
     libbuzzy/distro/env.c
     libbuzzy/distro/git.c
+    libbuzzy/distro/homebrew.c
     libbuzzy/distro/packager.c
     libbuzzy/distro/pdb.c
     libbuzzy/distro/posix.c
