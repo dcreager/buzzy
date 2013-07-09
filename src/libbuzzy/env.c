@@ -406,6 +406,7 @@ bz_load_variable_definitions(void)
     bz_load_variables(cmake);
 
     /* packagers */
+    bz_load_variables(homebrew);
     bz_load_variables(pacman);
     bz_load_variables(rpm);
     return 0;

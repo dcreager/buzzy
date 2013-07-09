@@ -328,6 +328,109 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * Building Homebrew packages
+ */
+
+/* Since we're mocking the subprocess commands for each of these test cases, the
+ * tests can run on any platform; we don't need Homebrew to actually be
+ * installed. */
+
+static void
+test_create_package(struct bz_env *env, bool force,
+                    const char *expected_actions)
+{
+    struct cork_path  *staging_dir = cork_path_new("/tmp/staging");
+    struct bz_pdb  *pdb;
+    struct bz_packager  *packager;
+
+    fail_if_error(pdb = bz_homebrew_native_pdb());
+    bz_pdb_register(pdb);
+
+    bz_mock_subprocess("brew --cellar", "/usr/local/Cellar\n", NULL, 0);
+    bz_mock_subprocess("brew --prefix", "/usr/local\n", NULL, 0);
+    bz_mock_file_exists(cork_path_get(staging_dir), true);
+    bz_env_add_override(env, "prefix", bz_string_value_new("/usr/local"));
+    bz_env_add_override(env, "staging_dir", bz_path_value_new(staging_dir));
+    bz_env_add_override(env, "force", bz_string_value_new(force? "1": "0"));
+    bz_env_add_override(env, "verbose", bz_string_value_new("0"));
+    fail_if_error(packager = bz_homebrew_packager_new(env));
+    fail_if_error(bz_packager_package(packager));
+    test_actions(expected_actions);
+    bz_packager_free(packager);
+}
+
+START_TEST(test_homebrew_create_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    bz_mock_file_exists("/usr/local/Cellar/jansson/2.4", false);
+    bz_mock_subprocess
+        ("cp -R /tmp/staging/usr/local /usr/local/Cellar/jansson/2.4",
+         NULL, NULL, 0);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    test_create_package(env, false,
+        "[1] Package jansson 2.4 (Homebrew)\n"
+    );
+    verify_commands_run(
+        "$ brew --cellar\n"
+        "$ [ -f /usr/local/Cellar/jansson/2.4 ]\n"
+        "$ mkdir -p /usr/local/Cellar/jansson\n"
+        "$ cp -R /tmp/staging/usr/local /usr/local/Cellar/jansson/2.4\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+START_TEST(test_homebrew_create_existing_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    bz_mock_file_exists("/usr/local/Cellar/jansson/2.4", true);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    test_create_package(env, false, "Nothing to do!\n");
+    verify_commands_run(
+        "$ brew --cellar\n"
+        "$ [ -f /usr/local/Cellar/jansson/2.4 ]\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+START_TEST(test_homebrew_create_existing_package_02)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    bz_mock_file_exists("/usr/local/Cellar/jansson/2.4", true);
+    bz_mock_subprocess
+        ("cp -R /tmp/staging/usr/local /usr/local/Cellar/jansson/2.4",
+         NULL, NULL, 0);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    test_create_package(env, true,
+        "[1] Package jansson 2.4 (Homebrew)\n"
+    );
+    verify_commands_run(
+        "$ brew --cellar\n"
+        "$ mkdir -p /usr/local/Cellar/jansson\n"
+        "$ cp -R /tmp/staging/usr/local /usr/local/Cellar/jansson/2.4\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Testing harness
  */
 
@@ -357,6 +460,15 @@ test_suite()
     tcase_add_test(tc_homebrew_pdb,
                    test_homebrew_pdb_uninstalled_override_package_02);
     suite_add_tcase(s, tc_homebrew_pdb);
+
+    TCase  *tc_homebrew_package = tcase_create("homebrew-package");
+    tcase_add_test(tc_homebrew_package,
+                   test_homebrew_create_package_01);
+    tcase_add_test(tc_homebrew_package,
+                   test_homebrew_create_existing_package_01);
+    tcase_add_test(tc_homebrew_package,
+                   test_homebrew_create_existing_package_02);
+    suite_add_tcase(s, tc_homebrew_package);
 
     return s;
 }
