@@ -31,6 +31,12 @@ easiest way to install Buzzy is to download one of those binaries and install it
 using your normal package manager.  Buzzy (purposefully) has no runtime
 dependencies, so the single binary is all you need.
 
+Buzzy supports installing packages on a Mac using [Homebrew](http://brew.sh/).
+If you have Homebrew installed, you can install Buzzy using the following
+command:
+
+    $ brew install https://raw.github.com/redjack/buzzy/master/spec/buzzy.rb
+
 
 ## Building Buzzy
 
