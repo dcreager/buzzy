@@ -12,9 +12,9 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/os.h"
+#include "buzzy/package.h"
 
 #define CLOG_CHANNEL  "cmake"
 

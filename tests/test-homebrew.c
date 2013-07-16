@@ -13,7 +13,6 @@
 
 #include <check.h>
 
-#include "buzzy/built.h"
 #include "buzzy/os.h"
 #include "buzzy/package.h"
 #include "buzzy/value.h"

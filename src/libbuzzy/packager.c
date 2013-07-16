@@ -13,7 +13,6 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/logging.h"
@@ -65,8 +64,8 @@ bz_uninstall_message(struct bz_env *env, const char *packager_name)
 
 struct bz_packager {
     struct bz_env  *env;
+    struct bz_package  *pkg;
     const char  *packager_name;
-    struct bz_builder  *builder;
 
     void  *user_data;
     cork_free_f  free_user_data;
@@ -94,8 +93,8 @@ bz_packager_new(struct bz_env *env, const char *packager_name,
 {
     struct bz_packager  *packager = cork_new(struct bz_packager);
     packager->env = env;
+    packager->pkg = NULL;
     packager->packager_name = cork_strdup(packager_name);
-    packager->builder = NULL;
     packager->user_data = user_data;
     packager->free_user_data = free_user_data;
     packager->package_needed = package_needed;
@@ -118,12 +117,10 @@ bz_packager_free(struct bz_packager *packager)
     free(packager);
 }
 
-
 void
-bz_packager_set_builder(struct bz_packager *packager,
-                        struct bz_builder *builder)
+bz_packager_set_package(struct bz_packager *packager, struct bz_package *pkg)
 {
-    packager->builder = builder;
+    packager->pkg = pkg;
 }
 
 
@@ -135,8 +132,8 @@ bz_packager_package(struct bz_packager *packager)
         packager->packaged = true;
         rii_check(packager->package_needed(packager->user_data, &is_needed));
         if (is_needed) {
-            if (packager->builder != NULL) {
-                rii_check(bz_builder_stage(packager->builder));
+            if (packager->pkg != NULL) {
+                rii_check(bz_package_stage(packager->pkg));
             }
             return packager->package(packager->user_data);
         }
@@ -149,6 +146,9 @@ bz_packager_install(struct bz_packager *packager)
 {
     if (!packager->installed) {
         bool  is_needed;
+        if (packager->pkg != NULL) {
+            rii_check(bz_package_install_deps(packager->pkg));
+        }
         packager->installed = true;
         rii_check(packager->install_needed(packager->user_data, &is_needed));
         if (is_needed) {

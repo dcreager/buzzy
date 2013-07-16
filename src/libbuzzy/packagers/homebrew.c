@@ -12,9 +12,9 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/os.h"
+#include "buzzy/package.h"
 #include "buzzy/value.h"
 #include "buzzy/distro/homebrew.h"
 
@@ -99,7 +99,6 @@ bz_homebrew_prefix_value_new(void)
 
 struct bz_homebrew_pkgconfig {
     struct cork_buffer  buf;
-    bool  filled;
 };
 
 static void
@@ -149,11 +148,9 @@ static const char *
 bz_homebrew_pkgconfig_path__get(void *user_data, struct bz_value *ctx)
 {
     struct bz_homebrew_pkgconfig  *self = user_data;
-    if (!self->filled) {
-        rpi_check(bz_pkgconfig_fill_deps(self, ctx, "build_dependencies"));
-        rpi_check(bz_pkgconfig_fill_deps(self, ctx, "dependencies"));
-        self->filled = true;
-    }
+    cork_buffer_clear(&self->buf);
+    rpi_check(bz_pkgconfig_fill_deps(self, ctx, "build_dependencies"));
+    rpi_check(bz_pkgconfig_fill_deps(self, ctx, "dependencies"));
     return self->buf.buf;
 }
 
@@ -163,7 +160,6 @@ bz_homebrew_pkgconfig_path_value_new(void)
     struct bz_homebrew_pkgconfig  *self =
         cork_new(struct bz_homebrew_pkgconfig);
     cork_buffer_init(&self->buf);
-    self->filled = false;
     return bz_scalar_value_new
         (self, bz_homebrew_pkgconfig_path__free,
          bz_homebrew_pkgconfig_path__get);

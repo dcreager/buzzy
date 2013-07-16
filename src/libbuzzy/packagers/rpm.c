@@ -17,10 +17,10 @@
 #include <libcork/helpers/errors.h>
 #include <libcork/helpers/posix.h>
 
-#include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/os.h"
+#include "buzzy/package.h"
 #include "buzzy/value.h"
 #include "buzzy/distro/rpm.h"
 

@@ -57,7 +57,6 @@ endforeach(RAGEL_INPUT)
 
 set(LIBBUZZY_SRC
     libbuzzy/builder.c
-    libbuzzy/built.c
     libbuzzy/dependency.c
     libbuzzy/env.c
     libbuzzy/global-vars.c
