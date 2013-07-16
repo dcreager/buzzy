@@ -61,9 +61,11 @@ bz_autotools__build(void *user_data)
     struct cork_path  *build_dir;
     struct cork_path  *source_dir;
     struct cork_path  *configure;
+    const char  *pkgconfig_path;
     bool  exists;
     bool  verbose;
     struct cork_exec  *exec;
+    struct cork_env  *exec_env;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
     rii_check(bz_install_dependency_string("autoconf", env));
@@ -74,6 +76,7 @@ bz_autotools__build(void *user_data)
     rip_check(build_dir = bz_env_get_path(env, "build_dir", true));
     rip_check(source_dir = bz_env_get_path(env, "source_dir", true));
     rip_check(configure = bz_env_get_path(env, "autotools.configure", true));
+    rie_check(pkgconfig_path = bz_env_get_string(env, "pkgconfig.path", false));
     rie_check(verbose = bz_env_get_bool(env, "verbose", true));
 
     /* Create the build path */
@@ -101,6 +104,8 @@ bz_autotools__build(void *user_data)
 
     /* $ ./configure ... */
     exec = cork_exec_new(cork_path_get(configure));
+    exec_env = cork_env_clone_current();
+    cork_exec_set_env(exec, exec_env);
     cork_exec_add_param(exec, cork_path_get(configure));
     add_dir("prefix", "prefix");
     add_dir("exec_prefix", "exec-prefix");
@@ -111,6 +116,9 @@ bz_autotools__build(void *user_data)
     add_dir("share_dir", "datadir");
     add_dir("man_dir", "mandir");
     cork_exec_set_cwd(exec, cork_path_get(build_dir));
+    if (pkgconfig_path != NULL) {
+        cork_env_add(exec_env, "PKG_CONFIG_PATH", pkgconfig_path);
+    }
     ei_check(bz_subprocess_run_exec(verbose, NULL, exec));
 
     /* $ make */

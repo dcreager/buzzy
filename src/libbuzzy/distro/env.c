@@ -40,6 +40,8 @@ bz_detect_homebrew(void)
         bz_env_add_override
             (env, "prefix",
              bz_interpolated_value_new("${homebrew.prefix}"));
+        bz_env_add_backup
+            (env, "pkgconfig.path", bz_homebrew_pkgconfig_path_value_new());
     }
     return 0;
 }

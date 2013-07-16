@@ -25,6 +25,14 @@ bz_homebrew_is_present(bool *dest);
 
 
 /*-----------------------------------------------------------------------
+ * Homebrew-specific values
+ */
+
+struct bz_value *
+bz_homebrew_pkgconfig_path_value_new(void);
+
+
+/*-----------------------------------------------------------------------
  * Native package database
  */
 

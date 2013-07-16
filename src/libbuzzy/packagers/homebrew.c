@@ -88,6 +88,89 @@ bz_homebrew_prefix_value_new(void)
 
 
 /*-----------------------------------------------------------------------
+ * Homebrew pkg-config support
+ */
+
+/* We set the PKG_CONFIG_PATH environment variable to look in each formula's
+ * /usr/local/opt directory for pkgconfig files.  This works for both regular
+ * and keg-only formulas, since in both cases, Homebrew will create pkgconfig
+ * files that reference headers and libraries directly in the installation
+ * cellar. */
+
+struct bz_homebrew_pkgconfig {
+    struct cork_buffer  buf;
+    bool  filled;
+};
+
+static void
+bz_homebrew_pkgconfig_path__free(void *user_data)
+{
+    struct bz_homebrew_pkgconfig  *self = user_data;
+    cork_buffer_done(&self->buf);
+    free(self);
+}
+
+struct bz_pkgconfig_fill_deps {
+    struct bz_value  *ctx;
+    struct cork_buffer  *buf;
+};
+
+static int
+bz_pkgconfig_fill_one_dep(void *user_data, struct bz_value *dep_value)
+{
+    struct bz_pkgconfig_fill_deps  *state = user_data;
+    const char  *dep_string;
+    struct bz_dependency  *dep;
+    rip_check(dep_string = bz_scalar_value_get(dep_value, state->ctx));
+    rip_check(dep = bz_dependency_from_string(dep_string));
+    if (state->buf->size != 0) {
+        cork_buffer_append(state->buf, ":", 1);
+    }
+    cork_buffer_append_printf
+        (state->buf, "/usr/local/opt/%s/lib/pkgconfig", dep->package_name);
+    return 0;
+}
+static int
+bz_pkgconfig_fill_deps(struct bz_homebrew_pkgconfig *self,
+                       struct bz_value *ctx, const char *var_name)
+{
+    struct bz_value  *deps_value;
+    rie_check(deps_value = bz_value_get_nested(ctx, var_name));
+    if (deps_value == NULL) {
+        return 0;
+    } else {
+        struct bz_pkgconfig_fill_deps  state = { ctx, &self->buf };
+        return bz_array_value_map_scalars
+            (deps_value, &state, bz_pkgconfig_fill_one_dep);
+    }
+}
+
+static const char *
+bz_homebrew_pkgconfig_path__get(void *user_data, struct bz_value *ctx)
+{
+    struct bz_homebrew_pkgconfig  *self = user_data;
+    if (!self->filled) {
+        rpi_check(bz_pkgconfig_fill_deps(self, ctx, "build_dependencies"));
+        rpi_check(bz_pkgconfig_fill_deps(self, ctx, "dependencies"));
+        self->filled = true;
+    }
+    return self->buf.buf;
+}
+
+struct bz_value *
+bz_homebrew_pkgconfig_path_value_new(void)
+{
+    struct bz_homebrew_pkgconfig  *self =
+        cork_new(struct bz_homebrew_pkgconfig);
+    cork_buffer_init(&self->buf);
+    self->filled = false;
+    return bz_scalar_value_new
+        (self, bz_homebrew_pkgconfig_path__free,
+         bz_homebrew_pkgconfig_path__get);
+}
+
+
+/*-----------------------------------------------------------------------
  * Builtin homebrew variables
  */
 
