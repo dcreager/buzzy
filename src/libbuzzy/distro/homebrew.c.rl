@@ -141,14 +141,14 @@ bz_homebrew_native_version_installed(const char *native_package_name)
         package_name = (alnum | '-' | '_')+;
         version = (alnum | '.' | '-')+;
 
-        installed = (any - '\n')* "/"
+        installed = (any - '\n')* "/Cellar/" package_name "/"
                     (version >{ start = fpc; } %{ end = fpc; })
-                    " (" (any - '\n')*
+                    " (" digit+ " file" (any - '\n')*
                     %{ installed = true; };
         not_installed = "Not installed" %{ installed = false; };
 
         main := package_name ": stable " version (any - '\n')*  '\n'
-                (any - '\n')* '\n'   # url
+                any*  # url, keg only
                 (installed | not_installed) '\n'
                 any*;
 
