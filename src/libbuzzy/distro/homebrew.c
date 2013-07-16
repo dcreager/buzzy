@@ -61,8 +61,8 @@ bz_homebrew_native_version_available(const char *native_package_name)
     char  *p;
     char  *pe;
     char  *eof;
-    char  *start;
-    char  *end;
+    char  *start = NULL;
+    char  *end = NULL;
     bool  successful;
     struct cork_buffer  out = CORK_BUFFER_INIT();
     struct bz_version  *result;
@@ -299,8 +299,8 @@ bz_homebrew_native_version_installed(const char *native_package_name)
     int  cs;
     char  *p;
     char  *pe;
-    char  *start;
-    char  *end;
+    char  *start = NULL;
+    char  *end = NULL;
     bool  installed = false;
     bool  successful;
     struct cork_buffer  out = CORK_BUFFER_INIT();
