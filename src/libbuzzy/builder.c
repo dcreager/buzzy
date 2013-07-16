@@ -13,7 +13,6 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/logging.h"
@@ -65,7 +64,9 @@ bz_stage_message(struct bz_env *env, const char *builder_name)
 
 struct bz_builder {
     struct bz_env  *env;
+    struct bz_package  *pkg;
     const char  *builder_name;
+
     void  *user_data;
     cork_free_f  free_user_data;
     bz_package_is_needed_f  build_needed;
@@ -92,6 +93,7 @@ bz_builder_new(struct bz_env *env, const char *builder_name,
 {
     struct bz_builder  *builder = cork_new(struct bz_builder);
     builder->env = env;
+    builder->pkg = NULL;
     builder->builder_name = cork_strdup(builder_name);
     builder->user_data = user_data;
     builder->free_user_data = free_user_data;
@@ -115,6 +117,12 @@ bz_builder_free(struct bz_builder *builder)
     free(builder);
 }
 
+void
+bz_builder_set_package(struct bz_builder *builder, struct bz_package *pkg)
+{
+    builder->pkg = pkg;
+}
+
 
 int
 bz_builder_build(struct bz_builder *builder)
@@ -124,6 +132,10 @@ bz_builder_build(struct bz_builder *builder)
         builder->built = true;
         rii_check(builder->build_needed(builder->user_data, &is_needed));
         if (is_needed) {
+            if (builder->pkg != NULL) {
+                rii_check(bz_package_install_build_deps(builder->pkg));
+                rii_check(bz_package_install_deps(builder->pkg));
+            }
             return builder->build(builder->user_data);
         }
     }
@@ -219,8 +231,8 @@ bz_builder_check_file_(struct bz_value *ctx, const char *var_name)
 static bool
 bz_builder_is_autotools(struct bz_value *ctx)
 {
-    bz_builder_check_file(ctx, "autotools.configure");
-    bz_builder_check_file(ctx, "autotools.configure_in");
+    bz_builder_check_file(ctx, "autotools.configure.configure");
+    bz_builder_check_file(ctx, "autotools.configure.configure_in");
     return false;
 }
 

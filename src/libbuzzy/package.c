@@ -16,7 +16,6 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/package.h"
@@ -303,27 +302,14 @@ struct bz_package {
     struct bz_version  *version;
     struct bz_package_list  deps;
     struct bz_package_list  build_deps;
-
-    void  *user_data;
-    cork_free_f  free_user_data;
-    bz_package_step_f  build;
-    bz_package_step_f  test;
-    bz_package_step_f  install;
-    bz_package_step_f  uninstall;
-    bool  built;
-    bool  tested;
-    bool  installed;
-    bool  uninstalled;
+    struct bz_builder  *builder;
+    struct bz_packager  *packager;
 };
 
 
 struct bz_package *
 bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
-               void *user_data, cork_free_f free_user_data,
-               bz_package_step_f build,
-               bz_package_step_f test,
-               bz_package_step_f install,
-               bz_package_step_f uninstall)
+               struct bz_builder *builder, struct bz_packager *packager)
 {
     struct bz_package  *package = cork_new(struct bz_package);
     package->env = env;
@@ -331,16 +317,10 @@ bz_package_new(const char *name, struct bz_version *version, struct bz_env *env,
     package->version = bz_version_copy(version);
     bz_package_list_init(&package->deps);
     bz_package_list_init(&package->build_deps);
-    package->user_data = user_data;
-    package->free_user_data = free_user_data;
-    package->build = build;
-    package->test = test;
-    package->install = install;
-    package->uninstall = uninstall;
-    package->built = false;
-    package->tested = false;
-    package->installed = false;
-    package->uninstalled = false;
+    package->builder = builder;
+    bz_builder_set_package(builder, package);
+    package->packager = packager;
+    bz_packager_set_package(packager, package);
     return package;
 }
 
@@ -351,7 +331,8 @@ bz_package_free(struct bz_package *package)
     bz_version_free(package->version);
     bz_package_list_done(&package->deps);
     bz_package_list_done(&package->build_deps);
-    cork_free_user_data(package);
+    bz_builder_free(package->builder);
+    bz_packager_free(package->packager);
     free(package);
 }
 
@@ -398,7 +379,7 @@ bz_package_deps(struct bz_package *package)
     return &package->deps;
 }
 
-static int
+int
 bz_package_install_build_deps(struct bz_package *package)
 {
     struct bz_package_list  *list;
@@ -406,7 +387,7 @@ bz_package_install_build_deps(struct bz_package *package)
     return bz_package_list_install(list);
 }
 
-static int
+int
 bz_package_install_deps(struct bz_package *package)
 {
     struct bz_package_list  *list;
@@ -418,53 +399,56 @@ bz_package_install_deps(struct bz_package *package)
 int
 bz_package_build(struct bz_package *package)
 {
-    if (package->built) {
-        return 0;
-    } else {
-        package->built = true;
-        clog_info("(%s) Build package", package->name);
-        rii_check(bz_package_install_build_deps(package));
-        rii_check(bz_package_install_deps(package));
-        return package->build(package->user_data);
-    }
+    return bz_builder_build(package->builder);
 }
 
 int
 bz_package_test(struct bz_package *package)
 {
-    if (package->tested) {
-        return 0;
-    } else {
-        package->tested = true;
-        clog_info("(%s) Test package", package->name);
-        rii_check(bz_package_install_build_deps(package));
-        rii_check(bz_package_install_deps(package));
-        return package->test(package->user_data);
-    }
+    return bz_builder_test(package->builder);
+}
+
+int
+bz_package_stage(struct bz_package *package)
+{
+    return bz_builder_stage(package->builder);
+}
+
+int
+bz_package_package(struct bz_package *package)
+{
+    return bz_packager_package(package->packager);
 }
 
 int
 bz_package_install(struct bz_package *package)
 {
-    if (package->installed) {
-        return 0;
-    } else {
-        package->installed = true;
-        clog_info("(%s) Install package", package->name);
-        rii_check(bz_package_install_deps(package));
-        return package->install(package->user_data);
-    }
+    return bz_packager_install(package->packager);
 }
 
 int
 bz_package_uninstall(struct bz_package *package)
 {
-    if (package->uninstalled) {
-        return 0;
-    } else {
-        package->uninstalled = true;
-        return package->uninstall(package->user_data);
-    }
+    return bz_packager_uninstall(package->packager);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Built packages
+ */
+
+struct bz_package *
+bz_built_package_new(struct bz_env *env)
+{
+    const char  *name;
+    struct bz_version  *version;
+    struct bz_builder  *builder;
+    struct bz_packager  *packager;
+    rpp_check(name = bz_env_get_string(env, "name", true));
+    rpp_check(version = bz_env_get_version(env, "version", true));
+    rpp_check(builder = bz_package_builder_new(env));
+    rpp_check(packager = bz_package_packager_new(env));
+    return bz_package_new (name, version, env, builder, packager);
 }
 
 

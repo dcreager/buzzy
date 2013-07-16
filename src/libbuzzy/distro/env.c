@@ -16,6 +16,7 @@
 #include "buzzy/distro/posix.h"
 
 #include "buzzy/distro/arch.h"
+#include "buzzy/distro/homebrew.h"
 #include "buzzy/distro/rpm.h"
 
 #define CLOG_CHANNEL  "distro:env"
@@ -25,6 +26,23 @@ static int
 bz_detect_arch(void)
 {
     /* There aren't any variables to override on Arch Linux. */
+    return 0;
+}
+
+
+static int
+bz_detect_homebrew(void)
+{
+    bool  is_homebrew;
+    rii_check(bz_homebrew_is_present(&is_homebrew));
+    if (is_homebrew) {
+        struct bz_env  *env = bz_global_env();
+        bz_env_add_override
+            (env, "prefix",
+             bz_interpolated_value_new("${homebrew.prefix}"));
+        bz_env_add_backup
+            (env, "pkgconfig.path", bz_homebrew_pkgconfig_path_value_new());
+    }
     return 0;
 }
 
@@ -51,6 +69,7 @@ int
 bz_distro_add_env_overrides(void)
 {
     rii_check(bz_detect_arch());
+    rii_check(bz_detect_homebrew());
     rii_check(bz_detect_redhat());
     return 0;
 }

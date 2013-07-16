@@ -12,9 +12,9 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/os.h"
+#include "buzzy/package.h"
 
 #define CLOG_CHANNEL  "cmake"
 
@@ -63,8 +63,10 @@ bz_cmake__build(void *user_data)
     struct cork_path  *prefix;
     const char  *lib_dir_name;
     const char  *build_type;
+    const char  *pkgconfig_path;
     bool  verbose;
     struct cork_exec  *exec;
+    struct cork_env  *exec_env;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
     rii_check(bz_install_dependency_string("cmake", env));
@@ -76,6 +78,7 @@ bz_cmake__build(void *user_data)
     rip_check(prefix = bz_env_get_path(env, "prefix", true));
     rip_check(lib_dir_name = bz_env_get_string(env, "lib_dir_name", true));
     rip_check(build_type = bz_env_get_string(env, "cmake.build_type", true));
+    rie_check(pkgconfig_path = bz_env_get_string(env, "pkgconfig.path", false));
     rie_check(verbose = bz_env_get_bool(env, "verbose", true));
 
     /* Create the build path */
@@ -84,6 +87,8 @@ bz_cmake__build(void *user_data)
     /* $ cmake ${source_dir} */
     clog_info("(%s) Configure using cmake", package_name);
     exec = cork_exec_new("cmake");
+    exec_env = cork_env_clone_current();
+    cork_exec_set_env(exec, exec_env);
     cork_exec_add_param(exec, "cmake");
     cork_exec_add_param(exec, cork_path_get(source_dir));
     cork_buffer_printf
@@ -95,6 +100,9 @@ bz_cmake__build(void *user_data)
         (&buf, "-DCMAKE_BUILD_TYPE=%s", build_type);
     cork_exec_add_param(exec, buf.buf);
     cork_exec_set_cwd(exec, cork_path_get(build_dir));
+    if (pkgconfig_path != NULL) {
+        cork_env_add(exec_env, "PKG_CONFIG_PATH", pkgconfig_path);
+    }
     ei_check(bz_subprocess_run_exec(verbose, NULL, exec));
 
     /* $ make */

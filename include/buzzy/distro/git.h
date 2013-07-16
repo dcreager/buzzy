@@ -11,8 +11,9 @@
 #define BUZZY_DISTRO_GIT_H
 
 #include <libcork/core.h>
+#include <libcork/os.h>
 
-#include "buzzy/env.h"
+#include "buzzy/value.h"
 #include "buzzy/version.h"
 
 

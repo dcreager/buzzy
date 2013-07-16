@@ -12,9 +12,10 @@
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/built.h"
 #include "buzzy/env.h"
+#include "buzzy/error.h"
 #include "buzzy/os.h"
+#include "buzzy/package.h"
 
 #define CLOG_CHANNEL  "autotools"
 
@@ -26,16 +27,23 @@
 bz_define_variables(autotools)
 {
     bz_package_variable(
-        configure_in, "autotools.configure_in",
+        configure_in, "autotools.configure.configure_in",
         bz_interpolated_value_new("${source_dir}/configure.ac"),
         "The location of the package's configure.{ac,in} file",
         ""
     );
 
     bz_package_variable(
-        configure, "autotools.configure",
+        configure, "autotools.configure.configure",
         bz_interpolated_value_new("${source_dir}/configure"),
         "The location of the package's configure script",
+        ""
+    );
+
+    bz_package_variable(
+        configure, "autotools.configure.args",
+        NULL,
+        "Additional arguments to pass in to the configure script",
         ""
     );
 }
@@ -53,6 +61,21 @@ bz_autotools__is_needed(void *user_data, bool *is_needed)
     return 0;
 }
 
+struct bz_configure_add_arg {
+    struct cork_exec  *exec;
+    struct bz_env  *env;
+};
+
+static int
+bz_configure_add_arg(void *user_data, struct bz_value *value)
+{
+    struct bz_configure_add_arg  *state = user_data;
+    const char  *scalar;
+    rip_check(scalar = bz_scalar_value_get(value, bz_env_as_value(state->env)));
+    cork_exec_add_param(state->exec, scalar);
+    return 0;
+}
+
 static int
 bz_autotools__build(void *user_data)
 {
@@ -61,9 +84,12 @@ bz_autotools__build(void *user_data)
     struct cork_path  *build_dir;
     struct cork_path  *source_dir;
     struct cork_path  *configure;
+    struct bz_value  *configure_args;
+    const char  *pkgconfig_path;
     bool  exists;
     bool  verbose;
     struct cork_exec  *exec;
+    struct cork_env  *exec_env;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
     rii_check(bz_install_dependency_string("autoconf", env));
@@ -73,7 +99,9 @@ bz_autotools__build(void *user_data)
     rip_check(package_name = bz_env_get_string(env, "name", true));
     rip_check(build_dir = bz_env_get_path(env, "build_dir", true));
     rip_check(source_dir = bz_env_get_path(env, "source_dir", true));
-    rip_check(configure = bz_env_get_path(env, "autotools.configure", true));
+    rip_check(configure =
+              bz_env_get_path(env, "autotools.configure.configure", true));
+    rie_check(pkgconfig_path = bz_env_get_string(env, "pkgconfig.path", false));
     rie_check(verbose = bz_env_get_bool(env, "verbose", true));
 
     /* Create the build path */
@@ -101,6 +129,8 @@ bz_autotools__build(void *user_data)
 
     /* $ ./configure ... */
     exec = cork_exec_new(cork_path_get(configure));
+    exec_env = cork_env_clone_current();
+    cork_exec_set_env(exec, exec_env);
     cork_exec_add_param(exec, cork_path_get(configure));
     add_dir("prefix", "prefix");
     add_dir("exec_prefix", "exec-prefix");
@@ -110,7 +140,35 @@ bz_autotools__build(void *user_data)
     add_dir("libexec_dir", "libexecdir");
     add_dir("share_dir", "datadir");
     add_dir("man_dir", "mandir");
+
+    /* Add custom configure arguments, if given. */
+    configure_args = bz_env_get_value(env, "autotools.configure.args");
+    if (configure_args != NULL) {
+        struct bz_configure_add_arg  state = { exec, env };
+
+        switch (bz_value_kind(configure_args)) {
+            case BZ_VALUE_SCALAR:
+                ei_check(bz_configure_add_arg(&state, configure_args));
+                break;
+
+            case BZ_VALUE_ARRAY:
+                ei_check(bz_array_value_map
+                         (configure_args, &state, bz_configure_add_arg));
+                break;
+
+            case BZ_VALUE_MAP:
+                bz_bad_config("autotools.configure.args cannot be a map");
+                goto error;
+
+            default:
+                cork_unreachable();
+        }
+    }
+
     cork_exec_set_cwd(exec, cork_path_get(build_dir));
+    if (pkgconfig_path != NULL) {
+        cork_env_add(exec_env, "PKG_CONFIG_PATH", pkgconfig_path);
+    }
     ei_check(bz_subprocess_run_exec(verbose, NULL, exec));
 
     /* $ make */

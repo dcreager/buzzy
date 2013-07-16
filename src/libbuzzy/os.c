@@ -37,17 +37,14 @@ bz_real__exec(struct cork_exec *exec, struct cork_stream_consumer *out,
               struct cork_stream_consumer *err, int *exit_code)
 {
     struct cork_subprocess  *subprocess;
-    struct cork_subprocess_group  *group;
     subprocess = cork_subprocess_new_exec(exec, out, err, exit_code);
-    group = cork_subprocess_group_new();
-    cork_subprocess_group_add(group, subprocess);
-    ei_check(cork_subprocess_group_start(group));
-    ei_check(cork_subprocess_group_wait(group));
-    cork_subprocess_group_free(group);
+    ei_check(cork_subprocess_start(subprocess));
+    ei_check(cork_subprocess_wait(subprocess));
+    cork_subprocess_free(subprocess);
     return 0;
 
 error:
-    cork_subprocess_group_free(group);
+    cork_subprocess_free(subprocess);
     return -1;
 }
 

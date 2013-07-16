@@ -11,9 +11,9 @@ systems:
 
 * Arch Linux
 * RedHat Enterprise Linux 5 and 6
+* Mac OS X (using Homebrew)
 
-We plan to add support for other Linux distributions, and other operating
-systems.
+We plan to add support for other Linux distributions and operating systems.
 
 Buzzy is written in C, with all of its library dependencies included in the
 source repository.  Then means that you don't need any language runtimes to
@@ -26,7 +26,7 @@ I'm looking at you, Python on RHEL5!)
 
 We use Buzzy to build native packages of Buzzy itself.  (It would be kind of
 lame of us not to, don't you think?)  You can find binary package releases at
-our [Github download page](https://github.com/redjack/buzzy/downloads/).  So the
+our [Github releases page](https://github.com/redjack/buzzy/releases/).  So the
 easiest way to install Buzzy is to download one of those binaries and install it
 using your normal package manager.  Buzzy (purposefully) has no runtime
 dependencies, so the single binary is all you need.

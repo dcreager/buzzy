@@ -63,6 +63,8 @@ repository and directory and while not in one.
   $ cat > repo2/.buzzy/package.yaml <<EOF
   > name: test
   > version: 1.0~rc.1
+  > builder: noop
+  > packager: noop
   > EOF
   $ cd repo2
   $ buzzy doc repo.base_dir
