@@ -27,7 +27,7 @@
  * Native packages
  */
 
-struct bz_native_package {
+struct bz_native_packager {
     struct bz_env  *env;
     const char  *short_distro_name;
     const char  *package_name;
@@ -39,9 +39,9 @@ struct bz_native_package {
 };
 
 static void
-bz_native_package__free(void *user_data)
+bz_native_packager__free(void *user_data)
 {
-    struct bz_native_package  *native = user_data;
+    struct bz_native_packager  *native = user_data;
     cork_strfree(native->short_distro_name);
     cork_strfree(native->package_name);
     cork_strfree(native->native_package_name);
@@ -51,24 +51,24 @@ bz_native_package__free(void *user_data)
 }
 
 static int
-bz_native_package__build(void *user_data)
+bz_native_packager__package__is_needed(void *user_data, bool *is_needed)
 {
-    /* Native packages never need to be built. */
+    /* Native packages never need to be packaged. */
+    *is_needed = false;
     return 0;
 }
 
 static int
-bz_native_package__test(void *user_data)
+bz_native_packager__package(void *user_data)
 {
-    /* Native packages never need to be tested. */
     return 0;
 }
 
 
 static int
-bz_native_package__install__is_needed(struct bz_native_package *native,
-                                      bool *is_needed)
+bz_native_packager__install__is_needed(void *user_data, bool *is_needed)
 {
+    struct bz_native_packager  *native = user_data;
     struct bz_version  *installed;
     clog_info("(%s) Check whether %s package %s is needed",
               native->package_name,
@@ -85,29 +85,22 @@ bz_native_package__install__is_needed(struct bz_native_package *native,
 }
 
 static int
-bz_native_package__install(void *user_data)
+bz_native_packager__install(void *user_data)
 {
-    struct bz_native_package  *native = user_data;
-    bool  is_needed;
-
-    rii_check(bz_native_package__install__is_needed(native, &is_needed));
-    if (is_needed) {
-        bz_log_action
-            ("Install native %s package %s %s",
-             native->short_distro_name,
-             native->native_package_name,
-             bz_version_to_string(native->version));
-        return native->install(native->native_package_name, native->version);
-    }
-
-    return 0;
+    struct bz_native_packager  *native = user_data;
+    bz_log_action
+        ("Install native %s package %s %s",
+         native->short_distro_name,
+         native->native_package_name,
+         bz_version_to_string(native->version));
+    return native->install(native->native_package_name, native->version);
 }
 
 
 static int
-bz_native_package__uninstall__is_needed(struct bz_native_package *native,
-                                        bool *is_needed)
+bz_native_packager__uninstall__is_needed(void *user_data, bool *is_needed)
 {
+    struct bz_native_packager  *native = user_data;
     struct bz_version  *installed;
     clog_info("(%s) Check whether %s package %s is installed",
               native->package_name,
@@ -125,24 +118,49 @@ bz_native_package__uninstall__is_needed(struct bz_native_package *native,
 }
 
 static int
-bz_native_package__uninstall(void *user_data)
+bz_native_packager__uninstall(void *user_data)
 {
-    struct bz_native_package  *native = user_data;
-    bool  is_needed;
-
-    rii_check(bz_native_package__uninstall__is_needed(native, &is_needed));
-    if (is_needed) {
-        bz_log_action
-            ("Uninstall native %s package %s %s",
-             native->short_distro_name,
-             native->native_package_name,
-             bz_version_to_string(native->version));
-        return native->uninstall(native->native_package_name);
-    }
-
-    return 0;
+    struct bz_native_packager  *native = user_data;
+    bz_log_action
+        ("Uninstall native %s package %s %s",
+         native->short_distro_name,
+         native->native_package_name,
+         bz_version_to_string(native->version));
+    return native->uninstall(native->native_package_name);
 }
 
+static struct bz_packager *
+bz_native_packager_new(struct bz_env *env,
+                       const char *short_distro_name,
+                       const char *package_name,
+                       const char *native_package_name,
+                       struct bz_version *version,
+                       bz_native_detect_f version_installed,
+                       bz_native_install_f install,
+                       bz_native_uninstall_f uninstall)
+{
+    struct bz_native_packager  *native;
+
+    native = cork_new(struct bz_native_packager);
+    native->env = env;
+    native->short_distro_name = cork_strdup(short_distro_name);
+    native->package_name = cork_strdup(package_name);
+    native->native_package_name = cork_strdup(native_package_name);
+    native->version = version;
+    native->version_installed = version_installed;
+    native->install = install;
+    native->uninstall = uninstall;
+
+    return bz_packager_new
+        (env, short_distro_name,
+         native, bz_native_packager__free,
+         bz_native_packager__package__is_needed,
+         bz_native_packager__package,
+         bz_native_packager__install__is_needed,
+         bz_native_packager__install,
+         bz_native_packager__uninstall__is_needed,
+         bz_native_packager__uninstall);
+}
 
 struct bz_package *
 bz_native_package_new(const char *short_distro_name,
@@ -152,31 +170,19 @@ bz_native_package_new(const char *short_distro_name,
                       bz_native_install_f install,
                       bz_native_uninstall_f uninstall)
 {
-    struct bz_native_package  *native;
     struct bz_env  *env;
-
-    native = cork_new(struct bz_native_package);
-    native->short_distro_name = cork_strdup(short_distro_name);
-    native->package_name = cork_strdup(package_name);
-    native->native_package_name = cork_strdup(native_package_name);
-    native->version = version;
-    native->version_installed = version_installed;
-    native->install = install;
-    native->uninstall = uninstall;
+    struct bz_builder  *builder;
+    struct bz_packager  *packager;
 
     env = bz_package_env_new_empty(NULL, package_name);
     bz_env_add_override(env, "name", bz_string_value_new(package_name));
     bz_env_add_override
         (env, "version", bz_string_value_new(bz_version_to_string(version)));
-    native->env = env;
-
-    return bz_package_new
-        (package_name, version, env,
-         native, bz_native_package__free,
-         bz_native_package__build,
-         bz_native_package__test,
-         bz_native_package__install,
-         bz_native_package__uninstall);
+    builder = bz_noop_builder_new(env);
+    packager = bz_native_packager_new
+        (env, short_distro_name, package_name, native_package_name,
+         version, version_installed, install, uninstall);
+    return bz_package_new(package_name, version, env, builder, packager);
 }
 
 
@@ -259,7 +265,7 @@ bz_native_pdb__satisfy(void *user_data, struct bz_dependency *dep,
     for (i = 0; i < cork_array_size(&pdb->patterns); i++) {
         const char  *pattern = cork_array_at(&pdb->patterns, i);
         cork_buffer_printf(&pdb->buf, pattern, dep->package_name);
-        result = bz_native_pdb_try_package(pdb, pdb->buf.buf, dep);
+        rpe_check(result = bz_native_pdb_try_package(pdb, pdb->buf.buf, dep));
         if (result != NULL) {
             return result;
         }

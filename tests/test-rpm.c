@@ -13,7 +13,6 @@
 
 #include <check.h>
 
-#include "buzzy/built.h"
 #include "buzzy/package.h"
 #include "buzzy/version.h"
 #include "buzzy/distro/rpm.h"

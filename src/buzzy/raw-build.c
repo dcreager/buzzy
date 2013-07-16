@@ -14,10 +14,10 @@
 #include <libcork/core.h>
 #include <libcork/os.h>
 
-#include "buzzy/built.h"
 #include "buzzy/commands.h"
 #include "buzzy/logging.h"
 #include "buzzy/version.h"
+
 
 /*-----------------------------------------------------------------------
  * buzzy raw build

@@ -12,7 +12,6 @@
 #include <libcork/ds.h>
 #include <libcork/helpers/errors.h>
 
-#include "buzzy/built.h"
 #include "buzzy/env.h"
 #include "buzzy/error.h"
 #include "buzzy/logging.h"

@@ -24,6 +24,7 @@ set(LIBBUZZY_RAGEL
     libbuzzy/version.c.rl
     libbuzzy/distro/arch.c.rl
     libbuzzy/distro/git.c.rl
+    libbuzzy/distro/homebrew.c.rl
     libbuzzy/distro/rpm.c.rl
 )
 
@@ -56,7 +57,6 @@ endforeach(RAGEL_INPUT)
 
 set(LIBBUZZY_SRC
     libbuzzy/builder.c
-    libbuzzy/built.c
     libbuzzy/dependency.c
     libbuzzy/env.c
     libbuzzy/global-vars.c
@@ -77,10 +77,12 @@ set(LIBBUZZY_SRC
     libbuzzy/distro/arch.c
     libbuzzy/distro/env.c
     libbuzzy/distro/git.c
+    libbuzzy/distro/homebrew.c
     libbuzzy/distro/packager.c
     libbuzzy/distro/pdb.c
     libbuzzy/distro/posix.c
     libbuzzy/distro/rpm.c
+    libbuzzy/packagers/homebrew.c
     libbuzzy/packagers/noop.c
     libbuzzy/packagers/pacman.c
     libbuzzy/packagers/rpm.c
