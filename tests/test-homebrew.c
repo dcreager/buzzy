@@ -325,6 +325,33 @@ START_TEST(test_homebrew_pdb_uninstalled_override_package_02)
 }
 END_TEST
 
+START_TEST(test_homebrew_pdb_preinstalled_package_02)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env;
+    struct bz_pdb  *pdb;
+
+    /* A package that is preinstalled on this system. */
+    reset_everything();
+    bz_start_mocks();
+    env = bz_global_env();
+
+    fail_if_error(pdb = bz_homebrew_native_pdb());
+    bz_env_add_override
+        (env, "preinstalled.homebrew.jansson", bz_string_value_new("2.4"));
+
+    test_homebrew_pdb_dep(pdb, "jansson",
+        "[1] Preinstalled native Homebrew package jansson 2.4\n"
+    );
+
+    test_homebrew_pdb_dep(pdb, "jansson >= 2.4",
+        "[1] Preinstalled native Homebrew package jansson 2.4\n"
+    );
+
+    bz_pdb_free(pdb);
+}
+END_TEST
+
 
 /*-----------------------------------------------------------------------
  * Building Homebrew packages
