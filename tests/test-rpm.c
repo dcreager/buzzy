@@ -53,8 +53,8 @@ mock_installed_package(const char *package, const char *installed_version)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "rpm --qf %%{V}-%%{R} -q %s", package);
-    cork_buffer_printf(&buf2, "%s-1", installed_version);
+    cork_buffer_printf(&buf1, "rpm --qf %%{V}-%%{R}\\n -q %s", package);
+    cork_buffer_printf(&buf2, "%s-1\n", installed_version);
     bz_mock_subprocess(buf1.buf, buf2.buf, NULL, 0);
     cork_buffer_done(&buf1);
     cork_buffer_done(&buf2);
@@ -65,7 +65,7 @@ mock_uninstalled_package(const char *package)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "rpm --qf %%{V}-%%{R} -q %s", package);
+    cork_buffer_printf(&buf1, "rpm --qf %%{V}-%%{R}\\n -q %s", package);
     cork_buffer_printf(&buf2, "package %s is not installed\n", package);
     bz_mock_subprocess(buf1.buf, NULL, buf2.buf, 1);
     cork_buffer_done(&buf1);
@@ -553,7 +553,7 @@ START_TEST(test_rpm_create_package_01)
         "$ yum info -C rpm-build-devel\n"
         "$ yum info -C librpm-build-devel\n"
         "$ yum info -C rpm-build\n"
-        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
         "$ mkdir -p .\n"
@@ -616,7 +616,7 @@ START_TEST(test_rpm_create_package_license_01)
         "$ yum info -C rpm-build-devel\n"
         "$ yum info -C librpm-build-devel\n"
         "$ yum info -C rpm-build\n"
-        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
         "$ mkdir -p .\n"
@@ -683,7 +683,7 @@ START_TEST(test_rpm_create_package_deps_01)
         "$ yum info -C rpm-build-devel\n"
         "$ yum info -C librpm-build-devel\n"
         "$ yum info -C rpm-build\n"
-        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
         "$ mkdir -p .\n"
@@ -763,7 +763,7 @@ START_TEST(test_rpm_create_existing_package_02)
         "$ yum info -C rpm-build-devel\n"
         "$ yum info -C librpm-build-devel\n"
         "$ yum info -C rpm-build\n"
-        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ uname -m\n"
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
