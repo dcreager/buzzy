@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # ----------------------------------------------------------------------
 # Copyright © 2011-2013, RedJack, LLC.
 # All rights reserved.
