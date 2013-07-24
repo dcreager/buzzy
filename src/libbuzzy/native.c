@@ -343,12 +343,22 @@ bz_native_pdb_try_package(struct bz_native_pdb *pdb, const char *name,
     available = pdb->version_available(name);
     if (available == NULL) {
         return NULL;
-    } else {
-        return bz_native_package_new
-            (pdb->short_distro_name,
-             dep->package_name, name, available,
-             pdb->version_installed, pdb->install, pdb->uninstall);
     }
+
+    if (dep->min_version != NULL) {
+        if (bz_version_cmp(available, dep->min_version) < 0) {
+            clog_info("(%s) Native version %s is older than %s",
+                      dep->package_name,
+                      bz_version_to_string(available),
+                      bz_version_to_string(dep->min_version));
+            return NULL;
+        }
+    }
+
+    return bz_native_package_new
+        (pdb->short_distro_name,
+         dep->package_name, name, available,
+         pdb->version_installed, pdb->install, pdb->uninstall);
 }
 
 static struct bz_package *

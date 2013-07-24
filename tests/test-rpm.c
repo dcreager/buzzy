@@ -293,6 +293,7 @@ START_TEST(test_yum_pdb_uninstalled_native_package_01)
     bz_start_mocks();
     mock_unavailable_package("jansson-devel");
     mock_unavailable_package("libjansson-devel");
+    mock_unavailable_package("libjansson");
     mock_available_package("jansson", "2.4");
     mock_uninstalled_package("jansson");
     mock_package_installation("jansson", "2.4");
@@ -306,6 +307,8 @@ START_TEST(test_yum_pdb_uninstalled_native_package_01)
     test_yum_pdb_dep(pdb, "jansson >= 2.4",
         "[1] Install native RPM package jansson 2.4\n"
     );
+
+    test_yum_pdb_unknown_dep(pdb, "jansson >= 2.5");
 
     bz_pdb_free(pdb);
 }

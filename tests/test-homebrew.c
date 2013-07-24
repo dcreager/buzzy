@@ -188,6 +188,7 @@ START_TEST(test_homebrew_pdb_uninstalled_native_package_01)
      * yet been installed. */
     bz_start_mocks();
     mock_package("jansson", "2.4", NULL, false);
+    mock_package("libjansson", NULL, NULL, false);
     mock_package_installation("jansson", "2.4");
 
     fail_if_error(pdb = bz_homebrew_native_pdb());
@@ -199,6 +200,8 @@ START_TEST(test_homebrew_pdb_uninstalled_native_package_01)
     test_homebrew_pdb_dep(pdb, "jansson >= 2.4",
         "[1] Install native Homebrew package jansson 2.4\n"
     );
+
+    test_homebrew_pdb_unknown_dep(pdb, "jansson >= 2.5");
 
     bz_pdb_free(pdb);
 }

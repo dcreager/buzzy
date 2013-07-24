@@ -261,6 +261,8 @@ START_TEST(test_arch_pdb_uninstalled_native_package_01)
     bz_start_mocks();
     mock_available_package("jansson", "2.4-1");
     mock_uninstalled_package("jansson");
+    mock_unavailable_package("libjansson");
+    mock_uninstalled_package("libjansson");
     mock_package_installation("jansson", "2.4-1");
 
     fail_if_error(pdb = bz_arch_native_pdb());
@@ -272,6 +274,8 @@ START_TEST(test_arch_pdb_uninstalled_native_package_01)
     test_arch_pdb_dep(pdb, "jansson >= 2.4",
         "[1] Install native Arch package jansson 2.4\n"
     );
+
+    test_arch_pdb_unknown_dep(pdb, "jansson >= 2.5");
 
     bz_pdb_free(pdb);
 }
