@@ -325,7 +325,7 @@ START_TEST(test_homebrew_pdb_uninstalled_override_package_02)
 }
 END_TEST
 
-START_TEST(test_homebrew_pdb_preinstalled_package_02)
+START_TEST(test_homebrew_pdb_preinstalled_package_01)
 {
     DESCRIBE_TEST;
     struct bz_env  *env;
@@ -485,6 +485,8 @@ test_suite()
                    test_homebrew_pdb_uninstalled_override_package_01);
     tcase_add_test(tc_homebrew_pdb,
                    test_homebrew_pdb_uninstalled_override_package_02);
+    tcase_add_test(tc_homebrew_pdb,
+                   test_homebrew_pdb_preinstalled_package_01);
     suite_add_tcase(s, tc_homebrew_pdb);
 
     TCase  *tc_homebrew_package = tcase_create("homebrew-package");
