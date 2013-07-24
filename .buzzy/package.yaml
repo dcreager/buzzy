@@ -1,4 +1,4 @@
 name: buzzy
-build_dependencies:
+optional_dependencies:
   - check
 license: BSD
