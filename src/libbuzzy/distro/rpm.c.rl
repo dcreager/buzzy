@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <string.h>
 #include <sys/stat.h>
 
 #include <clogger.h>
@@ -387,7 +388,7 @@ bz_yum_native_version_available(const char *native_package_name)
 
     rpi_check(bz_subprocess_get_output
               (&out, NULL, &successful,
-               "yum", "info", "--cacheonly", native_package_name, NULL));
+               "yum", "info", "-C", native_package_name, NULL));
     if (!successful) {
         cork_buffer_done(&out);
         return NULL;
@@ -447,21 +448,36 @@ struct bz_version *
 bz_rpm_native_version_installed(const char *native_package_name)
 {
     bool  successful;
+    char  *buf;
+    char  *nl;
     struct cork_buffer  out = CORK_BUFFER_INIT();
     struct bz_version  *result;
 
     rpi_check(bz_subprocess_get_output
               (&out, NULL, &successful,
-               "rpm", "--qf", "%{V}-%{R}", "-q", native_package_name, NULL));
-
+               "rpm", "--qf", "%{V}-%{R}\\n", "-q", native_package_name, NULL));
     if (!successful) {
-        cork_buffer_done(&out);
-        return NULL;
+        goto error;
     }
 
-    result = bz_version_from_rpm(out.buf);
+    /* There might be multiple versions in the output, if there are multiple
+     * copies of the package installed for different architectures.  Use the
+     * first version present, and chomp its trailing newline while we're messing
+     * around in there. */
+    buf = out.buf;
+    nl = strchr(buf, '\n');
+    if (CORK_UNLIKELY(nl == NULL)) {
+        bz_invalid_version("Unexpected output from rpm -q");
+        goto error;
+    }
+    *nl = '\0';
+    result = bz_version_from_rpm(buf);
     cork_buffer_done(&out);
     return result;
+
+error:
+    cork_buffer_done(&out);
+    return NULL;
 }
 
 
