@@ -363,7 +363,7 @@ bz_native_pdb_try_package(struct bz_native_pdb *pdb, const char *name,
 
 static struct bz_package *
 bz_native_pdb__satisfy(void *user_data, struct bz_dependency *dep,
-                       struct bz_env *requestor)
+                       struct bz_value *ctx)
 {
     size_t  i;
     struct bz_native_pdb  *pdb = user_data;
@@ -375,7 +375,7 @@ bz_native_pdb__satisfy(void *user_data, struct bz_dependency *dep,
     cork_buffer_printf
         (&pdb->buf, "preinstalled.%s.%s", pdb->slug, dep->package_name);
     rpe_check(preinstalled_version =
-              bz_env_get_version(requestor, pdb->buf.buf, false));
+              bz_value_get_version(ctx, pdb->buf.buf, false));
     if (preinstalled_version != NULL) {
         return bz_preinstalled_package_new
             (pdb->short_distro_name, dep->package_name, preinstalled_version);
@@ -383,13 +383,13 @@ bz_native_pdb__satisfy(void *user_data, struct bz_dependency *dep,
 
     /* Then see if someone has provided an explicit native package name. */
     cork_buffer_printf(&pdb->buf, "native.%s", dep->package_name);
-    rpe_check(name = bz_env_get_string(requestor, pdb->buf.buf, false));
+    rpe_check(name = bz_value_get_string(ctx, pdb->buf.buf, false));
     if (name != NULL) {
         return bz_native_pdb_try_package(pdb, name, dep);
     }
 
     cork_buffer_printf(&pdb->buf, "native.%s.%s", pdb->slug, dep->package_name);
-    rpe_check(name = bz_env_get_string(requestor, pdb->buf.buf, false));
+    rpe_check(name = bz_value_get_string(ctx, pdb->buf.buf, false));
     if (name != NULL) {
         return bz_native_pdb_try_package(pdb, name, dep);
     }

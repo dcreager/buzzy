@@ -156,7 +156,7 @@ END_TEST
 
 static void
 test_homebrew_pdb_dep(struct bz_pdb *pdb, const char *dep_str,
-                  const char *expected_actions)
+                      const char *expected_actions)
 {
     struct bz_dependency  *dep;
     struct bz_package  *package;

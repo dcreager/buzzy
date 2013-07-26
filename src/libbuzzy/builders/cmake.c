@@ -57,6 +57,7 @@ static int
 bz_cmake__build(void *user_data)
 {
     struct bz_env  *env = user_data;
+    struct bz_value  *ctx = bz_env_as_value(env);
     const char  *package_name;
     struct cork_path  *build_dir;
     struct cork_path  *source_dir;
@@ -69,7 +70,7 @@ bz_cmake__build(void *user_data)
     struct cork_env  *exec_env;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
-    rii_check(bz_install_dependency_string("cmake", env));
+    rii_check(bz_install_dependency_string("cmake", ctx));
     rii_check(bz_build_message(env, "cmake"));
 
     rip_check(package_name = bz_env_get_string(env, "name", true));
@@ -124,12 +125,13 @@ static int
 bz_cmake__test(void *user_data)
 {
     struct bz_env  *env = user_data;
+    struct bz_value  *ctx = bz_env_as_value(env);
     const char  *package_name;
     struct cork_path  *build_dir;
     bool  verbose;
     struct cork_exec  *exec;
 
-    rii_check(bz_install_dependency_string("cmake", env));
+    rii_check(bz_install_dependency_string("cmake", ctx));
     rii_check(bz_test_message(env, "cmake"));
 
     /* $ make test */
@@ -148,6 +150,7 @@ static int
 bz_cmake__stage(void *user_data)
 {
     struct bz_env  *env = user_data;
+    struct bz_value  *ctx = bz_env_as_value(env);
     const char  *package_name;
     struct cork_path  *build_dir;
     struct cork_path  *staging_dir;
@@ -155,7 +158,7 @@ bz_cmake__stage(void *user_data)
     struct cork_env  *exec_env;
     struct cork_exec  *exec;
 
-    rii_check(bz_install_dependency_string("cmake", env));
+    rii_check(bz_install_dependency_string("cmake", ctx));
     rii_check(bz_stage_message(env, "cmake"));
 
     rip_check(package_name = bz_env_get_string(env, "name", true));
