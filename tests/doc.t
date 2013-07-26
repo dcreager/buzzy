@@ -92,4 +92,9 @@ repository and directory and while not in one.
     Where the package's extracted source archive should be placed
   
     Current value: .*/doc.t/repo2 (re)
+  $ buzzy doc package_slug
+  package_slug
+    A unique name for a combination of a package and its source
+  
+    Current value: test-local-[0-9a-f]{8} (re)
   $ cd ..

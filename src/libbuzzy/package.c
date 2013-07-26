@@ -46,8 +46,15 @@ bz_define_variables(package)
     );
 
     bz_package_variable(
+        package_slug, "package_slug",
+        bz_interpolated_value_new("${name}-buzzy"),
+        "A unique name for a combination of a package and its source",
+        ""
+    );
+
+    bz_package_variable(
         package_work_dir, "package_work_dir",
-        bz_interpolated_value_new("${work_dir}/build/${name}/${version}"),
+        bz_interpolated_value_new("${work_dir}/build/${package_slug}"),
         "Location for artefacts created while building or installing a package",
         ""
     );

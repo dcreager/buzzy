@@ -121,6 +121,9 @@ bz_git_repo_new(const char *url, const char *commit)
     bz_env_add_override
         (repo_env, "repo.base_dir",
          bz_interpolated_value_new("${repo_dir}/${repo.slug}"));
+    bz_env_add_override
+        (repo_env, "package_slug",
+         bz_interpolated_value_new("${name}-${repo.slug}"));
 
     repo->repo = bz_repo_new
         (repo_env, repo, bz_git__free,

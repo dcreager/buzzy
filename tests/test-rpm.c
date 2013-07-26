@@ -496,8 +496,8 @@ mock_rpmbuild(const char *package_name, const char *version)
         "--define _build_name_fmt "
             "%%%%{NAME}-%%%%{VERSION}-%%%%{RELEASE}.%%%%{ARCH}.rpm "
         "--quiet -bb "
-        "/home/test/.cache/buzzy/build/%s/%s/pkg/%s.spec",
-        package_name, version, package_name
+        "/home/test/.cache/buzzy/build/%s-buzzy/pkg/%s.spec",
+        package_name, package_name
     );
     bz_mock_subprocess(buf.buf, NULL, NULL, 0);
     cork_buffer_done(&buf);
@@ -555,9 +555,9 @@ START_TEST(test_rpm_create_package_01)
         "$ yum info -C rpm-build\n"
         "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ [ -f /tmp/staging ]\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
-        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+        "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec"
             " <<EOF\n"
         "Summary: jansson\n"
         "Name: jansson\n"
@@ -587,7 +587,7 @@ START_TEST(test_rpm_create_package_01)
             "--define _build_name_fmt "
                 "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
             "--quiet -bb "
-            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
     );
     bz_env_free(env);
 }
@@ -618,9 +618,9 @@ START_TEST(test_rpm_create_package_license_01)
         "$ yum info -C rpm-build\n"
         "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ [ -f /tmp/staging ]\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
-        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+        "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec"
             " <<EOF\n"
         "Summary: jansson\n"
         "Name: jansson\n"
@@ -650,7 +650,7 @@ START_TEST(test_rpm_create_package_license_01)
             "--define _build_name_fmt "
                 "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
             "--quiet -bb "
-            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
     );
     bz_env_free(env);
 }
@@ -685,9 +685,9 @@ START_TEST(test_rpm_create_package_deps_01)
         "$ yum info -C rpm-build\n"
         "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ [ -f /tmp/staging ]\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
-        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+        "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec"
             " <<EOF\n"
         "Summary: jansson\n"
         "Name: jansson\n"
@@ -718,7 +718,7 @@ START_TEST(test_rpm_create_package_deps_01)
             "--define _build_name_fmt "
                 "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
             "--quiet -bb "
-            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
     );
     bz_env_free(env);
 }
@@ -766,9 +766,9 @@ START_TEST(test_rpm_create_existing_package_02)
         "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ uname -m\n"
         "$ [ -f /tmp/staging ]\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
-        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+        "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec"
             " <<EOF\n"
         "Summary: jansson\n"
         "Name: jansson\n"
@@ -798,7 +798,7 @@ START_TEST(test_rpm_create_existing_package_02)
             "--define _build_name_fmt "
                 "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
             "--quiet -bb "
-            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
     );
     bz_env_free(env);
 }

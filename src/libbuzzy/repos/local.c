@@ -55,6 +55,8 @@ struct bz_repo *
 bz_local_filesystem_repo_new(const char *path)
 {
     bool  exists;
+    cork_hash  hash;
+    struct cork_buffer  buf = CORK_BUFFER_INIT();
     struct bz_local_filesystem_repo  *repo;
     struct bz_env  *repo_env;
 
@@ -70,6 +72,11 @@ bz_local_filesystem_repo_new(const char *path)
     bz_env_set_base_path(repo_env, path);
     bz_env_add_override(repo_env, "repo.name", bz_string_value_new(path));
     bz_env_add_override(repo_env, "repo.base_dir", bz_string_value_new(path));
+    hash = cork_hash_buffer(0, path, strlen(path));
+    cork_buffer_printf(&buf, "${name}-local-%08" PRIx32, hash);
+    bz_env_add_override
+        (repo_env, "package_slug", bz_interpolated_value_new(buf.buf));
+    cork_buffer_done(&buf);
 
     repo->repo = bz_repo_new
         (repo_env, repo, bz_local_filesystem__free,
