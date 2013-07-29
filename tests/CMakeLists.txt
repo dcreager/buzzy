@@ -17,7 +17,7 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR}/../src)
 
 find_package(PkgConfig)
 
-pkg_check_modules(CHECK REQUIRED check)
+pkg_check_modules(CHECK check)
 include_directories(${CHECK_INCLUDE_DIRS})
 link_directories(${CHECK_LIBRARY_DIRS})
 
@@ -25,14 +25,16 @@ link_directories(${CHECK_LIBRARY_DIRS})
 # Build the test cases
 
 macro(make_test test_name)
-    add_executable(${test_name} ${test_name}.c)
-    target_link_libraries(${test_name}
-        ${CHECK_LIBRARIES}
-        libbuzzy
-        libcork
-        libyaml
-    )
-    add_test(${test_name} ${test_name})
+    if(CHECK_FOUND)
+        add_executable(${test_name} ${test_name}.c)
+        target_link_libraries(${test_name}
+            ${CHECK_LIBRARIES}
+            libbuzzy
+            libcork
+            libyaml
+        )
+        add_test(${test_name} ${test_name})
+    endif(CHECK_FOUND)
 endmacro(make_test)
 
 make_test(test-arch)
@@ -48,6 +50,10 @@ make_test(test-versions)
 
 #-----------------------------------------------------------------------
 # Command-line tests
+
+if(TILERA)
+    configure_file(tile-test ${CMAKE_BINARY_DIR}/tile-test COPYONLY)
+endif(TILERA)
 
 find_program(
     CRAM_EXECUTABLE

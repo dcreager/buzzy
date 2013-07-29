@@ -271,6 +271,7 @@ static int
 bz_rpm__package(void *user_data)
 {
     struct bz_env  *env = user_data;
+    struct bz_value  *ctx = bz_env_as_value(env);
     struct cork_path  *staging_dir;
     struct cork_path  *binary_package_dir;
     struct cork_path  *package_build_dir;
@@ -289,7 +290,7 @@ bz_rpm__package(void *user_data)
 
     struct bz_rpm_spec_files  files;
 
-    rii_check(bz_install_dependency_string("rpm-build", env));
+    rii_check(bz_install_dependency_string("rpm-build", ctx));
     rii_check(bz_package_message(env, "RPM"));
 
     rip_check(package_name = bz_env_get_string(env, "name", true));

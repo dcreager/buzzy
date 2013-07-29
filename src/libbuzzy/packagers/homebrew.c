@@ -98,6 +98,7 @@ bz_homebrew_prefix_value_new(void)
  * cellar. */
 
 struct bz_homebrew_pkgconfig {
+    struct cork_hash_table  packages;
     struct cork_buffer  buf;
 };
 
@@ -105,42 +106,96 @@ static void
 bz_homebrew_pkgconfig_path__free(void *user_data)
 {
     struct bz_homebrew_pkgconfig  *self = user_data;
+    cork_hash_table_done(&self->packages);
     cork_buffer_done(&self->buf);
     free(self);
 }
 
-struct bz_pkgconfig_fill_deps {
+static int
+bz_pkgconfig_process_package_list(struct bz_homebrew_pkgconfig *self,
+                                  struct bz_package_list *list);
+
+static int
+bz_pkgconfig_process_package(struct bz_homebrew_pkgconfig *self,
+                             struct bz_package *package)
+{
+    bool  is_new;
+    const char  *package_name = bz_package_name(package);
+    cork_hash_table_put
+        (&self->packages, (void *) package_name, NULL, &is_new, NULL, NULL);
+    if (is_new) {
+        struct bz_package_list  *deps;
+        rip_check(deps = bz_package_build_deps(package));
+        rii_check(bz_pkgconfig_process_package_list(self, deps));
+        rip_check(deps = bz_package_deps(package));
+        rii_check(bz_pkgconfig_process_package_list(self, deps));
+    }
+    return 0;
+}
+
+static int
+bz_pkgconfig_process_package_list(struct bz_homebrew_pkgconfig *self,
+                                  struct bz_package_list *list)
+{
+    size_t  i;
+    size_t  count;
+    count = bz_package_list_count(list);
+    for (i = 0; i < count; i++) {
+        struct bz_package  *package = bz_package_list_get(list, i);
+        rii_check(bz_pkgconfig_process_package(self, package));
+    }
+    return 0;
+}
+
+static enum cork_hash_table_map_result
+bz_pkgconfig_add_one_path(struct cork_hash_table_entry *entry, void *user_data)
+{
+    struct bz_homebrew_pkgconfig  *self = user_data;
+    const char  *package_name = entry->key;
+    if (self->buf.size != 0) {
+        cork_buffer_append(&self->buf, ":", 1);
+    }
+    cork_buffer_append_printf
+        (&self->buf, "/usr/local/opt/%s/lib/pkgconfig", package_name);
+    return CORK_HASH_TABLE_MAP_DELETE;
+}
+
+/* Clears the hash table as a result */
+static void
+bz_pkgconfig_construct_path(struct bz_homebrew_pkgconfig *self)
+{
+    cork_hash_table_map(&self->packages, bz_pkgconfig_add_one_path, self);
+}
+
+
+struct bz_pkgconfig_process_deps {
     struct bz_value  *ctx;
-    struct cork_buffer  *buf;
+    struct bz_homebrew_pkgconfig  *self;
 };
 
 static int
-bz_pkgconfig_fill_one_dep(void *user_data, struct bz_value *dep_value)
+bz_pkgconfig_process_dep(void *user_data, struct bz_value *dep_value)
 {
-    struct bz_pkgconfig_fill_deps  *state = user_data;
+    struct bz_pkgconfig_process_deps  *state = user_data;
     const char  *dep_string;
-    struct bz_dependency  *dep;
+    struct bz_package  *package;
     rip_check(dep_string = bz_scalar_value_get(dep_value, state->ctx));
-    rip_check(dep = bz_dependency_from_string(dep_string));
-    if (state->buf->size != 0) {
-        cork_buffer_append(state->buf, ":", 1);
-    }
-    cork_buffer_append_printf
-        (state->buf, "/usr/local/opt/%s/lib/pkgconfig", dep->package_name);
-    return 0;
+    rip_check(package = bz_satisfy_dependency_string(dep_string, state->ctx));
+    return bz_pkgconfig_process_package(state->self, package);
 }
+
 static int
-bz_pkgconfig_fill_deps(struct bz_homebrew_pkgconfig *self,
-                       struct bz_value *ctx, const char *var_name)
+bz_pkgconfig_process_deps(struct bz_homebrew_pkgconfig *self,
+                          struct bz_value *ctx, const char *var_name)
 {
     struct bz_value  *deps_value;
     rie_check(deps_value = bz_value_get_nested(ctx, var_name));
     if (deps_value == NULL) {
         return 0;
     } else {
-        struct bz_pkgconfig_fill_deps  state = { ctx, &self->buf };
+        struct bz_pkgconfig_process_deps  state = { ctx, self };
         return bz_array_value_map_scalars
-            (deps_value, &state, bz_pkgconfig_fill_one_dep);
+            (deps_value, &state, bz_pkgconfig_process_dep);
     }
 }
 
@@ -148,9 +203,11 @@ static const char *
 bz_homebrew_pkgconfig_path__get(void *user_data, struct bz_value *ctx)
 {
     struct bz_homebrew_pkgconfig  *self = user_data;
+    cork_hash_table_clear(&self->packages);
     cork_buffer_clear(&self->buf);
-    rpi_check(bz_pkgconfig_fill_deps(self, ctx, "build_dependencies"));
-    rpi_check(bz_pkgconfig_fill_deps(self, ctx, "dependencies"));
+    rpi_check(bz_pkgconfig_process_deps(self, ctx, "build_dependencies"));
+    rpi_check(bz_pkgconfig_process_deps(self, ctx, "dependencies"));
+    bz_pkgconfig_construct_path(self);
     return self->buf.buf;
 }
 
@@ -159,6 +216,7 @@ bz_homebrew_pkgconfig_path_value_new(void)
 {
     struct bz_homebrew_pkgconfig  *self =
         cork_new(struct bz_homebrew_pkgconfig);
+    cork_string_hash_table_init(&self->packages, 0);
     cork_buffer_init(&self->buf);
     return bz_scalar_value_new
         (self, bz_homebrew_pkgconfig_path__free,

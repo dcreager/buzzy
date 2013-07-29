@@ -80,6 +80,7 @@ static int
 bz_autotools__build(void *user_data)
 {
     struct bz_env  *env = user_data;
+    struct bz_value  *ctx = bz_env_as_value(env);
     const char  *package_name;
     struct cork_path  *build_dir;
     struct cork_path  *source_dir;
@@ -92,8 +93,8 @@ bz_autotools__build(void *user_data)
     struct cork_env  *exec_env;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
 
-    rii_check(bz_install_dependency_string("autoconf", env));
-    rii_check(bz_install_dependency_string("automake", env));
+    rii_check(bz_install_dependency_string("autoconf", ctx));
+    rii_check(bz_install_dependency_string("automake", ctx));
     rii_check(bz_build_message(env, "autotools"));
 
     rip_check(package_name = bz_env_get_string(env, "name", true));

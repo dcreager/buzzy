@@ -179,7 +179,7 @@ START_TEST(test_autotools_stage_package_01)
         "$ pacman -Q autoconf\n"
         "$ pacman -Sddp --print-format %v automake\n"
         "$ pacman -Q automake\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/build\n"
         "$ [ -f /home/test/source/configure ]\n"
         "$ autoreconf -i\n"
         "$ /home/test/source/configure"
@@ -192,7 +192,7 @@ START_TEST(test_autotools_stage_package_01)
             " --datadir=/usr/share"
             " --mandir=/usr/share/man\n"
         "$ make\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/stage\n"
         "$ make install\n"
     );
     bz_env_free(env);
@@ -243,7 +243,7 @@ START_TEST(test_autotools_stage_package_with_args_01)
         "$ pacman -Q autoconf\n"
         "$ pacman -Sddp --print-format %v automake\n"
         "$ pacman -Q automake\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/build\n"
         "$ [ -f /home/test/source/configure ]\n"
         "$ autoreconf -i\n"
         "$ /home/test/source/configure"
@@ -258,7 +258,7 @@ START_TEST(test_autotools_stage_package_with_args_01)
             " --with-foo"
             " --enable-bar\n"
         "$ make\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/stage\n"
         "$ make install\n"
     );
     bz_env_free(env);
@@ -304,7 +304,7 @@ START_TEST(test_autotools_stage_package_with_args_02)
         "$ pacman -Q autoconf\n"
         "$ pacman -Sddp --print-format %v automake\n"
         "$ pacman -Q automake\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/build\n"
         "$ [ -f /home/test/source/configure ]\n"
         "$ autoreconf -i\n"
         "$ /home/test/source/configure"
@@ -318,7 +318,7 @@ START_TEST(test_autotools_stage_package_with_args_02)
             " --mandir=/usr/share/man"
             " --with-foo\n"
         "$ make\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/stage\n"
         "$ make install\n"
     );
     bz_env_free(env);
@@ -365,7 +365,7 @@ START_TEST(test_autotools_uninstalled_stage_package_01)
         "$ pacman -Sddp --print-format %v automake\n"
         "$ pacman -Q automake\n"
         "$ sudo pacman -S --noconfirm automake\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/build\n"
         "$ [ -f /home/test/source/configure ]\n"
         "$ autoreconf -i\n"
         "$ /home/test/source/configure"
@@ -378,7 +378,7 @@ START_TEST(test_autotools_uninstalled_stage_package_01)
             " --datadir=/usr/share"
             " --mandir=/usr/share/man\n"
         "$ make\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/stage\n"
         "$ make install\n"
     );
     bz_env_free(env);

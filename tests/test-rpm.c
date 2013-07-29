@@ -29,7 +29,7 @@ mock_available_package(const char *package, const char *available_version)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "yum info --cacheonly %s", package);
+    cork_buffer_printf(&buf1, "yum info -C %s", package);
     cork_buffer_printf(&buf2, "Version: %s\nRelease: 1\n", available_version);
     bz_mock_subprocess(buf1.buf, buf2.buf, NULL, 0);
     cork_buffer_done(&buf1);
@@ -41,7 +41,7 @@ mock_unavailable_package(const char *package)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "yum info --cacheonly %s", package);
+    cork_buffer_printf(&buf1, "yum info -C %s", package);
     cork_buffer_set_string(&buf2, "Error: No matching Packages to list\n");
     bz_mock_subprocess(buf1.buf, NULL, buf2.buf, 1);
     cork_buffer_done(&buf1);
@@ -53,8 +53,8 @@ mock_installed_package(const char *package, const char *installed_version)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "rpm --qf %%{V}-%%{R} -q %s", package);
-    cork_buffer_printf(&buf2, "%s-1", installed_version);
+    cork_buffer_printf(&buf1, "rpm --qf %%{V}-%%{R}\\n -q %s", package);
+    cork_buffer_printf(&buf2, "%s-1\n", installed_version);
     bz_mock_subprocess(buf1.buf, buf2.buf, NULL, 0);
     cork_buffer_done(&buf1);
     cork_buffer_done(&buf2);
@@ -65,7 +65,7 @@ mock_uninstalled_package(const char *package)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
     struct cork_buffer  buf2 = CORK_BUFFER_INIT();
-    cork_buffer_printf(&buf1, "rpm --qf %%{V}-%%{R} -q %s", package);
+    cork_buffer_printf(&buf1, "rpm --qf %%{V}-%%{R}\\n -q %s", package);
     cork_buffer_printf(&buf2, "package %s is not installed\n", package);
     bz_mock_subprocess(buf1.buf, NULL, buf2.buf, 1);
     cork_buffer_done(&buf1);
@@ -293,6 +293,7 @@ START_TEST(test_yum_pdb_uninstalled_native_package_01)
     bz_start_mocks();
     mock_unavailable_package("jansson-devel");
     mock_unavailable_package("libjansson-devel");
+    mock_unavailable_package("libjansson");
     mock_available_package("jansson", "2.4");
     mock_uninstalled_package("jansson");
     mock_package_installation("jansson", "2.4");
@@ -306,6 +307,8 @@ START_TEST(test_yum_pdb_uninstalled_native_package_01)
     test_yum_pdb_dep(pdb, "jansson >= 2.4",
         "[1] Install native RPM package jansson 2.4\n"
     );
+
+    test_yum_pdb_unknown_dep(pdb, "jansson >= 2.5");
 
     bz_pdb_free(pdb);
 }
@@ -442,6 +445,33 @@ START_TEST(test_yum_pdb_uninstalled_override_package_02)
 }
 END_TEST
 
+START_TEST(test_yum_pdb_preinstalled_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env;
+    struct bz_pdb  *pdb;
+
+    /* A package that is preinstalled on this system. */
+    reset_everything();
+    bz_start_mocks();
+    env = bz_global_env();
+
+    fail_if_error(pdb = bz_yum_native_pdb());
+    bz_env_add_override
+        (env, "preinstalled.rpm.jansson", bz_string_value_new("2.4"));
+
+    test_yum_pdb_dep(pdb, "jansson",
+        "[1] Preinstalled native RPM package jansson 2.4\n"
+    );
+
+    test_yum_pdb_dep(pdb, "jansson >= 2.4",
+        "[1] Preinstalled native RPM package jansson 2.4\n"
+    );
+
+    bz_pdb_free(pdb);
+}
+END_TEST
+
 
 /*-----------------------------------------------------------------------
  * Building RPM packages
@@ -466,8 +496,8 @@ mock_rpmbuild(const char *package_name, const char *version)
         "--define _build_name_fmt "
             "%%%%{NAME}-%%%%{VERSION}-%%%%{RELEASE}.%%%%{ARCH}.rpm "
         "--quiet -bb "
-        "/home/test/.cache/buzzy/build/%s/%s/pkg/%s.spec",
-        package_name, version, package_name
+        "/home/test/.cache/buzzy/build/%s-buzzy/pkg/%s.spec",
+        package_name, package_name
     );
     bz_mock_subprocess(buf.buf, NULL, NULL, 0);
     cork_buffer_done(&buf);
@@ -520,14 +550,14 @@ START_TEST(test_rpm_create_package_01)
     verify_commands_run(
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1.x86_64.rpm ]\n"
-        "$ yum info --cacheonly rpm-build-devel\n"
-        "$ yum info --cacheonly librpm-build-devel\n"
-        "$ yum info --cacheonly rpm-build\n"
-        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ yum info -C rpm-build-devel\n"
+        "$ yum info -C librpm-build-devel\n"
+        "$ yum info -C rpm-build\n"
+        "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ [ -f /tmp/staging ]\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
-        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+        "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec"
             " <<EOF\n"
         "Summary: jansson\n"
         "Name: jansson\n"
@@ -557,7 +587,7 @@ START_TEST(test_rpm_create_package_01)
             "--define _build_name_fmt "
                 "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
             "--quiet -bb "
-            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
     );
     bz_env_free(env);
 }
@@ -583,14 +613,14 @@ START_TEST(test_rpm_create_package_license_01)
     verify_commands_run(
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1.x86_64.rpm ]\n"
-        "$ yum info --cacheonly rpm-build-devel\n"
-        "$ yum info --cacheonly librpm-build-devel\n"
-        "$ yum info --cacheonly rpm-build\n"
-        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ yum info -C rpm-build-devel\n"
+        "$ yum info -C librpm-build-devel\n"
+        "$ yum info -C rpm-build\n"
+        "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ [ -f /tmp/staging ]\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
-        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+        "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec"
             " <<EOF\n"
         "Summary: jansson\n"
         "Name: jansson\n"
@@ -620,7 +650,7 @@ START_TEST(test_rpm_create_package_license_01)
             "--define _build_name_fmt "
                 "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
             "--quiet -bb "
-            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
     );
     bz_env_free(env);
 }
@@ -650,14 +680,14 @@ START_TEST(test_rpm_create_package_deps_01)
     verify_commands_run(
         "$ uname -m\n"
         "$ [ -f ./jansson-2.4-1.x86_64.rpm ]\n"
-        "$ yum info --cacheonly rpm-build-devel\n"
-        "$ yum info --cacheonly librpm-build-devel\n"
-        "$ yum info --cacheonly rpm-build\n"
-        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ yum info -C rpm-build-devel\n"
+        "$ yum info -C librpm-build-devel\n"
+        "$ yum info -C rpm-build\n"
+        "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ [ -f /tmp/staging ]\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
-        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+        "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec"
             " <<EOF\n"
         "Summary: jansson\n"
         "Name: jansson\n"
@@ -688,7 +718,7 @@ START_TEST(test_rpm_create_package_deps_01)
             "--define _build_name_fmt "
                 "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
             "--quiet -bb "
-            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
     );
     bz_env_free(env);
 }
@@ -730,15 +760,15 @@ START_TEST(test_rpm_create_existing_package_02)
         "[1] Package jansson 2.4 (RPM)\n"
     );
     verify_commands_run(
-        "$ yum info --cacheonly rpm-build-devel\n"
-        "$ yum info --cacheonly librpm-build-devel\n"
-        "$ yum info --cacheonly rpm-build\n"
-        "$ rpm --qf %{V}-%{R} -q rpm-build\n"
+        "$ yum info -C rpm-build-devel\n"
+        "$ yum info -C librpm-build-devel\n"
+        "$ yum info -C rpm-build\n"
+        "$ rpm --qf %{V}-%{R}\\n -q rpm-build\n"
         "$ uname -m\n"
         "$ [ -f /tmp/staging ]\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/pkg\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
-        "$ cat > /home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec"
+        "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec"
             " <<EOF\n"
         "Summary: jansson\n"
         "Name: jansson\n"
@@ -768,7 +798,7 @@ START_TEST(test_rpm_create_existing_package_02)
             "--define _build_name_fmt "
                 "%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm "
             "--quiet -bb "
-            "/home/test/.cache/buzzy/build/jansson/2.4/pkg/jansson.spec\n"
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
     );
     bz_env_free(env);
 }
@@ -799,6 +829,7 @@ test_suite()
     tcase_add_test(tc_yum_pdb, test_yum_pdb_nonexistent_native_package_01);
     tcase_add_test(tc_yum_pdb, test_yum_pdb_uninstalled_override_package_01);
     tcase_add_test(tc_yum_pdb, test_yum_pdb_uninstalled_override_package_02);
+    tcase_add_test(tc_yum_pdb, test_yum_pdb_preinstalled_package_01);
     suite_add_tcase(s, tc_yum_pdb);
 
     TCase  *tc_rpm_package = tcase_create("rpm-package");

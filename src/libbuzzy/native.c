@@ -24,6 +24,120 @@
 
 
 /*-----------------------------------------------------------------------
+ * Preinstalled packages
+ */
+
+struct bz_preinstalled {
+    struct bz_env  *env;
+    const char  *short_distro_name;
+    const char  *package_name;
+    struct bz_version  *version;
+};
+
+static void
+bz_preinstalled__free(void *user_data)
+{
+    struct bz_preinstalled  *preinstalled = user_data;
+    cork_strfree(preinstalled->short_distro_name);
+    cork_strfree(preinstalled->package_name);
+    bz_env_free(preinstalled->env);
+    free(preinstalled);
+}
+
+static int
+bz_preinstalled__package__is_needed(void *user_data, bool *is_needed)
+{
+    /* Preinstalled packages never need to be packaged. */
+    *is_needed = false;
+    return 0;
+}
+
+static int
+bz_preinstalled__package(void *user_data)
+{
+    return 0;
+}
+
+
+static int
+bz_preinstalled__install__is_needed(void *user_data, bool *is_needed)
+{
+    /* Preinstalled packages never need to be installed, but we still want to
+     * print out a nice message. */
+    *is_needed = true;
+    return 0;
+}
+
+static int
+bz_preinstalled__install(void *user_data)
+{
+    struct bz_preinstalled  *preinstalled = user_data;
+    bz_log_action
+        ("Preinstalled native %s package %s %s",
+         preinstalled->short_distro_name,
+         preinstalled->package_name,
+         bz_version_to_string(preinstalled->version));
+    return 0;
+}
+
+
+static int
+bz_preinstalled__uninstall__is_needed(void *user_data, bool *is_needed)
+{
+    /* Preinstalled packages never need to be uninstalled. */
+    *is_needed = false;
+    return 0;
+}
+
+static int
+bz_preinstalled__uninstall(void *user_data)
+{
+    return 0;
+}
+
+static struct bz_packager *
+bz_preinstalled_packager_new(struct bz_env *env,
+                             const char *short_distro_name,
+                             const char *package_name,
+                             struct bz_version *version)
+{
+    struct bz_preinstalled  *preinstalled = cork_new(struct bz_preinstalled);
+    preinstalled->env = env;
+    preinstalled->short_distro_name = cork_strdup(short_distro_name);
+    preinstalled->package_name = cork_strdup(package_name);
+    preinstalled->version = version;
+    return bz_packager_new
+        (env, short_distro_name,
+         preinstalled, bz_preinstalled__free,
+         bz_preinstalled__package__is_needed,
+         bz_preinstalled__package,
+         bz_preinstalled__install__is_needed,
+         bz_preinstalled__install,
+         bz_preinstalled__uninstall__is_needed,
+         bz_preinstalled__uninstall);
+}
+
+struct bz_package *
+bz_preinstalled_package_new(const char *short_distro_name,
+                            const char *package_name,
+                            struct bz_version *version)
+{
+    struct bz_env  *env;
+    struct bz_builder  *builder;
+    struct bz_packager  *packager;
+
+    env = bz_package_env_new_empty(NULL, package_name);
+    bz_env_add_override(env, "name", bz_string_value_new(package_name));
+    bz_env_add_override
+        (env, "version", bz_string_value_new(bz_version_to_string(version)));
+    builder = bz_noop_builder_new(env);
+    packager = bz_preinstalled_packager_new
+        (env, short_distro_name, package_name, version);
+    return bz_package_new(package_name, version, env, builder, packager);
+}
+
+
+/*-----------------------------------------------------------------------
  * Native packages
  */
 
@@ -229,34 +343,53 @@ bz_native_pdb_try_package(struct bz_native_pdb *pdb, const char *name,
     available = pdb->version_available(name);
     if (available == NULL) {
         return NULL;
-    } else {
-        return bz_native_package_new
-            (pdb->short_distro_name,
-             dep->package_name, name, available,
-             pdb->version_installed, pdb->install, pdb->uninstall);
     }
+
+    if (dep->min_version != NULL) {
+        if (bz_version_cmp(available, dep->min_version) < 0) {
+            clog_info("(%s) Native version %s is older than %s",
+                      dep->package_name,
+                      bz_version_to_string(available),
+                      bz_version_to_string(dep->min_version));
+            return NULL;
+        }
+    }
+
+    return bz_native_package_new
+        (pdb->short_distro_name,
+         dep->package_name, name, available,
+         pdb->version_installed, pdb->install, pdb->uninstall);
 }
 
 static struct bz_package *
 bz_native_pdb__satisfy(void *user_data, struct bz_dependency *dep,
-                       struct bz_env *requestor)
+                       struct bz_value *ctx)
 {
     size_t  i;
     struct bz_native_pdb  *pdb = user_data;
     struct bz_package  *result;
+    struct bz_version  *preinstalled_version;
     const char  *name;
 
-    /* First see if the requestor has provided an explicit native package name
-     * to use. */
+    /* First see if the package is preinstalled on the current platform. */
+    cork_buffer_printf
+        (&pdb->buf, "preinstalled.%s.%s", pdb->slug, dep->package_name);
+    rpe_check(preinstalled_version =
+              bz_value_get_version(ctx, pdb->buf.buf, false));
+    if (preinstalled_version != NULL) {
+        return bz_preinstalled_package_new
+            (pdb->short_distro_name, dep->package_name, preinstalled_version);
+    }
 
+    /* Then see if someone has provided an explicit native package name. */
     cork_buffer_printf(&pdb->buf, "native.%s", dep->package_name);
-    rpe_check(name = bz_env_get_string(requestor, pdb->buf.buf, false));
+    rpe_check(name = bz_value_get_string(ctx, pdb->buf.buf, false));
     if (name != NULL) {
         return bz_native_pdb_try_package(pdb, name, dep);
     }
 
     cork_buffer_printf(&pdb->buf, "native.%s.%s", pdb->slug, dep->package_name);
-    rpe_check(name = bz_env_get_string(requestor, pdb->buf.buf, false));
+    rpe_check(name = bz_value_get_string(ctx, pdb->buf.buf, false));
     if (name != NULL) {
         return bz_native_pdb_try_package(pdb, name, dep);
     }

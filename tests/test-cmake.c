@@ -161,13 +161,13 @@ START_TEST(test_cmake_stage_package_01)
     verify_commands_run(
         "$ pacman -Sddp --print-format %v cmake\n"
         "$ pacman -Q cmake\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/build\n"
         "$ cmake /home/test/source"
             " -DCMAKE_INSTALL_PREFIX=/usr"
             " -DCMAKE_INSTALL_LIBDIR=lib"
             " -DCMAKE_BUILD_TYPE=RelWithDebInfo\n"
         "$ make\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/stage\n"
         "$ make install\n"
     );
     bz_env_free(env);
@@ -202,13 +202,13 @@ START_TEST(test_cmake_uninstalled_stage_package_01)
         "$ pacman -Sddp --print-format %v cmake\n"
         "$ pacman -Q cmake\n"
         "$ sudo pacman -S --noconfirm cmake\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/build\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/build\n"
         "$ cmake /home/test/source"
             " -DCMAKE_INSTALL_PREFIX=/usr"
             " -DCMAKE_INSTALL_LIBDIR=lib"
             " -DCMAKE_BUILD_TYPE=RelWithDebInfo\n"
         "$ make\n"
-        "$ mkdir -p /home/test/.cache/buzzy/build/jansson/2.4/stage\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/stage\n"
         "$ make install\n"
     );
     bz_env_free(env);

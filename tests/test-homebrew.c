@@ -156,7 +156,7 @@ END_TEST
 
 static void
 test_homebrew_pdb_dep(struct bz_pdb *pdb, const char *dep_str,
-                  const char *expected_actions)
+                      const char *expected_actions)
 {
     struct bz_dependency  *dep;
     struct bz_package  *package;
@@ -188,6 +188,7 @@ START_TEST(test_homebrew_pdb_uninstalled_native_package_01)
      * yet been installed. */
     bz_start_mocks();
     mock_package("jansson", "2.4", NULL, false);
+    mock_package("libjansson", NULL, NULL, false);
     mock_package_installation("jansson", "2.4");
 
     fail_if_error(pdb = bz_homebrew_native_pdb());
@@ -199,6 +200,8 @@ START_TEST(test_homebrew_pdb_uninstalled_native_package_01)
     test_homebrew_pdb_dep(pdb, "jansson >= 2.4",
         "[1] Install native Homebrew package jansson 2.4\n"
     );
+
+    test_homebrew_pdb_unknown_dep(pdb, "jansson >= 2.5");
 
     bz_pdb_free(pdb);
 }
@@ -319,6 +322,33 @@ START_TEST(test_homebrew_pdb_uninstalled_override_package_02)
 
     test_homebrew_pdb_dep(pdb, "jansson >= 2.4",
         "[1] Install native Homebrew package libjansson0 2.4\n"
+    );
+
+    bz_pdb_free(pdb);
+}
+END_TEST
+
+START_TEST(test_homebrew_pdb_preinstalled_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_env  *env;
+    struct bz_pdb  *pdb;
+
+    /* A package that is preinstalled on this system. */
+    reset_everything();
+    bz_start_mocks();
+    env = bz_global_env();
+
+    fail_if_error(pdb = bz_homebrew_native_pdb());
+    bz_env_add_override
+        (env, "preinstalled.homebrew.jansson", bz_string_value_new("2.4"));
+
+    test_homebrew_pdb_dep(pdb, "jansson",
+        "[1] Preinstalled native Homebrew package jansson 2.4\n"
+    );
+
+    test_homebrew_pdb_dep(pdb, "jansson >= 2.4",
+        "[1] Preinstalled native Homebrew package jansson 2.4\n"
     );
 
     bz_pdb_free(pdb);
@@ -458,6 +488,8 @@ test_suite()
                    test_homebrew_pdb_uninstalled_override_package_01);
     tcase_add_test(tc_homebrew_pdb,
                    test_homebrew_pdb_uninstalled_override_package_02);
+    tcase_add_test(tc_homebrew_pdb,
+                   test_homebrew_pdb_preinstalled_package_01);
     suite_add_tcase(s, tc_homebrew_pdb);
 
     TCase  *tc_homebrew_package = tcase_create("homebrew-package");
