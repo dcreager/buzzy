@@ -106,7 +106,7 @@ bz_autotools__build(void *user_data)
     rie_check(verbose = bz_env_get_bool(env, "verbose", true));
 
     /* Create the build path */
-    rii_check(bz_create_directory(cork_path_get(build_dir)));
+    rii_check(bz_create_directory(cork_path_get(build_dir), 0750));
 
     clog_info("(%s) Configure using autotools", package_name);
 
@@ -230,7 +230,7 @@ bz_autotools__stage(void *user_data)
     rie_check(verbose = bz_env_get_bool(env, "verbose", true));
 
     /* Create the staging path */
-    rii_check(bz_create_directory(cork_path_get(staging_dir)));
+    rii_check(bz_create_directory(cork_path_get(staging_dir), 0750));
 
     /* $ make install */
     exec = cork_exec_new("make");

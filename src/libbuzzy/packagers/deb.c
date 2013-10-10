@@ -288,9 +288,9 @@ bz_deb__package(void *user_data)
     }
 
     /* Create the temporary directory and the packaging destination */
-    rii_check(bz_create_directory(cork_path_get(debian_dir)));
-    rii_check(bz_create_directory(cork_path_get(package_build_dir)));
-    rii_check(bz_create_directory(cork_path_get(binary_package_dir)));
+    rii_check(bz_create_directory(cork_path_get(debian_dir), 0755));
+    rii_check(bz_create_directory(cork_path_get(package_build_dir), 0750));
+    rii_check(bz_create_directory(cork_path_get(binary_package_dir), 0750));
 
     /* Create an Debian control file for this package */
     cork_buffer_append_printf(&buf, "Package: %s\n", package_name);

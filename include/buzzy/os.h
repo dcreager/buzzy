@@ -68,7 +68,7 @@ int
 bz_create_file(const char *path, struct cork_buffer *src);
 
 int
-bz_create_directory(const char *path);
+bz_create_directory(const char *path, cork_file_mode mode);
 
 int
 bz_file_exists(const char *path, bool *exists);

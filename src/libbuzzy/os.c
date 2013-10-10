@@ -227,11 +227,11 @@ bz_subprocess_run(bool verbose, bool *successful, ...)
  */
 
 struct cork_file *
-bz_real__create_dir(struct cork_path *path)
+bz_real__create_dir(struct cork_path *path, cork_file_mode mode)
 {
     struct cork_file  *file = cork_file_new_from_path(path);
     ei_check(cork_file_mkdir
-             (file, 0750, CORK_FILE_RECURSIVE | CORK_FILE_PERMISSIVE));
+             (file, mode, CORK_FILE_RECURSIVE | CORK_FILE_PERMISSIVE));
     return file;
 
 error:
@@ -240,12 +240,12 @@ error:
 }
 
 int
-bz_create_directory(const char *path_string)
+bz_create_directory(const char *path_string, cork_file_mode mode)
 {
     struct cork_path  *path = cork_path_new(path_string);
     struct cork_file  *dir;
     clog_debug("Create directory %s", path_string);
-    rip_check(dir = bz_mocked_create_dir(path));
+    rip_check(dir = bz_mocked_create_dir(path, mode));
     cork_file_free(dir);
     return 0;
 }

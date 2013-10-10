@@ -252,8 +252,8 @@ bz_pacman__package(void *user_data)
     }
 
     /* Create the temporary directory and the packaging destination */
-    rii_check(bz_create_directory(cork_path_get(package_build_dir)));
-    rii_check(bz_create_directory(cork_path_get(binary_package_dir)));
+    rii_check(bz_create_directory(cork_path_get(package_build_dir), 0750));
+    rii_check(bz_create_directory(cork_path_get(binary_package_dir), 0750));
 
     /* Create a PKGBUILD file for this package */
     cork_buffer_append_printf(&buf, "pkgname='%s'\n", package_name);
