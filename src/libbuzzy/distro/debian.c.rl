@@ -72,10 +72,13 @@ bz_version_to_deb(struct bz_version *version, struct cork_buffer *dest)
     assert(count > 0);
 
     for (i = 0; i < count; i++) {
+        const char  *string_value;
+        const char  *last_char;
         part = bz_version_get_part(version, i);
+        string_value = part->string_value.buf;
         switch (part->kind) {
             case BZ_VERSION_RELEASE:
-                if (need_punct_before_digit ||
+                if (need_punct_before_digit !=
                     !BZ_VERSION_PART_IS_INTEGRAL(part)) {
                     cork_buffer_append(dest, ".", 1);
                 }
@@ -112,6 +115,8 @@ bz_version_to_deb(struct bz_version *version, struct cork_buffer *dest)
         }
 
         assert(part->string_value.size > 0);
+        last_char = strchr(string_value, '\0') - 1;
+        need_punct_before_digit = isdigit(*last_char);
     }
 }
 
@@ -158,10 +163,20 @@ bz_version_from_deb_ours(const char *debian_version)
             bz_version_add_part(version, kind, start, size);
         }
 
-        no_dot_release = digit+ >start_release %add_part;
-        release = '.' alnum+ >start_release %add_part;
-        prerelease = '~' alnum+ >start_prerelease %add_part;
-        postrelease = '+' alnum+ >start_postrelease %add_part;
+        alpha_release  = alpha+ >start_release %add_part;
+        num_release    = digit+ >start_release %add_part;
+        no_dot_release =     (alpha_release | num_release);
+        dot_release    = '.' (alpha_release | num_release);
+        release        = no_dot_release | dot_release;
+
+        alpha_prerelease = '~' alpha+ >start_prerelease %add_part;
+        num_prerelease   = '~' digit+ >start_prerelease %add_part;
+        prerelease       = alpha_prerelease | num_prerelease;
+
+        alpha_postrelease = '+' alpha+ >start_postrelease %add_part;
+        num_postrelease   = '+' digit+ >start_postrelease %add_part;
+        postrelease       = alpha_postrelease | num_postrelease;
+
         rev = "-1";
         part = release | prerelease | postrelease;
         main := no_dot_release part** rev?;
@@ -232,8 +247,11 @@ bz_version_from_deb_any(const char *debian_version)
                      (version, BZ_VERSION_POSTRELEASE, "rev", 3));
         }
 
-        no_dot_release =     digit+ >start_release %add_part;
-        dot_release    = '.' digit+ >start_release %add_part;
+        alpha_release  = alpha+ >start_release %add_part;
+        num_release    = digit+ >start_release %add_part;
+        no_dot_release =     (alpha_release | num_release);
+        dot_release    = '.' (alpha_release | num_release);
+        release        = no_dot_release | dot_release;
 
         alpha_prerelease = '~' alpha+ >start_prerelease %add_part;
         num_prerelease   = '~' digit+ >start_prerelease %add_part;
@@ -243,7 +261,7 @@ bz_version_from_deb_any(const char *debian_version)
         num_postrelease   = '+' digit+ >start_postrelease %add_part;
         postrelease       = alpha_postrelease | num_postrelease;
 
-        part = dot_release | prerelease | postrelease;
+        part = release | prerelease | postrelease;
         section = no_dot_release part**;
 
         rev = '-' %add_revision;
