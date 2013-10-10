@@ -24,6 +24,12 @@
 int
 bz_debian_is_present(bool *dest);
 
+const char *
+bz_debian_current_architecture(void);
+
+struct bz_value *
+bz_debian_architecture_value_new(void);
+
 
 /*-----------------------------------------------------------------------
  * DEBIAN version strings

@@ -84,6 +84,7 @@ set(LIBBUZZY_SRC
     libbuzzy/distro/pdb.c
     libbuzzy/distro/posix.c
     libbuzzy/distro/rpm.c
+    libbuzzy/packagers/deb.c
     libbuzzy/packagers/homebrew.c
     libbuzzy/packagers/noop.c
     libbuzzy/packagers/pacman.c

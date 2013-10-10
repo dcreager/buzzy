@@ -218,6 +218,9 @@ struct bz_value *
 bz_packager_detector_new(void);
 
 struct bz_packager *
+bz_deb_packager_new(struct bz_env *env);
+
+struct bz_packager *
 bz_homebrew_packager_new(struct bz_env *env);
 
 struct bz_packager *

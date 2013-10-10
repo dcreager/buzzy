@@ -15,6 +15,7 @@
 #include "buzzy/distro.h"
 
 #include "buzzy/distro/arch.h"
+#include "buzzy/distro/debian.h"
 #include "buzzy/distro/homebrew.h"
 #include "buzzy/distro/rpm.h"
 
@@ -29,6 +30,11 @@ bz_packager__detect(void *user_data, struct bz_value *ctx)
     rpi_check(bz_arch_is_present(&is_arch));
     if (is_arch) {
         return "pacman";
+    }
+
+    rpi_check(bz_debian_is_present(&is_arch));
+    if (is_arch) {
+        return "deb";
     }
 
     rpi_check(bz_homebrew_is_present(&is_homebrew));

@@ -25,6 +25,15 @@
  */
 
 static void
+mock_deb_arch(const char *arch)
+{
+    struct cork_buffer  buf = CORK_BUFFER_INIT();
+    cork_buffer_printf(&buf, "%s\n", arch);
+    bz_mock_subprocess("dpkg-architecture -qDEB_HOST_ARCH", buf.buf, NULL, 0);
+    cork_buffer_done(&buf);
+}
+
+static void
 mock_available_package(const char *package, const char *available_version)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
@@ -438,6 +447,223 @@ END_TEST
 
 
 /*-----------------------------------------------------------------------
+ * Building deb packages
+ */
+
+/* Since we're mocking the subprocess commands for each of these test cases, the
+ * tests can run on any platform; we don't need the Debian Linux packaging tools
+ * to actually be installed. */
+
+static void
+mock_dpkg_deb(const char *package_name, const char *version)
+{
+    struct cork_buffer  buf = CORK_BUFFER_INIT();
+    cork_buffer_printf(&buf,
+        "dpkg-deb -b /tmp/staging ./%s_%s_amd64.deb",
+        package_name, version
+    );
+    bz_mock_subprocess(buf.buf, NULL, NULL, 0);
+    cork_buffer_done(&buf);
+}
+
+static void
+test_create_package(struct bz_env *env, bool force,
+                    const char *expected_actions)
+{
+    struct cork_path  *binary_package_dir = cork_path_new(".");
+    struct cork_path  *staging_dir = cork_path_new("/tmp/staging");
+    struct bz_pdb  *pdb;
+    struct bz_packager  *packager;
+
+    fail_if_error(pdb = bz_apt_native_pdb());
+    bz_pdb_register(pdb);
+
+    mock_deb_arch("amd64");
+    bz_mock_file_exists(cork_path_get(staging_dir), true);
+    bz_env_add_override(env, "binary_package_dir",
+                        bz_path_value_new(binary_package_dir));
+    bz_env_add_override(env, "staging_dir", bz_path_value_new(staging_dir));
+    bz_env_add_override(env, "force", bz_string_value_new(force? "1": "0"));
+    bz_env_add_override(env, "verbose", bz_string_value_new("0"));
+    fail_if_error(packager = bz_deb_packager_new(env));
+    fail_if_error(bz_packager_package(packager));
+    test_actions(expected_actions);
+    bz_packager_free(packager);
+}
+
+START_TEST(test_deb_create_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    mock_dpkg_deb("jansson", "2.4");
+    bz_mock_file_exists("./jansson_2.4_amd64.deb", false);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    test_create_package(env, false,
+        "[1] Package jansson 2.4 (Debian)\n"
+    );
+    verify_commands_run(
+        "$ dpkg-architecture -qDEB_HOST_ARCH\n"
+        "$ [ -f ./jansson_2.4_amd64.deb ]\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /tmp/staging/DEBIAN\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
+        "$ mkdir -p .\n"
+        "$ cat > /tmp/staging/DEBIAN/control <<EOF\n"
+        "Package: jansson\n"
+        "Description: jansson\n"
+        "Maintainer: Unknown <unknown@unknown.org>\n"
+        "Version: 2.4\n"
+        "Section: Miscellaneous\n"
+        "Priority: optional\n"
+        "Architecture: amd64\n"
+        "EOF\n"
+        "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+START_TEST(test_deb_create_package_license_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    mock_dpkg_deb("jansson", "2.4");
+    bz_mock_file_exists("./jansson_2.4_amd64.deb", false);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    fail_if_error(bz_env_add_override
+                  (env, "license", bz_string_value_new("MIT")));
+    test_create_package(env, false,
+        "[1] Package jansson 2.4 (Debian)\n"
+    );
+    verify_commands_run(
+        "$ dpkg-architecture -qDEB_HOST_ARCH\n"
+        "$ [ -f ./jansson_2.4_amd64.deb ]\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /tmp/staging/DEBIAN\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
+        "$ mkdir -p .\n"
+        "$ cat > /tmp/staging/DEBIAN/control <<EOF\n"
+        "Package: jansson\n"
+        "Description: jansson\n"
+        "Maintainer: Unknown <unknown@unknown.org>\n"
+        "Version: 2.4\n"
+        "Section: Miscellaneous\n"
+        "Priority: optional\n"
+        "Architecture: amd64\n"
+        "EOF\n"
+        "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+START_TEST(test_deb_create_package_deps_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_array  *deps;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    mock_dpkg_deb("jansson", "2.4");
+    bz_mock_file_exists("./jansson_2.4_amd64.deb", false);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    deps = bz_array_new();
+    bz_array_append(deps, bz_string_value_new("libfoo"));
+    bz_array_append(deps, bz_string_value_new("libbar >= 2.5~alpha.1"));
+    fail_if_error(bz_env_add_override
+                  (env, "dependencies", bz_array_as_value(deps)));
+    test_create_package(env, false,
+        "[1] Package jansson 2.4 (Debian)\n"
+    );
+    verify_commands_run(
+        "$ dpkg-architecture -qDEB_HOST_ARCH\n"
+        "$ [ -f ./jansson_2.4_amd64.deb ]\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /tmp/staging/DEBIAN\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
+        "$ mkdir -p .\n"
+        "$ cat > /tmp/staging/DEBIAN/control <<EOF\n"
+        "Package: jansson\n"
+        "Description: jansson\n"
+        "Maintainer: Unknown <unknown@unknown.org>\n"
+        "Version: 2.4\n"
+        "Section: Miscellaneous\n"
+        "Priority: optional\n"
+        "Architecture: amd64\n"
+        "Depends: libfoo, libbar (>= 2.5~alpha.1)\n"
+        "EOF\n"
+        "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+START_TEST(test_deb_create_existing_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    bz_mock_file_exists("./jansson_2.4_amd64.deb", true);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    test_create_package(env, false, "Nothing to do!\n");
+    verify_commands_run(
+        "$ dpkg-architecture -qDEB_HOST_ARCH\n"
+        "$ [ -f ./jansson_2.4_amd64.deb ]\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+START_TEST(test_deb_create_existing_package_02)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    mock_dpkg_deb("jansson", "2.4");
+    bz_mock_file_exists("./jansson_2.4_amd64.deb", true);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    test_create_package(env, true,
+        "[1] Package jansson 2.4 (Debian)\n"
+    );
+    verify_commands_run(
+        "$ dpkg-architecture -qDEB_HOST_ARCH\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /tmp/staging/DEBIAN\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
+        "$ mkdir -p .\n"
+        "$ cat > /tmp/staging/DEBIAN/control <<EOF\n"
+        "Package: jansson\n"
+        "Description: jansson\n"
+        "Maintainer: Unknown <unknown@unknown.org>\n"
+        "Version: 2.4\n"
+        "Section: Miscellaneous\n"
+        "Priority: optional\n"
+        "Architecture: amd64\n"
+        "EOF\n"
+        "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+
+/*-----------------------------------------------------------------------
  * Testing harness
  */
 
@@ -463,6 +689,14 @@ test_suite()
     tcase_add_test(tc_apt_pdb, test_apt_pdb_uninstalled_override_package_02);
     tcase_add_test(tc_apt_pdb, test_apt_pdb_preinstalled_package_01);
     suite_add_tcase(s, tc_apt_pdb);
+
+    TCase  *tc_deb_package = tcase_create("deb-package");
+    tcase_add_test(tc_deb_package, test_deb_create_package_01);
+    tcase_add_test(tc_deb_package, test_deb_create_package_license_01);
+    tcase_add_test(tc_deb_package, test_deb_create_package_deps_01);
+    tcase_add_test(tc_deb_package, test_deb_create_existing_package_01);
+    tcase_add_test(tc_deb_package, test_deb_create_existing_package_02);
+    suite_add_tcase(s, tc_deb_package);
 
     return s;
 }
