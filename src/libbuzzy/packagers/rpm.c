@@ -310,9 +310,9 @@ bz_rpm__package(void *user_data)
 
     rii_check(bz_file_exists(cork_path_get(staging_dir), &staging_exists));
     if (CORK_UNLIKELY(!staging_exists)) {
-        cork_error_set
-            (CORK_BUILTIN_ERROR, CORK_SYSTEM_ERROR,
-             "Staging directory %s does not exist", cork_path_get(staging_dir));
+        cork_error_set_printf
+            (ENOENT, "Staging directory %s does not exist",
+             cork_path_get(staging_dir));
         return -1;
     }
 

@@ -266,9 +266,9 @@ bz_real__create_file(struct cork_path *path, struct cork_buffer *src)
         goto error;
     } else if (CORK_UNLIKELY(bytes_written != src->size)) {
         close(fd);
-        cork_error_set(CORK_BUILTIN_ERROR, CORK_SYSTEM_ERROR,
-                       "Cannot write %zu bytes to %s",
-                       src->size, cork_path_get(path));
+        cork_error_set_printf
+            (ENOSPC, "Cannot write %zu bytes to %s",
+             src->size, cork_path_get(path));
         goto error;
     }
 

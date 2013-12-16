@@ -195,7 +195,7 @@ bz_var_doc_free(struct bz_var_doc *doc)
     free(doc);
 }
 
-static struct cork_hash_table  global_docs;
+static struct cork_hash_table  *global_docs;
 static struct bz_value  *global_values = NULL;
 static struct bz_env  *global = NULL;
 
@@ -245,9 +245,9 @@ load_config_files(void)
 static void
 global_new(void)
 {
-
     global = bz_env_new("global");
-    cork_string_hash_table_init(&global_docs, 0);
+    global_docs = cork_string_hash_table_new(0, 0);
+    cork_hash_table_set_free_value(global_docs, (cork_free_f) bz_var_doc_free);
 
     /* Check for buzzy.yaml files in a bunch of configuration directories. */
     if (CORK_UNLIKELY(load_config_files() != 0)) {
@@ -260,19 +260,10 @@ global_new(void)
     bz_env_add_backup_set(global, global_values);
 }
 
-static enum cork_hash_table_map_result
-free_doc(struct cork_hash_table_entry *entry, void *user_data)
-{
-    struct bz_var_doc  *doc = entry->value;
-    bz_var_doc_free(doc);
-    return CORK_HASH_TABLE_MAP_DELETE;
-}
-
 static void
 global_free(void)
 {
-    cork_hash_table_map(&global_docs, free_doc, NULL);
-    cork_hash_table_done(&global_docs);
+    cork_hash_table_free(global_docs);
     bz_env_free(global);
     global = NULL;
     global_values = NULL;
@@ -352,7 +343,7 @@ bz_env_set_global_default(const char *key, struct bz_value *value,
     struct cork_hash_table_entry  *entry;
 
     ensure_global_created();
-    entry = cork_hash_table_get_or_create(&global_docs, (void *) key, &is_new);
+    entry = cork_hash_table_get_or_create(global_docs, (void *) key, &is_new);
     if (is_new) {
         struct bz_var_doc  *doc =
             bz_var_doc_new(key, value, short_desc, long_desc);
@@ -375,7 +366,7 @@ struct bz_var_doc *
 bz_env_get_global_default(const char *name, bool required)
 {
     struct bz_var_doc  *doc =
-        cork_hash_table_get(&global_docs, (void *) name);
+        cork_hash_table_get(global_docs, (void *) name);
     if (required && CORK_UNLIKELY(doc == NULL)) {
         bz_bad_config("No variable named %s", name);
     }

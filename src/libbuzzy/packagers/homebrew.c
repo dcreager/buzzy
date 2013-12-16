@@ -98,7 +98,7 @@ bz_homebrew_prefix_value_new(void)
  * cellar. */
 
 struct bz_homebrew_pkgconfig {
-    struct cork_hash_table  packages;
+    struct cork_hash_table  *packages;
     struct cork_buffer  buf;
 };
 
@@ -106,7 +106,7 @@ static void
 bz_homebrew_pkgconfig_path__free(void *user_data)
 {
     struct bz_homebrew_pkgconfig  *self = user_data;
-    cork_hash_table_done(&self->packages);
+    cork_hash_table_free(self->packages);
     cork_buffer_done(&self->buf);
     free(self);
 }
@@ -122,7 +122,7 @@ bz_pkgconfig_process_package(struct bz_homebrew_pkgconfig *self,
     bool  is_new;
     const char  *package_name = bz_package_name(package);
     cork_hash_table_put
-        (&self->packages, (void *) package_name, NULL, &is_new, NULL, NULL);
+        (self->packages, (void *) package_name, NULL, &is_new, NULL, NULL);
     if (is_new) {
         struct bz_package_list  *deps;
         rip_check(deps = bz_package_build_deps(package));
@@ -148,7 +148,7 @@ bz_pkgconfig_process_package_list(struct bz_homebrew_pkgconfig *self,
 }
 
 static enum cork_hash_table_map_result
-bz_pkgconfig_add_one_path(struct cork_hash_table_entry *entry, void *user_data)
+bz_pkgconfig_add_one_path(void *user_data, struct cork_hash_table_entry *entry)
 {
     struct bz_homebrew_pkgconfig  *self = user_data;
     const char  *package_name = entry->key;
@@ -164,7 +164,7 @@ bz_pkgconfig_add_one_path(struct cork_hash_table_entry *entry, void *user_data)
 static void
 bz_pkgconfig_construct_path(struct bz_homebrew_pkgconfig *self)
 {
-    cork_hash_table_map(&self->packages, bz_pkgconfig_add_one_path, self);
+    cork_hash_table_map(self->packages, self, bz_pkgconfig_add_one_path);
 }
 
 
@@ -203,7 +203,7 @@ static const char *
 bz_homebrew_pkgconfig_path__get(void *user_data, struct bz_value *ctx)
 {
     struct bz_homebrew_pkgconfig  *self = user_data;
-    cork_hash_table_clear(&self->packages);
+    cork_hash_table_clear(self->packages);
     cork_buffer_clear(&self->buf);
     rpi_check(bz_pkgconfig_process_deps(self, ctx, "build_dependencies"));
     rpi_check(bz_pkgconfig_process_deps(self, ctx, "dependencies"));
@@ -216,7 +216,7 @@ bz_homebrew_pkgconfig_path_value_new(void)
 {
     struct bz_homebrew_pkgconfig  *self =
         cork_new(struct bz_homebrew_pkgconfig);
-    cork_string_hash_table_init(&self->packages, 0);
+    self->packages = cork_string_hash_table_new(0, 0);
     cork_buffer_init(&self->buf);
     return bz_scalar_value_new
         (self, bz_homebrew_pkgconfig_path__free,

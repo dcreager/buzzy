@@ -24,31 +24,21 @@
  * URL repository cache
  */
 
-static struct cork_hash_table  url_repos;
-static bool  url_repos_initialized = false;
-
-static enum cork_hash_table_map_result
-url_repo_free(struct cork_hash_table_entry *entry, void *user_data)
-{
-    const char  *url = entry->key;
-    cork_strfree(url);
-    return CORK_HASH_TABLE_MAP_DELETE;
-}
+static struct cork_hash_table  *url_repos = NULL;
 
 static void
 url_repos_done(void)
 {
-    cork_hash_table_map(&url_repos, url_repo_free, NULL);
-    cork_hash_table_done(&url_repos);
+    cork_hash_table_free(url_repos);
 }
 
 static void
 url_repos_init(void)
 {
-    if (CORK_UNLIKELY(!url_repos_initialized)) {
-        cork_string_hash_table_init(&url_repos, 0);
+    if (CORK_UNLIKELY(url_repos == NULL)) {
+        url_repos = cork_string_hash_table_new(0, 0);
+        cork_hash_table_set_free_key(url_repos, (cork_free_f) cork_strfree);
         cork_cleanup_at_exit(0, url_repos_done);
-        url_repos_initialized = true;
     }
 }
 
@@ -96,7 +86,7 @@ bz_url_repo_new(const char *url)
     bool  is_new;
 
     url_repos_init();
-    entry = cork_hash_table_get_or_create(&url_repos, (void *) url, &is_new);
+    entry = cork_hash_table_get_or_create(url_repos, (void *) url, &is_new);
 
     if (is_new) {
         struct bz_repo  *repo;
@@ -134,7 +124,7 @@ bz_yaml_git_repo_new(yaml_document_t *doc, int node_id)
     rpp_check(url = bz_yaml_get_string(doc, *url_id, "url"));
     rpp_check(commit = bz_yaml_get_string(doc, *commit_id, "commit"));
 
-    entry = cork_hash_table_get_or_create(&url_repos, (void *) url, &is_new);
+    entry = cork_hash_table_get_or_create(url_repos, (void *) url, &is_new);
 
     if (is_new) {
         struct bz_repo  *repo;
