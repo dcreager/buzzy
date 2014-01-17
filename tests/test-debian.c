@@ -600,7 +600,9 @@ START_TEST(test_deb_create_package_deps_01)
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     deps = bz_array_new();
     bz_array_append(deps, bz_string_value_new("libfoo"));
+    mock_available_package("libfoo-dev", "2.0");
     bz_array_append(deps, bz_string_value_new("libbar >= 2.5~alpha.1"));
+    mock_available_package("libbar-dev", "2.5~alpha.3");
     fail_if_error(bz_env_add_override
                   (env, "dependencies", bz_array_as_value(deps)));
     test_create_package(env, false,
@@ -613,6 +615,8 @@ START_TEST(test_deb_create_package_deps_01)
         "$ mkdir -p /tmp/staging/DEBIAN\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
+        "$ apt-cache show --no-all-versions libfoo-dev\n"
+        "$ apt-cache show --no-all-versions libbar-dev\n"
         "$ cat > /tmp/staging/DEBIAN/control <<EOF\n"
         "Package: jansson\n"
         "Description: jansson\n"
@@ -621,7 +625,7 @@ START_TEST(test_deb_create_package_deps_01)
         "Section: Miscellaneous\n"
         "Priority: optional\n"
         "Architecture: amd64\n"
-        "Depends: libfoo, libbar (>= 2.5~alpha1)\n"
+        "Depends: libfoo-dev, libbar-dev (>= 2.5~alpha1)\n"
         "EOF\n"
         "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
     );

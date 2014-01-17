@@ -671,7 +671,9 @@ START_TEST(test_rpm_create_package_deps_01)
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     deps = bz_array_new();
     bz_array_append(deps, bz_string_value_new("libfoo"));
+    mock_available_package("libfoo-devel", "2.0");
     bz_array_append(deps, bz_string_value_new("libbar >= 2.5~alpha.1"));
+    mock_available_package("libbar-devel", "2.5");
     fail_if_error(bz_env_add_override
                   (env, "dependencies", bz_array_as_value(deps)));
     test_create_package(env, false,
@@ -687,6 +689,8 @@ START_TEST(test_rpm_create_package_deps_01)
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
+        "$ yum info -C libfoo-devel\n"
+        "$ yum info -C libbar-devel\n"
         "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec"
             " <<EOF\n"
         "Summary: jansson\n"
@@ -697,7 +701,7 @@ START_TEST(test_rpm_create_package_deps_01)
         "Group: Buzzy\n"
         "Source: .\n"
         "BuildRoot: /tmp/staging\n"
-        "Requires: libfoo, libbar >= 2.5-0.alpha.1.1.1\n"
+        "Requires: libfoo-devel, libbar-devel >= 2.5-0.alpha.1.1.1\n"
         "\n"
         "%description\n"
         "No package description\n"
