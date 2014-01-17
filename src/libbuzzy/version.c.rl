@@ -51,6 +51,9 @@ bz_version_part_kind_name(enum bz_version_part_kind kind)
         case BZ_VERSION_RELEASE:
             return "release";
 
+        case BZ_VERSION_EPOCH:
+            return "epoch";
+
         default:
             cork_unreachable();
     }
@@ -64,9 +67,13 @@ bz_version_part_done(struct bz_version_part *part)
 
 static void
 bz_version_part_to_string(const struct bz_version_part *part,
-                          struct cork_buffer *dest, bool hide_punct)
+                          struct cork_buffer *dest, bool first_part)
 {
-    if (!hide_punct) {
+    if (part->kind == BZ_VERSION_EPOCH) {
+        cork_buffer_append(dest, ":", 1);
+    }
+
+    if (!first_part) {
         switch (part->kind) {
             case BZ_VERSION_RELEASE:
                 cork_buffer_append(dest, ".", 1);
@@ -85,11 +92,17 @@ bz_version_part_to_string(const struct bz_version_part *part,
                 return;
 
             default:
-                cork_unreachable();
+                break;
         }
     }
 
     cork_buffer_append(dest, part->string_value.buf, part->string_value.size);
+
+    if (first_part) {
+        if (part->kind == BZ_VERSION_EPOCH) {
+            cork_buffer_append(dest, ":", 1);
+        }
+    }
 }
 
 
@@ -139,7 +152,7 @@ bz_version_add_part(struct bz_version *version,
     size_t  i;
     struct bz_version_part  *part;
     bool  is_numeric;
-    bool  hide_punct;
+    bool  first_part;
 
     assert(string_value != NULL && *string_value != '\0');
 
@@ -166,8 +179,10 @@ bz_version_add_part(struct bz_version *version,
         part->int_value = BZ_VERSION_PART_USE_STRING;
     }
 
-    hide_punct = (version->string.size == 0);
-    bz_version_part_to_string(part, &version->string, hide_punct);
+    first_part =
+        (version->string.size == 0) ||
+        (cork_buffer_char(&version->string, version->string.size - 1) == ':');
+    bz_version_part_to_string(part, &version->string, first_part);
     return 0;
 }
 
@@ -257,6 +272,11 @@ bz_version_from_string(const char *string)
             part_start = fpc;
         }
 
+        action epoch_part {
+            kind = BZ_VERSION_EPOCH;
+            DEBUG("  Create new epoch version part\n");
+        }
+
         action release_part {
             kind = BZ_VERSION_RELEASE;
             DEBUG("  Create new release version part\n");
@@ -278,8 +298,10 @@ bz_version_from_string(const char *string)
             ei_check(bz_version_add_part(version, kind, part_start, size));
         }
 
-        part             = alnum+
-                           >initialize_part %add_part;
+        part             = alnum+ >initialize_part %add_part;
+        epoch            = ':' %epoch_part
+                           alnum+ >initialize_part %add_part
+                           ':';
         no_dot_part      = part >release_part;
         release_part     = '.' %release_part part;
         prerelease_part  = '~' %prerelease_part part;
@@ -287,7 +309,7 @@ bz_version_from_string(const char *string)
         rest_part        = (no_dot_part | release_part |
                             prerelease_part | postrelease_part);
 
-        main := no_dot_part rest_part**;
+        main := epoch? no_dot_part rest_part**;
 
         write data noerror nofinal;
         write init;

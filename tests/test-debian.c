@@ -155,6 +155,7 @@ START_TEST(test_deb_versions)
     test_deb_version("2.0+git+20130529", "2.0+git+20130529");
     test_deb_version("2.0+rev.2", "2.0-2");
     test_deb_version("2.0+rev.2.ubuntu.4", "2.0-2ubuntu4");
+    test_deb_version(":1:2.0", "1:2.0");
 }
 END_TEST
 
@@ -202,6 +203,25 @@ START_TEST(test_apt_installed_native_package_01)
 
     fail_if_error(version = bz_deb_native_version_installed("jansson"));
     test_and_free_version(version, "2.4");
+}
+END_TEST
+
+START_TEST(test_apt_installed_native_epoch_package_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    /* A package that is available in the native package database, and has been
+     * installed. */
+    reset_everything();
+    bz_start_mocks();
+    mock_available_package("jansson", "1:2.4");
+    mock_installed_package("jansson", "1:2.4");
+
+    fail_if_error(version = bz_apt_native_version_available("jansson"));
+    test_and_free_version(version, ":1:2.4");
+
+    fail_if_error(version = bz_deb_native_version_installed("jansson"));
+    test_and_free_version(version, ":1:2.4");
 }
 END_TEST
 
@@ -678,6 +698,7 @@ test_suite()
     tcase_add_test(tc_deb, test_deb_versions);
     tcase_add_test(tc_deb, test_apt_uninstalled_native_package_01);
     tcase_add_test(tc_deb, test_apt_installed_native_package_01);
+    tcase_add_test(tc_deb, test_apt_installed_native_epoch_package_01);
     tcase_add_test(tc_deb, test_apt_nonexistent_native_package_01);
     suite_add_tcase(s, tc_deb);
 

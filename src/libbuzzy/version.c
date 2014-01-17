@@ -53,6 +53,9 @@ bz_version_part_kind_name(enum bz_version_part_kind kind)
         case BZ_VERSION_RELEASE:
             return "release";
 
+        case BZ_VERSION_EPOCH:
+            return "epoch";
+
         default:
             cork_unreachable();
     }
@@ -66,9 +69,13 @@ bz_version_part_done(struct bz_version_part *part)
 
 static void
 bz_version_part_to_string(const struct bz_version_part *part,
-                          struct cork_buffer *dest, bool hide_punct)
+                          struct cork_buffer *dest, bool first_part)
 {
-    if (!hide_punct) {
+    if (part->kind == BZ_VERSION_EPOCH) {
+        cork_buffer_append(dest, ":", 1);
+    }
+
+    if (!first_part) {
         switch (part->kind) {
             case BZ_VERSION_RELEASE:
                 cork_buffer_append(dest, ".", 1);
@@ -87,11 +94,17 @@ bz_version_part_to_string(const struct bz_version_part *part,
                 return;
 
             default:
-                cork_unreachable();
+                break;
         }
     }
 
     cork_buffer_append(dest, part->string_value.buf, part->string_value.size);
+
+    if (first_part) {
+        if (part->kind == BZ_VERSION_EPOCH) {
+            cork_buffer_append(dest, ":", 1);
+        }
+    }
 }
 
 
@@ -141,7 +154,7 @@ bz_version_add_part(struct bz_version *version,
     size_t  i;
     struct bz_version_part  *part;
     bool  is_numeric;
-    bool  hide_punct;
+    bool  first_part;
 
     assert(string_value != NULL && *string_value != '\0');
 
@@ -168,8 +181,10 @@ bz_version_add_part(struct bz_version *version,
         part->int_value = BZ_VERSION_PART_USE_STRING;
     }
 
-    hide_punct = (version->string.size == 0);
-    bz_version_part_to_string(part, &version->string, hide_punct);
+    first_part =
+        (version->string.size == 0) ||
+        (cork_buffer_char(&version->string, version->string.size - 1) == ':');
+    bz_version_part_to_string(part, &version->string, first_part);
     return 0;
 }
 
@@ -253,24 +268,26 @@ bz_version_from_string(const char *string)
     version = bz_version_new();
 
     
-#line 257 "libbuzzy/version.c"
+#line 272 "libbuzzy/version.c"
 static const int buzzy_version_start = 1;
 
 static const int buzzy_version_en_main = 1;
 
 
-#line 263 "libbuzzy/version.c"
+#line 278 "libbuzzy/version.c"
 	{
 	cs = buzzy_version_start;
 	}
 
-#line 268 "libbuzzy/version.c"
+#line 283 "libbuzzy/version.c"
 	{
 	if ( p == pe )
 		goto _test_eof;
 	switch ( cs )
 	{
 case 1:
+	if ( (*p) == 58 )
+		goto st5;
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
 			goto tr0;
@@ -284,54 +301,54 @@ st0:
 cs = 0;
 	goto _out;
 tr0:
-#line 260 "libbuzzy/version.c.rl"
+#line 280 "libbuzzy/version.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             DEBUG("  Create new release version part\n");
         }
-#line 256 "libbuzzy/version.c.rl"
+#line 271 "libbuzzy/version.c.rl"
 	{
             part_start = p;
         }
-	goto st5;
-tr7:
-#line 275 "libbuzzy/version.c.rl"
+	goto st8;
+tr11:
+#line 295 "libbuzzy/version.c.rl"
 	{
             size_t  size = p - part_start;
             DEBUG("    String value: %.*s\n", (int) size, part_start);
             ei_check(bz_version_add_part(version, kind, part_start, size));
         }
-#line 260 "libbuzzy/version.c.rl"
+#line 280 "libbuzzy/version.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             DEBUG("  Create new release version part\n");
         }
-#line 256 "libbuzzy/version.c.rl"
+#line 271 "libbuzzy/version.c.rl"
 	{
             part_start = p;
         }
-	goto st5;
-st5:
+	goto st8;
+st8:
 	if ( ++p == pe )
-		goto _test_eof5;
-case 5:
-#line 319 "libbuzzy/version.c"
+		goto _test_eof8;
+case 8:
+#line 336 "libbuzzy/version.c"
 	switch( (*p) ) {
-		case 43: goto tr5;
-		case 46: goto tr6;
-		case 126: goto tr8;
+		case 43: goto tr9;
+		case 46: goto tr10;
+		case 126: goto tr12;
 	}
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
-			goto tr7;
+			goto tr11;
 	} else if ( (*p) > 90 ) {
 		if ( 97 <= (*p) && (*p) <= 122 )
-			goto tr7;
+			goto tr11;
 	} else
-		goto tr7;
+		goto tr11;
 	goto st0;
-tr5:
-#line 275 "libbuzzy/version.c.rl"
+tr9:
+#line 295 "libbuzzy/version.c.rl"
 	{
             size_t  size = p - part_start;
             DEBUG("    String value: %.*s\n", (int) size, part_start);
@@ -342,70 +359,70 @@ st2:
 	if ( ++p == pe )
 		goto _test_eof2;
 case 2:
-#line 346 "libbuzzy/version.c"
+#line 363 "libbuzzy/version.c"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
-			goto tr2;
+			goto tr3;
 	} else if ( (*p) > 90 ) {
 		if ( 97 <= (*p) && (*p) <= 122 )
-			goto tr2;
+			goto tr3;
 	} else
-		goto tr2;
+		goto tr3;
 	goto st0;
-tr3:
-#line 260 "libbuzzy/version.c.rl"
+tr4:
+#line 280 "libbuzzy/version.c.rl"
 	{
             kind = BZ_VERSION_RELEASE;
             DEBUG("  Create new release version part\n");
         }
-#line 256 "libbuzzy/version.c.rl"
+#line 271 "libbuzzy/version.c.rl"
 	{
             part_start = p;
         }
-	goto st6;
-tr2:
-#line 270 "libbuzzy/version.c.rl"
+	goto st9;
+tr3:
+#line 290 "libbuzzy/version.c.rl"
 	{
             kind = BZ_VERSION_POSTRELEASE;
             DEBUG("  Create new prerelease version part\n");
         }
-#line 256 "libbuzzy/version.c.rl"
+#line 271 "libbuzzy/version.c.rl"
 	{
             part_start = p;
         }
-	goto st6;
-tr4:
-#line 265 "libbuzzy/version.c.rl"
+	goto st9;
+tr5:
+#line 285 "libbuzzy/version.c.rl"
 	{
             kind = BZ_VERSION_PRERELEASE;
             DEBUG("  Create new prerelease version part\n");
         }
-#line 256 "libbuzzy/version.c.rl"
+#line 271 "libbuzzy/version.c.rl"
 	{
             part_start = p;
         }
-	goto st6;
-st6:
+	goto st9;
+st9:
 	if ( ++p == pe )
-		goto _test_eof6;
-case 6:
-#line 393 "libbuzzy/version.c"
+		goto _test_eof9;
+case 9:
+#line 410 "libbuzzy/version.c"
 	switch( (*p) ) {
-		case 43: goto tr5;
-		case 46: goto tr6;
-		case 126: goto tr8;
+		case 43: goto tr9;
+		case 46: goto tr10;
+		case 126: goto tr12;
 	}
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
-			goto st6;
+			goto st9;
 	} else if ( (*p) > 90 ) {
 		if ( 97 <= (*p) && (*p) <= 122 )
-			goto st6;
+			goto st9;
 	} else
-		goto st6;
+		goto st9;
 	goto st0;
-tr6:
-#line 275 "libbuzzy/version.c.rl"
+tr10:
+#line 295 "libbuzzy/version.c.rl"
 	{
             size_t  size = p - part_start;
             DEBUG("    String value: %.*s\n", (int) size, part_start);
@@ -416,18 +433,18 @@ st3:
 	if ( ++p == pe )
 		goto _test_eof3;
 case 3:
-#line 420 "libbuzzy/version.c"
+#line 437 "libbuzzy/version.c"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
-			goto tr3;
+			goto tr4;
 	} else if ( (*p) > 90 ) {
 		if ( 97 <= (*p) && (*p) <= 122 )
-			goto tr3;
+			goto tr4;
 	} else
-		goto tr3;
+		goto tr4;
 	goto st0;
-tr8:
-#line 275 "libbuzzy/version.c.rl"
+tr12:
+#line 295 "libbuzzy/version.c.rl"
 	{
             size_t  size = p - part_start;
             DEBUG("    String value: %.*s\n", (int) size, part_start);
@@ -438,53 +455,118 @@ st4:
 	if ( ++p == pe )
 		goto _test_eof4;
 case 4:
-#line 442 "libbuzzy/version.c"
+#line 459 "libbuzzy/version.c"
 	if ( (*p) < 65 ) {
 		if ( 48 <= (*p) && (*p) <= 57 )
-			goto tr4;
+			goto tr5;
 	} else if ( (*p) > 90 ) {
 		if ( 97 <= (*p) && (*p) <= 122 )
-			goto tr4;
+			goto tr5;
 	} else
-		goto tr4;
+		goto tr5;
+	goto st0;
+st5:
+	if ( ++p == pe )
+		goto _test_eof5;
+case 5:
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr6;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto tr6;
+	} else
+		goto tr6;
+	goto st0;
+tr6:
+#line 275 "libbuzzy/version.c.rl"
+	{
+            kind = BZ_VERSION_EPOCH;
+            DEBUG("  Create new epoch version part\n");
+        }
+#line 271 "libbuzzy/version.c.rl"
+	{
+            part_start = p;
+        }
+	goto st6;
+st6:
+	if ( ++p == pe )
+		goto _test_eof6;
+case 6:
+#line 497 "libbuzzy/version.c"
+	if ( (*p) == 58 )
+		goto tr8;
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto st6;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto st6;
+	} else
+		goto st6;
+	goto st0;
+tr8:
+#line 295 "libbuzzy/version.c.rl"
+	{
+            size_t  size = p - part_start;
+            DEBUG("    String value: %.*s\n", (int) size, part_start);
+            ei_check(bz_version_add_part(version, kind, part_start, size));
+        }
+	goto st7;
+st7:
+	if ( ++p == pe )
+		goto _test_eof7;
+case 7:
+#line 521 "libbuzzy/version.c"
+	if ( (*p) < 65 ) {
+		if ( 48 <= (*p) && (*p) <= 57 )
+			goto tr0;
+	} else if ( (*p) > 90 ) {
+		if ( 97 <= (*p) && (*p) <= 122 )
+			goto tr0;
+	} else
+		goto tr0;
 	goto st0;
 	}
-	_test_eof5: cs = 5; goto _test_eof; 
+	_test_eof8: cs = 8; goto _test_eof; 
 	_test_eof2: cs = 2; goto _test_eof; 
-	_test_eof6: cs = 6; goto _test_eof; 
+	_test_eof9: cs = 9; goto _test_eof; 
 	_test_eof3: cs = 3; goto _test_eof; 
 	_test_eof4: cs = 4; goto _test_eof; 
+	_test_eof5: cs = 5; goto _test_eof; 
+	_test_eof6: cs = 6; goto _test_eof; 
+	_test_eof7: cs = 7; goto _test_eof; 
 
 	_test_eof: {}
 	if ( p == eof )
 	{
 	switch ( cs ) {
-	case 5: 
-	case 6: 
-#line 275 "libbuzzy/version.c.rl"
+	case 8: 
+	case 9: 
+#line 295 "libbuzzy/version.c.rl"
 	{
             size_t  size = p - part_start;
             DEBUG("    String value: %.*s\n", (int) size, part_start);
             ei_check(bz_version_add_part(version, kind, part_start, size));
         }
 	break;
-#line 472 "libbuzzy/version.c"
+#line 554 "libbuzzy/version.c"
 	}
 	}
 
 	_out: {}
 	}
 
-#line 295 "libbuzzy/version.c.rl"
+#line 317 "libbuzzy/version.c.rl"
 
 
     /* A hack to suppress some unused variable warnings */
     (void) buzzy_version_en_main;
 
     if (CORK_UNLIKELY(cs < 
-#line 486 "libbuzzy/version.c"
-5
-#line 300 "libbuzzy/version.c.rl"
+#line 568 "libbuzzy/version.c"
+8
+#line 322 "libbuzzy/version.c.rl"
 )) {
         bz_invalid_version("Invalid version \"%s\"", string);
         goto error;

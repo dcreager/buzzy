@@ -65,6 +65,7 @@ bz_version_to_deb(struct bz_version *version, struct cork_buffer *dest)
     size_t  i;
     size_t  count;
     struct bz_version_part  *part;
+    bool  epoch_was_last = false;
     bool  have_release = false;
     bool  need_punct_before_digit = false;
 
@@ -77,20 +78,24 @@ bz_version_to_deb(struct bz_version *version, struct cork_buffer *dest)
         part = bz_version_get_part(version, i);
         string_value = part->string_value.buf;
         switch (part->kind) {
+            case BZ_VERSION_EPOCH:
+                cork_buffer_append_copy(dest, &part->string_value);
+                cork_buffer_append(dest, ":", 1);
+                break;
+
             case BZ_VERSION_RELEASE:
-                if (need_punct_before_digit !=
+                if (!epoch_was_last &&
+                    need_punct_before_digit !=
                     !BZ_VERSION_PART_IS_INTEGRAL(part)) {
                     cork_buffer_append(dest, ".", 1);
                 }
                 cork_buffer_append_copy(dest, &part->string_value);
-                need_punct_before_digit = true;
                 break;
 
             case BZ_VERSION_PRERELEASE:
                 assert(part->string_value.size > 0);
                 cork_buffer_append(dest, "~", 1);
                 cork_buffer_append_copy(dest, &part->string_value);
-                need_punct_before_digit = true;
                 break;
 
             case BZ_VERSION_POSTRELEASE:
@@ -98,12 +103,10 @@ bz_version_to_deb(struct bz_version *version, struct cork_buffer *dest)
                 if (!have_release &&
                     strcmp(part->string_value.buf, "rev") == 0) {
                     have_release = true;
-                    need_punct_before_digit = false;
                     cork_buffer_append(dest, "-", 1);
                 } else {
                     cork_buffer_append(dest, "+", 1);
                     cork_buffer_append_copy(dest, &part->string_value);
-                    need_punct_before_digit = true;
                 }
                 break;
 
@@ -114,6 +117,7 @@ bz_version_to_deb(struct bz_version *version, struct cork_buffer *dest)
                 break;
         }
 
+        epoch_was_last = (part->kind == BZ_VERSION_EPOCH);
         assert(part->string_value.size > 0);
         last_char = strchr(string_value, '\0') - 1;
         need_punct_before_digit = isdigit(*last_char);
@@ -157,11 +161,22 @@ bz_version_from_deb_ours(const char *debian_version)
             clog_trace("  Create new postrelease version part");
         }
 
+        action add_epoch_part {
+            size_t  size = fpc - start - 1;
+            clog_trace("    String value: %.*s", (int) size, start);
+            bz_version_add_part(version, BZ_VERSION_EPOCH, start, size);
+        }
+
         action add_part {
             size_t  size = fpc - start;
             clog_trace("    String value: %.*s", (int) size, start);
             bz_version_add_part(version, kind, start, size);
         }
+
+        num_first_part = digit+ >start_release;
+        first_part     = num_first_part
+                         (':' %add_epoch_part num_first_part)?
+                         %add_part;
 
         alpha_release  = alpha+ >start_release %add_part;
         num_release    = digit+ >start_release %add_part;
@@ -179,7 +194,7 @@ bz_version_from_deb_ours(const char *debian_version)
 
         rev = "-1";
         part = release | prerelease | postrelease;
-        main := no_dot_release part** rev?;
+        main := first_part part** rev?;
 
         write data noerror nofinal;
         write init;
@@ -236,6 +251,12 @@ bz_version_from_deb_any(const char *debian_version)
             clog_trace("  Create new postrelease version part");
         }
 
+        action add_epoch_part {
+            size_t  size = fpc - start - 1;
+            clog_trace("    String value: %.*s", (int) size, start);
+            bz_version_add_part(version, BZ_VERSION_EPOCH, start, size);
+        }
+
         action add_part {
             size_t  size = fpc - start;
             clog_trace("    String value: %.*s", (int) size, start);
@@ -246,6 +267,11 @@ bz_version_from_deb_any(const char *debian_version)
             ei_check(bz_version_add_part
                      (version, BZ_VERSION_POSTRELEASE, "rev", 3));
         }
+
+        num_first_part = digit+ >start_release;
+        first_part     = num_first_part
+                         (':' %add_epoch_part num_first_part)?
+                         %add_part;
 
         alpha_release  = alpha+ >start_release %add_part;
         num_release    = digit+ >start_release %add_part;
@@ -266,7 +292,7 @@ bz_version_from_deb_any(const char *debian_version)
 
         rev = '-' %add_revision;
 
-        main := section (rev section)?;
+        main := first_part part** (rev section)?;
 
         write data noerror nofinal;
         write init;
@@ -335,7 +361,7 @@ bz_apt_native_version_available(const char *native_package_name)
     %%{
         machine debian_version_available;
 
-        version_char = alnum | digit | '.' | '-' | '+' | '~';
+        version_char = alnum | digit | ':' | '.' | '-' | '+' | '~';
         version = (version_char)+ >{ start = fpc; } %{ end = fpc; };
         version_line = "Version:" space+ version '\n';
 
@@ -403,7 +429,7 @@ bz_deb_native_version_installed(const char *native_package_name)
 
         installed = "installed" %{ installed = true; };
         status_line = (any - "\n")* installed? (any - "\n")*;
-        version_char = alnum | digit | '.' | '-' | '+' | '~';
+        version_char = alnum | digit | ':' | '.' | '-' | '+' | '~';
         version = (version_char)+ >{ start = fpc; } %{ end = fpc; };
         main := status_line "\n" version;
 

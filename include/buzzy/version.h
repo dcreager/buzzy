@@ -22,7 +22,8 @@ enum bz_version_part_kind {
     BZ_VERSION_PRERELEASE  = 0,
     BZ_VERSION_FINAL       = 1,
     BZ_VERSION_POSTRELEASE = 2,
-    BZ_VERSION_RELEASE     = 3
+    BZ_VERSION_RELEASE     = 3,
+    BZ_VERSION_EPOCH       = 4
 };
 
 const char *
