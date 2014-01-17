@@ -59,7 +59,7 @@ struct bz_mock {
             struct cork_stream_consumer *err, int *exit_code);
 
     struct cork_file *
-    (*create_dir)(struct cork_path *path);
+    (*create_dir)(struct cork_path *path, cork_file_mode mode);
 
     struct cork_file *
     (*create_file)(struct cork_path *path, struct cork_buffer *src);
@@ -78,8 +78,8 @@ extern struct bz_mock  *bz_mocks;
 
 #define bz_mocked_exec(e, out, err, ec) \
     (bz_mocks->exec((e), (out), (err), (ec)))
-#define bz_mocked_create_dir(p) \
-    (bz_mocks->create_dir((p)))
+#define bz_mocked_create_dir(p, m) \
+    (bz_mocks->create_dir((p), (m)))
 #define bz_mocked_create_file(p, s) \
     (bz_mocks->create_file((p), (s)))
 #define bz_mocked_file_exists(p, e) \
@@ -99,7 +99,7 @@ bz_real__exec(struct cork_exec *exec, struct cork_stream_consumer *out,
               struct cork_stream_consumer *err, int *exit_code);
 
 struct cork_file *
-bz_real__create_dir(struct cork_path *path);
+bz_real__create_dir(struct cork_path *path, cork_file_mode mode);
 
 struct cork_file *
 bz_real__create_file(struct cork_path *path, struct cork_buffer *src);

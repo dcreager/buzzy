@@ -39,6 +39,13 @@ bz_define_variables(package)
     );
 
     bz_package_variable(
+        native_name, "native_name",
+        bz_interpolated_value_new("${name}"),
+        "The native name of the package",
+        ""
+    );
+
+    bz_package_variable(
         version, "version",
         NULL,
         "The version of the package",

@@ -195,7 +195,7 @@ bz_mocked__exec(struct cork_exec *exec, struct cork_stream_consumer *out,
  */
 
 static struct cork_file *
-bz_mocked__create_dir(struct cork_path *path)
+bz_mocked__create_dir(struct cork_path *path, cork_file_mode mode)
 {
     cork_buffer_append_printf
         (&commands_run, "$ mkdir -p %s\n", cork_path_get(path));

@@ -318,7 +318,7 @@ bz_homebrew__package(void *user_data)
     rip_check(staged_cellar =
               bz_env_get_path(env, "homebrew.staged_cellar", true));
 
-    rii_check(bz_create_directory(cork_path_get(pkg_cellar)));
+    rii_check(bz_create_directory(cork_path_get(pkg_cellar), 0750));
     return bz_subprocess_run
           (false, NULL,
            "cp", "-R",

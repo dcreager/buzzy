@@ -291,6 +291,8 @@ bz_native_package_new(const char *short_distro_name,
     env = bz_package_env_new_empty(NULL, package_name);
     bz_env_add_override(env, "name", bz_string_value_new(package_name));
     bz_env_add_override
+        (env, "native_name", bz_string_value_new(native_package_name));
+    bz_env_add_override
         (env, "version", bz_string_value_new(bz_version_to_string(version)));
     builder = bz_noop_builder_new(env);
     packager = bz_native_packager_new

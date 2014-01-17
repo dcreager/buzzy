@@ -248,7 +248,7 @@ bz_git_perform_clone(const char *url, const char *commit,
 
     /* Create the parent directory of our clone. */
     parent = cork_path_dirname(dest_dir);
-    ei_check(bz_create_directory(cork_path_get(parent)));
+    ei_check(bz_create_directory(cork_path_get(parent), 0750));
     cork_path_free(parent);
 
     return bz_subprocess_run

@@ -194,14 +194,20 @@ bz_rpm_fill_one_dep(void *user_data, struct bz_value *dep_value)
     struct bz_rpm_fill_deps  *state = user_data;
     const char  *dep_string;
     struct bz_dependency  *dep;
+    struct bz_package  *dep_package;
+    struct bz_env  *dep_env;
+    const char  *dep_name;
     rip_check(dep_string = bz_scalar_value_get(dep_value, state->ctx));
     rip_check(dep = bz_dependency_from_string(dep_string));
+    rip_check(dep_package = bz_satisfy_dependency(dep, state->ctx));
+    dep_env = bz_package_env(dep_package);
+    rip_check(dep_name = bz_env_get_string(dep_env, "native_name", true));
     if (state->first) {
         state->first = false;
     } else {
         cork_buffer_append(&state->dep_buf, ", ", 2);
     }
-    cork_buffer_append_string(&state->dep_buf, dep->package_name);
+    cork_buffer_append_string(&state->dep_buf, dep_name);
     if (dep->min_version != NULL) {
         cork_buffer_append(&state->dep_buf, " >= ", 4);
         bz_version_to_rpm(dep->min_version, &state->dep_buf);
@@ -317,8 +323,8 @@ bz_rpm__package(void *user_data)
     }
 
     /* Create the temporary directory and the packaging destination */
-    rii_check(bz_create_directory(cork_path_get(package_build_dir)));
-    rii_check(bz_create_directory(cork_path_get(binary_package_dir)));
+    rii_check(bz_create_directory(cork_path_get(package_build_dir), 0750));
+    rii_check(bz_create_directory(cork_path_get(binary_package_dir), 0750));
 
     /* Create an RPM spec file for this package */
     cork_buffer_append_printf(&buf, "Summary: %s\n", package_name);

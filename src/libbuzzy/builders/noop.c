@@ -51,7 +51,7 @@ bz_noop__stage(void *user_data)
 
     /* Create the staging path */
     rip_check(staging_path = bz_env_get_path(env, "staging_path", true));
-    rii_check(bz_create_directory(cork_path_get(staging_path)));
+    rii_check(bz_create_directory(cork_path_get(staging_path), 0750));
 
     return 0;
 }

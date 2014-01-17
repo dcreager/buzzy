@@ -7,119 +7,160 @@
  * ----------------------------------------------------------------------
  */
 
+#include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
 #include <clogger.h>
 #include <libcork/core.h>
 #include <libcork/os.h>
 #include <libcork/helpers/errors.h>
+#include <libcork/helpers/posix.h>
 
 #include "buzzy/env.h"
+#include "buzzy/error.h"
 #include "buzzy/os.h"
 #include "buzzy/package.h"
 #include "buzzy/value.h"
-#include "buzzy/distro/arch.h"
+#include "buzzy/distro/debian.h"
 
-#define CLOG_CHANNEL  "pacman"
+#define CLOG_CHANNEL  "deb"
 
 
 /*-----------------------------------------------------------------------
- * pacman version values
+ * Debian version values
  */
 
-static void
-bz_pacman_version__free(void *user_data)
-{
-    struct cork_buffer  *buf = user_data;
-    cork_buffer_free(buf);
-}
-
 static const char *
-bz_pacman_version__get(void *user_data, struct bz_value *ctx)
+bz_deb_version__get(void *user_data, struct bz_value *ctx)
 {
     struct cork_buffer  *buf = user_data;
     struct bz_version  *version;
     rpp_check(version = bz_value_get_version(ctx, "version", true));
     cork_buffer_clear(buf);
-    bz_version_to_arch(version, buf);
+    bz_version_to_deb(version, buf);
     return buf->buf;
 }
 
 static struct bz_value *
-bz_pacman_version_value_new(void)
+bz_deb_version_value_new(void)
 {
     struct cork_buffer  *buf = cork_buffer_new();
     return bz_scalar_value_new
-        (buf, bz_pacman_version__free, bz_pacman_version__get);
+        (buf, (cork_free_f) cork_buffer_free, bz_deb_version__get);
 }
 
 
 /*-----------------------------------------------------------------------
- * Builtin pacman variables
+ * Current architecture
  */
 
-bz_define_variables(pacman)
+static struct cork_buffer  architecture = CORK_BUFFER_INIT();
+
+static void
+done_architecture(void)
+{
+    cork_buffer_done(&architecture);
+}
+
+CORK_INITIALIZER(init_architecture)
+{
+    cork_cleanup_at_exit(0, done_architecture);
+}
+
+const char *
+bz_deb_current_architecture(void)
+{
+    char  *buf;
+    cork_buffer_clear(&architecture);
+    rpi_check(bz_subprocess_get_output
+              (&architecture, NULL, NULL,
+               "dpkg-architecture", "-qDEB_HOST_ARCH", NULL));
+    /* Chomp the trailing newline */
+    buf = architecture.buf;
+    buf[--architecture.size] = '\0';
+    return architecture.buf;
+}
+
+
+static const char *
+bz_deb_architecture_value__get(void *user_data, struct bz_value *ctx)
+{
+    struct cork_buffer  *buf = user_data;
+    if (buf->size == 0) {
+        const char  *arch;
+        rpp_check(arch = bz_deb_current_architecture());
+        cork_buffer_set_string(buf, arch);
+    }
+    return buf->buf;
+}
+
+struct bz_value *
+bz_deb_architecture_value_new(void)
+{
+    struct cork_buffer  *buf = cork_buffer_new();
+    return bz_scalar_value_new
+        (buf, (cork_free_f) cork_buffer_free, bz_deb_architecture_value__get);
+}
+
+
+/*-----------------------------------------------------------------------
+ * Builtin deb variables
+ */
+
+bz_define_variables(deb)
 {
     bz_package_variable(
-        package_file_base, "pacman.package_file_base",
-        bz_interpolated_value_new(
-            "${name}-${pacman.version}-${pacman.pkgrel}-"
-            "${pacman.arch}"
-            "${pacman.pkgext}"
-        ),
+        package_file_base, "deb.package_file_base",
+        bz_interpolated_value_new("${name}_${deb.version}_${deb.arch}.deb"),
         "The filename for any package that we create",
         ""
     );
 
     bz_package_variable(
-        package_file, "pacman.package_file",
+        package_file, "deb.package_file",
         bz_interpolated_value_new
-            ("${binary_package_dir}/${pacman.package_file_base}"),
+            ("${binary_package_dir}/${deb.package_file_base}"),
         "The filename for any package that we create",
         ""
     );
 
     bz_package_variable(
-        architecture, "pacman.pkgbuild",
-        bz_interpolated_value_new("${package_build_dir}/PKGBUILD"),
-        "The location of the PKGBUILD file we should create",
+        architecture, "deb.debian_dir",
+        bz_interpolated_value_new("${staging_dir}/DEBIAN"),
+        "The location of the DEBIAN control directory",
         ""
     );
 
     bz_package_variable(
-        architecture, "pacman.arch",
-        bz_interpolated_value_new("${arch}"),
-        "The architecture to build pacman packages for",
+        architecture, "deb.control_file",
+        bz_interpolated_value_new("${deb.debian_dir}/control"),
+        "The location of the Debian control file we should create",
         ""
     );
 
     bz_package_variable(
-        pkgrel, "pacman.pkgrel",
-        bz_string_value_new("1"),
-        "The package release number to use for any packages we create",
+        architecture, "deb.arch",
+        bz_deb_architecture_value_new(),
+        "The architecture to build deb packages for",
         ""
     );
 
     bz_package_variable(
-        pkgext, "pacman.pkgext",
-        bz_string_value_new(".pkg.tar.xz"),
-        "The extension for any packages we create",
-        ""
-    );
-
-    bz_package_variable(
-        version, "pacman.version",
-        bz_pacman_version_value_new(),
-        "The pacman equivalent of the package's version",
+        version, "deb.version",
+        bz_deb_version_value_new(),
+        "The Debian equivalent of the package's version",
         ""
     );
 }
 
 
 /*-----------------------------------------------------------------------
- * Creating pacman packages
+ * Creating deb packages
  */
 
 static int
-bz_pacman__package__is_needed(void *user_data, bool *is_needed)
+bz_deb__package__is_needed(void *user_data, bool *is_needed)
 {
     struct bz_env  *env = user_data;
     const char  *package_name;
@@ -136,7 +177,7 @@ bz_pacman__package__is_needed(void *user_data, bool *is_needed)
     } else {
         struct cork_path  *package_file;
         rip_check(package_file = bz_env_get_path
-                  (env, "pacman.package_file", true));
+                  (env, "deb.package_file", true));
         clog_info("(%s) Check whether binary package %s exists",
                   package_name, cork_path_get(package_file));
         rii_check(bz_file_exists(cork_path_get(package_file), is_needed));
@@ -145,16 +186,16 @@ bz_pacman__package__is_needed(void *user_data, bool *is_needed)
     }
 }
 
-struct bz_pacman_fill_deps {
+struct bz_deb_fill_deps {
     struct bz_value  *ctx;
     struct cork_buffer  dep_buf;
     bool  first;
 };
 
 static int
-bz_pacman_fill_one_dep(void *user_data, struct bz_value *dep_value)
+bz_deb_fill_one_dep(void *user_data, struct bz_value *dep_value)
 {
-    struct bz_pacman_fill_deps  *state = user_data;
+    struct bz_deb_fill_deps  *state = user_data;
     const char  *dep_string;
     struct bz_dependency  *dep;
     struct bz_package  *dep_package;
@@ -166,39 +207,38 @@ bz_pacman_fill_one_dep(void *user_data, struct bz_value *dep_value)
     dep_env = bz_package_env(dep_package);
     rip_check(dep_name = bz_env_get_string(dep_env, "native_name", true));
     if (state->first) {
-        cork_buffer_append(&state->dep_buf, "'", 1);
         state->first = false;
     } else {
-        cork_buffer_append(&state->dep_buf, " '", 2);
+        cork_buffer_append(&state->dep_buf, ", ", 2);
     }
     cork_buffer_append_string(&state->dep_buf, dep_name);
     if (dep->min_version != NULL) {
-        cork_buffer_append(&state->dep_buf, ">=", 2);
-        bz_version_to_arch(dep->min_version, &state->dep_buf);
+        cork_buffer_append(&state->dep_buf, " (>= ", 5);
+        bz_version_to_deb(dep->min_version, &state->dep_buf);
+        cork_buffer_append(&state->dep_buf, ")", 1);
     }
-    cork_buffer_append(&state->dep_buf, "'", 1);
     bz_dependency_free(dep);
     return 0;
 }
 
 static int
-bz_pacman_fill_deps(struct bz_env *env, struct cork_buffer *buf,
-                    const char *pkgbuild_name, const char *var_name)
+bz_deb_fill_deps(struct bz_env *env, struct cork_buffer *buf,
+                 const char *control_name, const char *var_name)
 {
     struct bz_value  *deps_value;
     rie_check(deps_value = bz_env_get_value(env, var_name));
     if (deps_value != NULL) {
         int  rc;
-        struct bz_pacman_fill_deps  state = {
+        struct bz_deb_fill_deps  state = {
             bz_env_as_value(env),
             CORK_BUFFER_INIT(),
             true
         };
         rc = bz_array_value_map_scalars
-            (deps_value, &state, bz_pacman_fill_one_dep);
+            (deps_value, &state, bz_deb_fill_one_dep);
         if (rc == 0 && state.dep_buf.size > 0) {
             cork_buffer_append_printf
-                (buf, "%s=(%s)\n", pkgbuild_name, (char *) state.dep_buf.buf);
+                (buf, "%s: %s\n", control_name, (char *) state.dep_buf.buf);
         }
         cork_buffer_done(&state.dep_buf);
         return rc;
@@ -207,46 +247,42 @@ bz_pacman_fill_deps(struct bz_env *env, struct cork_buffer *buf,
 }
 
 static int
-bz_pacman__package(void *user_data)
+bz_deb__package(void *user_data)
 {
     struct bz_env  *env = user_data;
-    struct bz_value  *ctx = bz_env_as_value(env);
     struct cork_path  *staging_dir;
+    struct cork_path  *debian_dir;
     struct cork_path  *binary_package_dir;
     struct cork_path  *package_build_dir;
-    struct cork_path  *pkgbuild;
+    struct cork_path  *control_file;
     struct cork_path  *package_file;
     const char  *package_name;
     const char  *version;
-    const char  *pkgrel;
-    const char  *pkgext;
-    const char  *architecture;
     const char  *license;
+    const char  *deb_arch;
     bool  verbose;
 
-    struct cork_env  *exec_env;
     struct cork_exec  *exec;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
+    struct cork_buffer  param = CORK_BUFFER_INIT();
     bool  staging_exists;
 
-    rii_check(bz_install_dependency_string("pacman", ctx));
-    rii_check(bz_package_message(env, "pacman"));
+    rii_check(bz_package_message(env, "Debian"));
 
     rip_check(package_name = bz_env_get_string(env, "name", true));
-    clog_info("(%s) Package using pacman", package_name);
+    clog_info("(%s) Package using Debian", package_name);
 
     rip_check(staging_dir = bz_env_get_path(env, "staging_dir", true));
+    rip_check(debian_dir = bz_env_get_path(env, "deb.debian_dir", true));
     rip_check(binary_package_dir =
               bz_env_get_path(env, "binary_package_dir", true));
     rip_check(package_build_dir =
               bz_env_get_path(env, "package_build_dir", true));
-    rip_check(pkgbuild = bz_env_get_path(env, "pacman.pkgbuild", true));
-    rip_check(package_file = bz_env_get_path(env, "pacman.package_file", true));
-    rip_check(version = bz_env_get_string(env, "pacman.version", true));
-    rip_check(pkgrel = bz_env_get_string(env, "pacman.pkgrel", true));
-    rip_check(pkgext = bz_env_get_string(env, "pacman.pkgext", true));
-    rip_check(architecture = bz_env_get_string(env, "pacman.arch", true));
+    rip_check(control_file = bz_env_get_path(env, "deb.control_file", true));
+    rip_check(package_file = bz_env_get_path(env, "deb.package_file", true));
+    rip_check(version = bz_env_get_string(env, "deb.version", true));
     rip_check(license = bz_env_get_string(env, "license", true));
+    rip_check(deb_arch = bz_env_get_string(env, "deb.arch", true));
     rie_check(verbose = bz_env_get_bool(env, "verbose", true));
 
     rii_check(bz_file_exists(cork_path_get(staging_dir), &staging_exists));
@@ -258,53 +294,49 @@ bz_pacman__package(void *user_data)
     }
 
     /* Create the temporary directory and the packaging destination */
+    rii_check(bz_create_directory(cork_path_get(debian_dir), 0755));
     rii_check(bz_create_directory(cork_path_get(package_build_dir), 0750));
     rii_check(bz_create_directory(cork_path_get(binary_package_dir), 0750));
 
-    /* Create a PKGBUILD file for this package */
-    cork_buffer_append_printf(&buf, "pkgname='%s'\n", package_name);
-    cork_buffer_append_printf(&buf, "pkgver='%s'\n", version);
-    cork_buffer_append_printf(&buf, "pkgrel='%s'\n", pkgrel);
-    cork_buffer_append_printf(&buf, "arch=('%s')\n", architecture);
-    cork_buffer_append_printf(&buf, "license=('%s')\n", license);
-    rii_check(bz_pacman_fill_deps(env, &buf, "depends", "dependencies"));
-    cork_buffer_append_printf(&buf,
-        "package () {\n"
-        "    rm -rf \"${pkgdir}\"\n"
-        "    cp -a '%s' \"${pkgdir}\"\n"
-        "}\n",
-        cork_path_get(staging_dir)
-    );
+    /* Create an Debian control file for this package */
+    cork_buffer_append_printf(&buf, "Package: %s\n", package_name);
+    cork_buffer_append_printf(&buf, "Description: %s\n", package_name);
+    cork_buffer_append_printf
+        (&buf, "Maintainer: Unknown <unknown@unknown.org>\n");
+    cork_buffer_append_printf(&buf, "Version: %s\n", version);
+    cork_buffer_append_printf(&buf, "Section: Miscellaneous\n");
+    cork_buffer_append_printf(&buf, "Priority: optional\n");
+    cork_buffer_append_printf(&buf, "Architecture: %s\n", deb_arch);
+    rii_check(bz_deb_fill_deps(env, &buf, "Depends", "dependencies"));
 
-    ei_check(bz_create_file(cork_path_get(pkgbuild), &buf));
+    ei_check(bz_create_file(cork_path_get(control_file), &buf));
     cork_buffer_done(&buf);
 
-    exec_env = cork_env_clone_current();
-    cork_env_add(exec_env, "PKGDEST", cork_path_get(binary_package_dir));
-    cork_env_add(exec_env, "PKGEXT", pkgext);
-    exec = cork_exec_new_with_params("makepkg", "-sf", NULL);
-    cork_exec_set_cwd(exec, cork_path_get(package_build_dir));
-    cork_exec_set_env(exec, exec_env);
-    clog_info("(%s) Create %s using pacman",
+    exec = cork_exec_new("dpkg-deb");
+    cork_exec_add_param(exec, "dpkg-deb");
+    cork_exec_add_param(exec, "-b");
+    cork_exec_add_param(exec, cork_path_get(staging_dir));
+    cork_exec_add_param(exec, cork_path_get(package_file));
+    clog_info("(%s) Create %s using Debian",
               package_name, cork_path_get(package_file));
+    cork_buffer_done(&param);
     return bz_subprocess_run_exec(verbose, NULL, exec);
 
 error:
     cork_buffer_done(&buf);
+    cork_buffer_done(&param);
     return -1;
 }
 
 
 static int
-bz_pacman__install__is_needed(void *user_data, bool *is_needed)
+bz_deb__install__is_needed(void *user_data, bool *is_needed)
 {
     struct bz_env  *env = user_data;
-    struct bz_value  *ctx = bz_env_as_value(env);
     const char  *package_name;
     struct bz_version  *package_version;
     bool  force;
 
-    rii_check(bz_install_dependency_string("pacman", ctx));
     rip_check(package_name = bz_env_get_string(env, "name", true));
     rie_check(force = bz_env_get_bool(env, "force", true));
 
@@ -316,10 +348,10 @@ bz_pacman__install__is_needed(void *user_data, bool *is_needed)
     } else {
         struct bz_version  *installed;
 
-        clog_info("(%s) Check whether pacman package is installed",
+        clog_info("(%s) Check whether Debian package is installed",
                   package_name);
         rip_check(package_version = bz_env_get_version(env, "version", true));
-        ee_check(installed = bz_arch_native_version_installed(package_name));
+        ee_check(installed = bz_deb_native_version_installed(package_name));
 
         if (installed == NULL) {
             clog_info("(%s) Package is not installed", package_name);
@@ -343,37 +375,35 @@ error:
 }
 
 static int
-bz_pacman__install(void *user_data)
+bz_deb__install(void *user_data)
 {
     struct bz_env  *env = user_data;
     const char  *package_name;
     struct cork_path  *package_file;
 
-    rii_check(bz_install_message(env, "pacman"));
+    rii_check(bz_install_message(env, "Debian"));
 
     rip_check(package_name = bz_env_get_string(env, "name", true));
-    rip_check(package_file = bz_env_get_path(env, "pacman.package_file", true));
-    clog_info("(%s) Install %s using pacman",
+    rip_check(package_file = bz_env_get_path(env, "deb.package_file", true));
+    clog_info("(%s) Install %s using Debian",
               package_name, cork_path_get(package_file));
     return bz_subprocess_run
         (false, NULL,
-         "sudo", "pacman", "-U", "--noconfirm", cork_path_get(package_file),
+         "sudo", "dpkg", "-i", cork_path_get(package_file),
          NULL);
 }
 
 
 static int
-bz_pacman__uninstall__is_needed(void *user_data, bool *is_needed)
+bz_deb__uninstall__is_needed(void *user_data, bool *is_needed)
 {
     struct bz_env  *env = user_data;
-    struct bz_value  *ctx = bz_env_as_value(env);
     const char  *package_name;
     struct bz_version  *installed;
-    rii_check(bz_install_dependency_string("pacman", ctx));
     rip_check(package_name = bz_env_get_string(env, "name", true));
-    clog_info("(%s) Check whether pacman package is installed",
+    clog_info("(%s) Check whether Debian package is installed",
               package_name);
-    rie_check(installed = bz_arch_native_version_installed(package_name));
+    rie_check(installed = bz_deb_native_version_installed(package_name));
     if (installed == NULL) {
         clog_info("(%s) Package is not installed", package_name);
         *is_needed = false;
@@ -387,28 +417,28 @@ bz_pacman__uninstall__is_needed(void *user_data, bool *is_needed)
 }
 
 static int
-bz_pacman__uninstall(void *user_data)
+bz_deb__uninstall(void *user_data)
 {
     struct bz_env  *env = user_data;
     const char  *package_name;
 
-    rii_check(bz_uninstall_message(env, "pacman"));
+    rii_check(bz_uninstall_message(env, "deb"));
 
     rip_check(package_name = bz_env_get_string(env, "name", true));
-    clog_info("(%s) Uninstall using pacman", package_name);
+    clog_info("(%s) Uninstall using Debian", package_name);
     return bz_subprocess_run
         (false, NULL,
-         "sudo", "pacman", "-R", "--noconfirm", package_name,
+         "sudo", "dpkg", "-r", package_name,
          NULL);
 }
 
 
 struct bz_packager *
-bz_pacman_packager_new(struct bz_env *env)
+bz_deb_packager_new(struct bz_env *env)
 {
     return bz_packager_new
-        (env, "pacman", env, NULL,
-         bz_pacman__package__is_needed, bz_pacman__package,
-         bz_pacman__install__is_needed, bz_pacman__install,
-         bz_pacman__uninstall__is_needed, bz_pacman__uninstall);
+        (env, "deb", env, NULL,
+         bz_deb__package__is_needed, bz_deb__package,
+         bz_deb__install__is_needed, bz_deb__install,
+         bz_deb__uninstall__is_needed, bz_deb__uninstall);
 }
