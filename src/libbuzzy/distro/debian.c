@@ -1725,7 +1725,7 @@ static const int debian_version_installed_en_main = 1;
 		goto _test_eof;
 	switch ( cs )
 	{
-tr13:
+tr12:
 #line 430 "libbuzzy/distro/debian.c.rl"
 	{ installed = true; }
 	goto st1;
@@ -1735,10 +1735,63 @@ st1:
 case 1:
 #line 1737 "libbuzzy/distro/debian.c"
 	switch( (*p) ) {
-		case 10: goto st2;
-		case 105: goto st3;
+		case 10: goto st12;
+		case 32: goto st2;
 	}
 	goto st1;
+tr13:
+#line 430 "libbuzzy/distro/debian.c.rl"
+	{ installed = true; }
+	goto st12;
+st12:
+	if ( ++p == pe )
+		goto _test_eof12;
+case 12:
+#line 1751 "libbuzzy/distro/debian.c"
+	switch( (*p) ) {
+		case 43: goto tr15;
+		case 126: goto tr15;
+	}
+	if ( (*p) < 48 ) {
+		if ( 45 <= (*p) && (*p) <= 46 )
+			goto tr15;
+	} else if ( (*p) > 58 ) {
+		if ( (*p) > 90 ) {
+			if ( 97 <= (*p) && (*p) <= 122 )
+				goto tr15;
+		} else if ( (*p) >= 65 )
+			goto tr15;
+	} else
+		goto tr15;
+	goto st0;
+st0:
+cs = 0;
+	goto _out;
+tr15:
+#line 433 "libbuzzy/distro/debian.c.rl"
+	{ start = p; }
+	goto st13;
+st13:
+	if ( ++p == pe )
+		goto _test_eof13;
+case 13:
+#line 1779 "libbuzzy/distro/debian.c"
+	switch( (*p) ) {
+		case 43: goto st13;
+		case 126: goto st13;
+	}
+	if ( (*p) < 48 ) {
+		if ( 45 <= (*p) && (*p) <= 46 )
+			goto st13;
+	} else if ( (*p) > 58 ) {
+		if ( (*p) > 90 ) {
+			if ( 97 <= (*p) && (*p) <= 122 )
+				goto st13;
+		} else if ( (*p) >= 65 )
+			goto st13;
+	} else
+		goto st13;
+	goto st0;
 tr14:
 #line 430 "libbuzzy/distro/debian.c.rl"
 	{ installed = true; }
@@ -1747,63 +1800,20 @@ st2:
 	if ( ++p == pe )
 		goto _test_eof2;
 case 2:
-#line 1751 "libbuzzy/distro/debian.c"
+#line 1804 "libbuzzy/distro/debian.c"
 	switch( (*p) ) {
-		case 43: goto tr3;
-		case 126: goto tr3;
+		case 10: goto st12;
+		case 32: goto st2;
+		case 105: goto st3;
 	}
-	if ( (*p) < 48 ) {
-		if ( 45 <= (*p) && (*p) <= 46 )
-			goto tr3;
-	} else if ( (*p) > 58 ) {
-		if ( (*p) > 90 ) {
-			if ( 97 <= (*p) && (*p) <= 122 )
-				goto tr3;
-		} else if ( (*p) >= 65 )
-			goto tr3;
-	} else
-		goto tr3;
-	goto st0;
-st0:
-cs = 0;
-	goto _out;
-tr3:
-#line 433 "libbuzzy/distro/debian.c.rl"
-	{ start = p; }
-	goto st12;
-st12:
-	if ( ++p == pe )
-		goto _test_eof12;
-case 12:
-#line 1779 "libbuzzy/distro/debian.c"
-	switch( (*p) ) {
-		case 43: goto st12;
-		case 126: goto st12;
-	}
-	if ( (*p) < 48 ) {
-		if ( 45 <= (*p) && (*p) <= 46 )
-			goto st12;
-	} else if ( (*p) > 58 ) {
-		if ( (*p) > 90 ) {
-			if ( 97 <= (*p) && (*p) <= 122 )
-				goto st12;
-		} else if ( (*p) >= 65 )
-			goto st12;
-	} else
-		goto st12;
-	goto st0;
-tr15:
-#line 430 "libbuzzy/distro/debian.c.rl"
-	{ installed = true; }
-	goto st3;
+	goto st1;
 st3:
 	if ( ++p == pe )
 		goto _test_eof3;
 case 3:
-#line 1804 "libbuzzy/distro/debian.c"
 	switch( (*p) ) {
-		case 10: goto st2;
-		case 105: goto st3;
+		case 10: goto st12;
+		case 32: goto st2;
 		case 110: goto st4;
 	}
 	goto st1;
@@ -1812,8 +1822,8 @@ st4:
 		goto _test_eof4;
 case 4:
 	switch( (*p) ) {
-		case 10: goto st2;
-		case 105: goto st3;
+		case 10: goto st12;
+		case 32: goto st2;
 		case 115: goto st5;
 	}
 	goto st1;
@@ -1822,8 +1832,8 @@ st5:
 		goto _test_eof5;
 case 5:
 	switch( (*p) ) {
-		case 10: goto st2;
-		case 105: goto st3;
+		case 10: goto st12;
+		case 32: goto st2;
 		case 116: goto st6;
 	}
 	goto st1;
@@ -1832,9 +1842,9 @@ st6:
 		goto _test_eof6;
 case 6:
 	switch( (*p) ) {
-		case 10: goto st2;
+		case 10: goto st12;
+		case 32: goto st2;
 		case 97: goto st7;
-		case 105: goto st3;
 	}
 	goto st1;
 st7:
@@ -1842,8 +1852,8 @@ st7:
 		goto _test_eof7;
 case 7:
 	switch( (*p) ) {
-		case 10: goto st2;
-		case 105: goto st3;
+		case 10: goto st12;
+		case 32: goto st2;
 		case 108: goto st8;
 	}
 	goto st1;
@@ -1852,8 +1862,8 @@ st8:
 		goto _test_eof8;
 case 8:
 	switch( (*p) ) {
-		case 10: goto st2;
-		case 105: goto st3;
+		case 10: goto st12;
+		case 32: goto st2;
 		case 108: goto st9;
 	}
 	goto st1;
@@ -1862,9 +1872,9 @@ st9:
 		goto _test_eof9;
 case 9:
 	switch( (*p) ) {
-		case 10: goto st2;
+		case 10: goto st12;
+		case 32: goto st2;
 		case 101: goto st10;
-		case 105: goto st3;
 	}
 	goto st1;
 st10:
@@ -1872,9 +1882,9 @@ st10:
 		goto _test_eof10;
 case 10:
 	switch( (*p) ) {
-		case 10: goto st2;
+		case 10: goto st12;
+		case 32: goto st2;
 		case 100: goto st11;
-		case 105: goto st3;
 	}
 	goto st1;
 st11:
@@ -1882,14 +1892,15 @@ st11:
 		goto _test_eof11;
 case 11:
 	switch( (*p) ) {
-		case 10: goto tr14;
-		case 105: goto tr15;
+		case 10: goto tr13;
+		case 32: goto tr14;
 	}
-	goto tr13;
+	goto tr12;
 	}
 	_test_eof1: cs = 1; goto _test_eof; 
-	_test_eof2: cs = 2; goto _test_eof; 
 	_test_eof12: cs = 12; goto _test_eof; 
+	_test_eof13: cs = 13; goto _test_eof; 
+	_test_eof2: cs = 2; goto _test_eof; 
 	_test_eof3: cs = 3; goto _test_eof; 
 	_test_eof4: cs = 4; goto _test_eof; 
 	_test_eof5: cs = 5; goto _test_eof; 
@@ -1904,11 +1915,11 @@ case 11:
 	if ( p == eof )
 	{
 	switch ( cs ) {
-	case 12: 
+	case 13: 
 #line 433 "libbuzzy/distro/debian.c.rl"
 	{ end = p; }
 	break;
-#line 1912 "libbuzzy/distro/debian.c"
+#line 1923 "libbuzzy/distro/debian.c"
 	}
 	}
 
@@ -1922,7 +1933,7 @@ case 11:
     (void) debian_version_installed_en_main;
 
     if (CORK_UNLIKELY(cs < 
-#line 1926 "libbuzzy/distro/debian.c"
+#line 1937 "libbuzzy/distro/debian.c"
 12
 #line 444 "libbuzzy/distro/debian.c.rl"
 )) {
@@ -1931,7 +1942,7 @@ case 11:
         return NULL;
     }
 
-    if (start == NULL || end == NULL) {
+    if (installed && (start == NULL || end == NULL)) {
         bz_invalid_version("Unexpected output from dpkg-query");
         cork_buffer_done(&out);
         return NULL;

@@ -85,6 +85,19 @@ mock_uninstalled_package(const char *package)
 }
 
 static void
+mock_uninstalled_known_package(const char *package)
+{
+    struct cork_buffer  buf1 = CORK_BUFFER_INIT();
+    struct cork_buffer  buf2 = CORK_BUFFER_INIT();
+    cork_buffer_printf
+        (&buf1, "dpkg-query -W -f ${Status}\\n${Version} %s", package);
+    cork_buffer_set_string(&buf2, "unknown ok not-installed\n");
+    bz_mock_subprocess(buf1.buf, buf2.buf, NULL, 0);
+    cork_buffer_done(&buf1);
+    cork_buffer_done(&buf2);
+}
+
+static void
 mock_package_installation(const char *package, const char *version)
 {
     struct cork_buffer  buf1 = CORK_BUFFER_INIT();
@@ -178,6 +191,25 @@ START_TEST(test_apt_uninstalled_native_package_01)
     bz_start_mocks();
     mock_available_package("jansson", "2.4");
     mock_uninstalled_package("jansson");
+
+    fail_if_error(version = bz_apt_native_version_available("jansson"));
+    test_and_free_version(version, "2.4");
+
+    fail_if_error(version = bz_deb_native_version_installed("jansson"));
+    fail_unless(version == NULL, "Unexpected version");
+}
+END_TEST
+
+START_TEST(test_apt_uninstalled_native_package_02)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    /* A package that is available in the native package database, but has not
+     * yet been installed. */
+    reset_everything();
+    bz_start_mocks();
+    mock_available_package("jansson", "2.4");
+    mock_uninstalled_known_package("jansson");
 
     fail_if_error(version = bz_apt_native_version_available("jansson"));
     test_and_free_version(version, "2.4");
@@ -701,6 +733,7 @@ test_suite()
     tcase_add_test(tc_deb, test_debian_detect);
     tcase_add_test(tc_deb, test_deb_versions);
     tcase_add_test(tc_deb, test_apt_uninstalled_native_package_01);
+    tcase_add_test(tc_deb, test_apt_uninstalled_native_package_02);
     tcase_add_test(tc_deb, test_apt_installed_native_package_01);
     tcase_add_test(tc_deb, test_apt_installed_native_epoch_package_01);
     tcase_add_test(tc_deb, test_apt_nonexistent_native_package_01);

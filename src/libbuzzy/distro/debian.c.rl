@@ -427,11 +427,11 @@ bz_deb_native_version_installed(const char *native_package_name)
     %%{
         machine debian_version_installed;
 
-        installed = "installed" %{ installed = true; };
+        installed = " installed" %{ installed = true; };
         status_line = (any - "\n")* installed? (any - "\n")*;
         version_char = alnum | digit | ':' | '.' | '-' | '+' | '~';
         version = (version_char)+ >{ start = fpc; } %{ end = fpc; };
-        main := status_line "\n" version;
+        main := status_line "\n" version?;
 
         write data noerror nofinal;
         write init;
@@ -447,7 +447,7 @@ bz_deb_native_version_installed(const char *native_package_name)
         return NULL;
     }
 
-    if (start == NULL || end == NULL) {
+    if (installed && (start == NULL || end == NULL)) {
         bz_invalid_version("Unexpected output from dpkg-query");
         cork_buffer_done(&out);
         return NULL;
