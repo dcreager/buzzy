@@ -665,6 +665,55 @@ START_TEST(test_deb_create_package_deps_01)
 }
 END_TEST
 
+START_TEST(test_deb_create_package_with_scripts_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    mock_dpkg_deb("jansson", "2.4");
+    bz_mock_file_exists("./jansson_2.4_amd64.deb", false);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    fail_if_error(bz_env_add_override
+                  (env, "pre_install_script",
+                   bz_string_value_new("source-preinst.sh")));
+    fail_if_error(bz_env_add_override
+                  (env, "post_install_script",
+                   bz_interpolated_value_new
+                   ("${build_dir}/built-postinst.sh")));
+    test_create_package(env, false,
+        "[1] Package jansson 2.4 (Debian)\n"
+    );
+    verify_commands_run(
+        "$ dpkg-architecture -qDEB_HOST_ARCH\n"
+        "$ [ -f ./jansson_2.4_amd64.deb ]\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /tmp/staging/DEBIAN\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
+        "$ mkdir -p .\n"
+        "$ cp /tmp/staging/DEBIAN/preinst source-preinst.sh\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/preinst\n"
+        "$ cp /tmp/staging/DEBIAN/postinst "
+            "/home/test/.cache/buzzy/build/jansson-buzzy"
+            "/build/built-postinst.sh\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/postinst\n"
+        "$ cat > /tmp/staging/DEBIAN/control <<EOF\n"
+        "Package: jansson\n"
+        "Description: jansson\n"
+        "Maintainer: Unknown <unknown@unknown.org>\n"
+        "Version: 2.4\n"
+        "Section: Miscellaneous\n"
+        "Priority: optional\n"
+        "Architecture: amd64\n"
+        "EOF\n"
+        "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
 START_TEST(test_deb_create_existing_package_01)
 {
     DESCRIBE_TEST;
@@ -753,6 +802,7 @@ test_suite()
     tcase_add_test(tc_deb_package, test_deb_create_package_01);
     tcase_add_test(tc_deb_package, test_deb_create_package_license_01);
     tcase_add_test(tc_deb_package, test_deb_create_package_deps_01);
+    tcase_add_test(tc_deb_package, test_deb_create_package_with_scripts_01);
     tcase_add_test(tc_deb_package, test_deb_create_existing_package_01);
     tcase_add_test(tc_deb_package, test_deb_create_existing_package_02);
     suite_add_tcase(s, tc_deb_package);

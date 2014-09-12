@@ -85,6 +85,21 @@ bz_define_variables(pacman)
     );
 
     bz_package_variable(
+        architecture, "pacman.install_base",
+        bz_interpolated_value_new("${native_name}.install"),
+        "The base name of the install script file we should create",
+        ""
+    );
+
+    bz_package_variable(
+        architecture, "pacman.install",
+        bz_interpolated_value_new
+            ("${package_build_dir}/${pacman.install_base}"),
+        "The location of the install script file we should create",
+        ""
+    );
+
+    bz_package_variable(
         architecture, "pacman.arch",
         bz_interpolated_value_new("${arch}"),
         "The architecture to build pacman packages for",
@@ -207,6 +222,48 @@ bz_pacman_fill_deps(struct bz_env *env, struct cork_buffer *buf,
 }
 
 static int
+bz_pacman_add_install_script(struct bz_env *env, struct cork_buffer *buf,
+                             const char *var_name, const char *func_name)
+{
+    struct cork_path  *install_script;
+    rie_check(install_script = bz_env_get_path(env, var_name, false));
+    if (install_script != NULL) {
+        cork_buffer_append_printf(buf, "%s () {\n", func_name);
+        rii_check(bz_load_file(cork_path_get(install_script), buf));
+        cork_buffer_append_string(buf, "\n}\n");
+    }
+    return 0;
+}
+
+static int
+bz_pacman_add_install_scripts(struct bz_env *env,
+                              struct cork_buffer *pkgbuild_buf)
+{
+    struct cork_buffer  install_buf = CORK_BUFFER_INIT();
+
+    /* Copy each kind of script into install_buf, if present. */
+    rii_check(bz_pacman_add_install_script
+              (env, &install_buf, "pre_install_script", "pre_install"));
+    rii_check(bz_pacman_add_install_script
+              (env, &install_buf, "post_install_script", "post_install"));
+
+    /* If any of them added content to the install script, save that to a file
+     * and reference it in the PKGBUILD. */
+    if (install_buf.size > 0) {
+        struct cork_path  *install;
+        const char  *install_base;
+        rip_check(install = bz_env_get_path(env, "pacman.install", true));
+        rip_check(install_base =
+                  bz_env_get_string(env, "pacman.install_base", true));
+        rii_check(bz_create_file(cork_path_get(install), &install_buf));
+        cork_buffer_append_printf(pkgbuild_buf, "install=%s\n", install_base);
+    }
+
+    cork_buffer_done(&install_buf);
+    return 0;
+}
+
+static int
 bz_pacman__package(void *user_data)
 {
     struct bz_env  *env = user_data;
@@ -275,6 +332,9 @@ bz_pacman__package(void *user_data)
         "}\n",
         cork_path_get(staging_dir)
     );
+
+    /* Add pre- and post-install scripts, if necessary. */
+    rii_check(bz_pacman_add_install_scripts(env, &buf));
 
     ei_check(bz_create_file(cork_path_get(pkgbuild), &buf));
     cork_buffer_done(&buf);
