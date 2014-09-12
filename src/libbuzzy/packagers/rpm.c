@@ -274,6 +274,31 @@ bz_rpm_spec_files__leave(struct cork_dir_walker *walker, const char *full_path,
 }
 
 static int
+bz_rpm_add_install_script(struct bz_env *env, struct cork_buffer *buf,
+                          const char *var_name, const char *section_name)
+{
+    struct cork_path  *install_script;
+    rie_check(install_script = bz_env_get_path(env, var_name, false));
+    if (install_script != NULL) {
+        cork_buffer_append_printf(buf, "\n%s\n", section_name);
+        rii_check(bz_load_file(cork_path_get(install_script), buf));
+        cork_buffer_append_string(buf, "\n");
+    }
+    return 0;
+}
+
+static int
+bz_rpm_add_install_scripts(struct bz_env *env, struct cork_buffer *spec_buf)
+{
+    /* Copy each kind of script into spec_buf, if present. */
+    rii_check(bz_rpm_add_install_script
+              (env, spec_buf, "pre_install_script", "%pre"));
+    rii_check(bz_rpm_add_install_script
+              (env, spec_buf, "post_install_script", "%post"));
+    return 0;
+}
+
+static int
 bz_rpm__package(void *user_data)
 {
     struct bz_env  *env = user_data;
@@ -358,6 +383,9 @@ bz_rpm__package(void *user_data)
     files.parent.leave_directory = bz_rpm_spec_files__leave;
     files.buf = &buf;
     ei_check(bz_walk_directory(cork_path_get(staging_dir), &files.parent));
+
+    /* Add pre- and post-install scripts, if necessary. */
+    rii_check(bz_rpm_add_install_scripts(env, &buf));
 
     ei_check(bz_create_file(cork_path_get(spec_file), &buf));
     cork_buffer_done(&buf);

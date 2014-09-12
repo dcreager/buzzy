@@ -214,6 +214,22 @@ bz_define_variables(package)
         "Where a package's staged installation should be placed",
         ""
     );
+
+    bz_package_variable(
+        pre_install_script, "pre_install_script",
+        NULL,
+        "A script to run before the package is installed, "
+        "relative to build_dir",
+        ""
+    );
+
+    bz_package_variable(
+        post_install_script, "post_install_script",
+        NULL,
+        "A script to run after the package is installed, "
+        "relative to build_dir",
+        ""
+    );
 }
 
 
