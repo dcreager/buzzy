@@ -616,9 +616,13 @@ START_TEST(test_arch_create_package_with_scripts_01)
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
     bz_mock_file_contents("source-preinst.sh", "# do some preinstallation");
+    bz_mock_file_contents("source-prerm.sh", "# do some preremoval");
     bz_mock_file_contents
         ("/home/test/.cache/buzzy/build/jansson-buzzy/build/built-postinst.sh",
          "# do some postinstallation");
+    bz_mock_file_contents
+        ("/home/test/.cache/buzzy/build/jansson-buzzy/build/built-postrm.sh",
+         "# do some postremoval");
     bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", false);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
@@ -629,6 +633,13 @@ START_TEST(test_arch_create_package_with_scripts_01)
                   (env, "post_install_script",
                    bz_interpolated_value_new
                    ("${build_dir}/built-postinst.sh")));
+    fail_if_error(bz_env_add_override
+                  (env, "pre_remove_script",
+                   bz_string_value_new("source-prerm.sh")));
+    fail_if_error(bz_env_add_override
+                  (env, "post_remove_script",
+                   bz_interpolated_value_new
+                   ("${build_dir}/built-postrm.sh")));
     test_create_package(env, false,
         "[1] Package jansson 2.4 (pacman)\n"
     );
@@ -646,6 +657,12 @@ START_TEST(test_arch_create_package_with_scripts_01)
         "}\n"
         "post_install () {\n"
         "# do some postinstallation\n"
+        "}\n"
+        "pre_remove () {\n"
+        "# do some preremoval\n"
+        "}\n"
+        "post_remove () {\n"
+        "# do some postremoval\n"
         "}\n"
         "EOF\n"
         "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD"

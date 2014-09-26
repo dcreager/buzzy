@@ -574,6 +574,12 @@ START_TEST(test_deb_create_package_01)
         "Priority: optional\n"
         "Architecture: amd64\n"
         "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/postinst <<EOF\n"
+        "/sbin/ldconfig\n"
+        "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/postrm <<EOF\n"
+        "/sbin/ldconfig\n"
+        "EOF\n"
         "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
     );
     bz_env_free(env);
@@ -611,6 +617,12 @@ START_TEST(test_deb_create_package_license_01)
         "Section: Miscellaneous\n"
         "Priority: optional\n"
         "Architecture: amd64\n"
+        "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/postinst <<EOF\n"
+        "/sbin/ldconfig\n"
+        "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/postrm <<EOF\n"
+        "/sbin/ldconfig\n"
         "EOF\n"
         "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
     );
@@ -659,6 +671,12 @@ START_TEST(test_deb_create_package_deps_01)
         "Architecture: amd64\n"
         "Depends: libfoo-dev, libbar-dev (>= 2.5~alpha1)\n"
         "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/postinst <<EOF\n"
+        "/sbin/ldconfig\n"
+        "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/postrm <<EOF\n"
+        "/sbin/ldconfig\n"
+        "EOF\n"
         "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
     );
     bz_env_free(env);
@@ -673,6 +691,14 @@ START_TEST(test_deb_create_package_with_scripts_01)
     reset_everything();
     bz_start_mocks();
     mock_dpkg_deb("jansson", "2.4");
+    bz_mock_file_contents("source-preinst.sh", "# do some preinstallation");
+    bz_mock_file_contents("source-prerm.sh", "# do some preremoval");
+    bz_mock_file_contents
+        ("/home/test/.cache/buzzy/build/jansson-buzzy/build/built-postinst.sh",
+         "# do some postinstallation");
+    bz_mock_file_contents
+        ("/home/test/.cache/buzzy/build/jansson-buzzy/build/built-postrm.sh",
+         "# do some postremoval");
     bz_mock_file_exists("./jansson_2.4_amd64.deb", false);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
@@ -683,6 +709,13 @@ START_TEST(test_deb_create_package_with_scripts_01)
                   (env, "post_install_script",
                    bz_interpolated_value_new
                    ("${build_dir}/built-postinst.sh")));
+    fail_if_error(bz_env_add_override
+                  (env, "pre_remove_script",
+                   bz_string_value_new("source-prerm.sh")));
+    fail_if_error(bz_env_add_override
+                  (env, "post_remove_script",
+                   bz_interpolated_value_new
+                   ("${build_dir}/built-postrm.sh")));
     test_create_package(env, false,
         "[1] Package jansson 2.4 (Debian)\n"
     );
@@ -693,12 +726,6 @@ START_TEST(test_deb_create_package_with_scripts_01)
         "$ mkdir -p /tmp/staging/DEBIAN\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
-        "$ cp /tmp/staging/DEBIAN/preinst source-preinst.sh\n"
-        "$ chmod 0755 /tmp/staging/DEBIAN/preinst\n"
-        "$ cp /tmp/staging/DEBIAN/postinst "
-            "/home/test/.cache/buzzy/build/jansson-buzzy"
-            "/build/built-postinst.sh\n"
-        "$ chmod 0755 /tmp/staging/DEBIAN/postinst\n"
         "$ cat > /tmp/staging/DEBIAN/control <<EOF\n"
         "Package: jansson\n"
         "Description: jansson\n"
@@ -707,6 +734,20 @@ START_TEST(test_deb_create_package_with_scripts_01)
         "Section: Miscellaneous\n"
         "Priority: optional\n"
         "Architecture: amd64\n"
+        "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/preinst <<EOF\n"
+        "# do some preinstallation\n"
+        "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/postinst <<EOF\n"
+        "/sbin/ldconfig\n"
+        "# do some postinstallation\n"
+        "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/prerm <<EOF\n"
+        "# do some preremoval\n"
+        "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/postrm <<EOF\n"
+        "/sbin/ldconfig\n"
+        "# do some postremoval\n"
         "EOF\n"
         "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
     );
@@ -761,6 +802,12 @@ START_TEST(test_deb_create_existing_package_02)
         "Section: Miscellaneous\n"
         "Priority: optional\n"
         "Architecture: amd64\n"
+        "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/postinst <<EOF\n"
+        "/sbin/ldconfig\n"
+        "EOF\n"
+        "$ cat > /tmp/staging/DEBIAN/postrm <<EOF\n"
+        "/sbin/ldconfig\n"
         "EOF\n"
         "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
     );

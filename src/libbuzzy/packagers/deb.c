@@ -154,6 +154,20 @@ bz_define_variables(deb)
     );
 
     bz_package_variable(
+        architecture, "deb.prerm_script",
+        bz_interpolated_value_new("${deb.debian_dir}/prerm"),
+        "The location of the Debian prerm script we should create",
+        ""
+    );
+
+    bz_package_variable(
+        architecture, "deb.postrm_script",
+        bz_interpolated_value_new("${deb.debian_dir}/postrm"),
+        "The location of the Debian postrm script we should create",
+        ""
+    );
+
+    bz_package_variable(
         architecture, "deb.arch",
         bz_deb_architecture_value_new(),
         "The architecture to build deb packages for",
@@ -261,41 +275,31 @@ bz_deb_fill_deps(struct bz_env *env, struct cork_buffer *buf,
 }
 
 static int
-bz_deb_add_pre_install(struct bz_env *env)
+bz_deb_add_install_script(struct bz_env *env, struct cork_buffer *buf,
+                          const char *var_name)
 {
-    struct cork_path  *pre_install_script;
-    rie_check(pre_install_script =
-              bz_env_get_path(env, "pre_install_script", false));
-    if (pre_install_script != NULL) {
-        struct cork_path  *deb_preinst_script;
-        clog_debug("Use preinstall script %s",
-                   cork_path_get(pre_install_script));
-        rip_check(deb_preinst_script =
-                  bz_env_get_path(env, "deb.preinst_script", true));
-        return bz_copy_file(cork_path_get(deb_preinst_script),
-                            cork_path_get(pre_install_script), 0755);
-    } else {
-        return 0;
+    struct cork_path  *install_script;
+    rie_check(install_script = bz_env_get_path(env, var_name, false));
+    if (install_script != NULL) {
+        clog_debug("Load %s script from %s",
+                   var_name, cork_path_get(install_script));
+        rii_check(bz_load_file(cork_path_get(install_script), buf));
+        cork_buffer_append_string(buf, "\n");
     }
+    return 0;
 }
 
 static int
-bz_deb_add_post_install(struct bz_env *env)
+bz_deb_add_script_to_package(struct bz_env *env, struct cork_buffer *script,
+                             const char *var_name)
 {
-    struct cork_path  *post_install_script;
-    rie_check(post_install_script =
-              bz_env_get_path(env, "post_install_script", false));
-    if (post_install_script != NULL) {
-        struct cork_path  *deb_postinst_script;
-        clog_debug("Use postinstall script %s",
-                   cork_path_get(post_install_script));
-        rip_check(deb_postinst_script =
-                  bz_env_get_path(env, "deb.postinst_script", true));
-        return bz_copy_file(cork_path_get(deb_postinst_script),
-                            cork_path_get(post_install_script), 0755);
-    } else {
-        return 0;
+    if (script->size > 0) {
+        struct cork_path  *deb_script;
+        rip_check(deb_script = bz_env_get_path(env, var_name, true));
+        clog_debug("Create %s script %s", var_name, cork_path_get(deb_script));
+        return bz_create_file(cork_path_get(deb_script), script);
     }
+    return 0;
 }
 
 static int
@@ -316,6 +320,10 @@ bz_deb__package(void *user_data)
 
     struct cork_exec  *exec;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
+    struct cork_buffer  preinst = CORK_BUFFER_INIT();
+    struct cork_buffer  postinst = CORK_BUFFER_INIT();
+    struct cork_buffer  prerm = CORK_BUFFER_INIT();
+    struct cork_buffer  postrm = CORK_BUFFER_INIT();
     struct cork_buffer  param = CORK_BUFFER_INIT();
     bool  staging_exists;
 
@@ -342,8 +350,13 @@ bz_deb__package(void *user_data)
         cork_error_set_printf
             (ENOENT, "Staging directory %s does not exist",
              cork_path_get(staging_dir));
-        return -1;
+        goto error;
     }
+
+    /* For now, always call ldconfig in a post-install script, regardless of
+     * whether the package includes any shared libraries. */
+    cork_buffer_append_literal(&postinst, "/sbin/ldconfig\n");
+    cork_buffer_append_literal(&postrm, "/sbin/ldconfig\n");
 
     /* Create the temporary directory and the packaging destination */
     rii_check(bz_create_directory(cork_path_get(debian_dir), 0755));
@@ -362,11 +375,25 @@ bz_deb__package(void *user_data)
     rii_check(bz_deb_fill_deps(env, &buf, "Depends", "dependencies"));
 
     /* Add pre- and post-install scripts, if necessary. */
-    rii_check(bz_deb_add_pre_install(env));
-    rii_check(bz_deb_add_post_install(env));
+    rii_check(bz_deb_add_install_script(env, &preinst, "pre_install_script"));
+    rii_check(bz_deb_add_install_script(env, &postinst, "post_install_script"));
+    rii_check(bz_deb_add_install_script(env, &prerm, "pre_remove_script"));
+    rii_check(bz_deb_add_install_script(env, &postrm, "post_remove_script"));
 
+    /* Create the control file */
     ei_check(bz_create_file(cork_path_get(control_file), &buf));
+
+    /* And any installation scripts that have content. */
+    bz_deb_add_script_to_package(env, &preinst, "deb.preinst_script");
+    bz_deb_add_script_to_package(env, &postinst, "deb.postinst_script");
+    bz_deb_add_script_to_package(env, &prerm, "deb.prerm_script");
+    bz_deb_add_script_to_package(env, &postrm, "deb.postrm_script");
+
     cork_buffer_done(&buf);
+    cork_buffer_done(&preinst);
+    cork_buffer_done(&postinst);
+    cork_buffer_done(&prerm);
+    cork_buffer_done(&postrm);
 
     exec = cork_exec_new("dpkg-deb");
     cork_exec_add_param(exec, "dpkg-deb");
@@ -380,6 +407,10 @@ bz_deb__package(void *user_data)
 
 error:
     cork_buffer_done(&buf);
+    cork_buffer_done(&preinst);
+    cork_buffer_done(&postinst);
+    cork_buffer_done(&prerm);
+    cork_buffer_done(&postrm);
     cork_buffer_done(&param);
     return -1;
 }

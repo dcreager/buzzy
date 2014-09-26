@@ -576,6 +576,12 @@ START_TEST(test_rpm_create_package_01)
         "%clean\n"
         "\n"
         "%files\n"
+        "\n"
+        "%post\n"
+        "/sbin/ldconfig\n"
+        "\n"
+        "%postun\n"
+        "/sbin/ldconfig\n"
         "EOF\n"
         "$ rpmbuild "
             "--define _sourcedir . "
@@ -639,6 +645,12 @@ START_TEST(test_rpm_create_package_license_01)
         "%clean\n"
         "\n"
         "%files\n"
+        "\n"
+        "%post\n"
+        "/sbin/ldconfig\n"
+        "\n"
+        "%postun\n"
+        "/sbin/ldconfig\n"
         "EOF\n"
         "$ rpmbuild "
             "--define _sourcedir . "
@@ -711,6 +723,12 @@ START_TEST(test_rpm_create_package_deps_01)
         "%clean\n"
         "\n"
         "%files\n"
+        "\n"
+        "%post\n"
+        "/sbin/ldconfig\n"
+        "\n"
+        "%postun\n"
+        "/sbin/ldconfig\n"
         "EOF\n"
         "$ rpmbuild "
             "--define _sourcedir . "
@@ -738,9 +756,13 @@ START_TEST(test_rpm_create_package_with_scripts_01)
     bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
     mock_rpmbuild("jansson", "2.4");
     bz_mock_file_contents("source-preinst.sh", "# do some preinstallation");
+    bz_mock_file_contents("source-prerm.sh", "# do some preremoval");
     bz_mock_file_contents
         ("/home/test/.cache/buzzy/build/jansson-buzzy/build/built-postinst.sh",
          "# do some postinstallation");
+    bz_mock_file_contents
+        ("/home/test/.cache/buzzy/build/jansson-buzzy/build/built-postrm.sh",
+         "# do some postremoval");
     bz_mock_file_exists("./jansson-2.4-1.x86_64.rpm", false);
     fail_if_error(version = bz_version_from_string("2.4"));
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
@@ -751,6 +773,13 @@ START_TEST(test_rpm_create_package_with_scripts_01)
                   (env, "post_install_script",
                    bz_interpolated_value_new
                    ("${build_dir}/built-postinst.sh")));
+    fail_if_error(bz_env_add_override
+                  (env, "pre_remove_script",
+                   bz_string_value_new("source-prerm.sh")));
+    fail_if_error(bz_env_add_override
+                  (env, "post_remove_script",
+                   bz_interpolated_value_new
+                   ("${build_dir}/built-postrm.sh")));
     test_create_package(env, false,
         "[1] Package jansson 2.4 (RPM)\n"
     );
@@ -788,7 +817,15 @@ START_TEST(test_rpm_create_package_with_scripts_01)
         "# do some preinstallation\n"
         "\n"
         "%post\n"
+        "/sbin/ldconfig\n"
         "# do some postinstallation\n"
+        "\n"
+        "%preun\n"
+        "# do some preremoval\n"
+        "\n"
+        "%postun\n"
+        "/sbin/ldconfig\n"
+        "# do some postremoval\n"
         "EOF\n"
         "$ rpmbuild "
             "--define _sourcedir . "
@@ -869,6 +906,12 @@ START_TEST(test_rpm_create_existing_package_02)
         "%clean\n"
         "\n"
         "%files\n"
+        "\n"
+        "%post\n"
+        "/sbin/ldconfig\n"
+        "\n"
+        "%postun\n"
+        "/sbin/ldconfig\n"
         "EOF\n"
         "$ rpmbuild "
             "--define _sourcedir . "
