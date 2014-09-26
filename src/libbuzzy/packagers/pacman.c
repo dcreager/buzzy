@@ -318,6 +318,10 @@ bz_pacman__package(void *user_data)
         return -1;
     }
 
+    /* NOTE: pacman runs ldconfig automatically, so unlike the other packagers,
+     * we do NOT need to add an ldconfig call to the post-install and
+     * post-remove scripts. */
+
     /* Create the temporary directory and the packaging destination */
     rii_check(bz_create_directory(cork_path_get(package_build_dir), 0750));
     rii_check(bz_create_directory(cork_path_get(binary_package_dir), 0750));

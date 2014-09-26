@@ -353,6 +353,11 @@ bz_deb__package(void *user_data)
         goto error;
     }
 
+    /* For now, always call ldconfig in a post-install script, regardless of
+     * whether the package includes any shared libraries. */
+    cork_buffer_append_literal(&postinst, "/sbin/ldconfig\n");
+    cork_buffer_append_literal(&postrm, "/sbin/ldconfig\n");
+
     /* Create the temporary directory and the packaging destination */
     rii_check(bz_create_directory(cork_path_get(debian_dir), 0755));
     rii_check(bz_create_directory(cork_path_get(package_build_dir), 0750));
