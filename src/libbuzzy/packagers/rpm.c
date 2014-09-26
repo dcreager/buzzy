@@ -275,12 +275,13 @@ bz_rpm_spec_files__leave(struct cork_dir_walker *walker, const char *full_path,
 
 static int
 bz_rpm_add_install_script(struct bz_env *env, struct cork_buffer *buf,
-                          const char *var_name, const char *section_name)
+                          const char *var_name)
 {
     struct cork_path  *install_script;
     rie_check(install_script = bz_env_get_path(env, var_name, false));
     if (install_script != NULL) {
-        cork_buffer_append_printf(buf, "\n%s\n", section_name);
+        clog_debug("Load %s script from %s",
+                   var_name, cork_path_get(install_script));
         rii_check(bz_load_file(cork_path_get(install_script), buf));
         cork_buffer_append_string(buf, "\n");
     }
@@ -288,13 +289,14 @@ bz_rpm_add_install_script(struct bz_env *env, struct cork_buffer *buf,
 }
 
 static int
-bz_rpm_add_install_scripts(struct bz_env *env, struct cork_buffer *spec_buf)
+bz_rpm_add_script_to_spec(struct cork_buffer *spec, struct cork_buffer *script,
+                          const char *section_name)
 {
-    /* Copy each kind of script into spec_buf, if present. */
-    rii_check(bz_rpm_add_install_script
-              (env, spec_buf, "pre_install_script", "%pre"));
-    rii_check(bz_rpm_add_install_script
-              (env, spec_buf, "post_install_script", "%post"));
+    if (script->size > 0) {
+        clog_debug("Include %s script in spec", section_name);
+        cork_buffer_append_printf(spec, "\n%%%s\n", section_name);
+        cork_buffer_append_copy(spec, script);
+    }
     return 0;
 }
 
@@ -316,6 +318,10 @@ bz_rpm__package(void *user_data)
 
     struct cork_exec  *exec;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
+    struct cork_buffer  pre = CORK_BUFFER_INIT();
+    struct cork_buffer  post = CORK_BUFFER_INIT();
+    struct cork_buffer  preun = CORK_BUFFER_INIT();
+    struct cork_buffer  postun = CORK_BUFFER_INIT();
     struct cork_buffer  param = CORK_BUFFER_INIT();
     bool  staging_exists;
 
@@ -344,7 +350,7 @@ bz_rpm__package(void *user_data)
         cork_error_set_printf
             (ENOENT, "Staging directory %s does not exist",
              cork_path_get(staging_dir));
-        return -1;
+        goto error;
     }
 
     /* Create the temporary directory and the packaging destination */
@@ -385,10 +391,25 @@ bz_rpm__package(void *user_data)
     ei_check(bz_walk_directory(cork_path_get(staging_dir), &files.parent));
 
     /* Add pre- and post-install scripts, if necessary. */
-    rii_check(bz_rpm_add_install_scripts(env, &buf));
+    rii_check(bz_rpm_add_install_script(env, &pre, "pre_install_script"));
+    rii_check(bz_rpm_add_install_script(env, &post, "post_install_script"));
+    rii_check(bz_rpm_add_install_script(env, &preun, "pre_remove_script"));
+    rii_check(bz_rpm_add_install_script(env, &postun, "post_remove_script"));
 
+    /* And any installation scripts that have content. */
+    bz_rpm_add_script_to_spec(&buf, &pre, "pre");
+    bz_rpm_add_script_to_spec(&buf, &post, "post");
+    bz_rpm_add_script_to_spec(&buf, &preun, "preun");
+    bz_rpm_add_script_to_spec(&buf, &postun, "postun");
+
+    /* Create the full spec file. */
     ei_check(bz_create_file(cork_path_get(spec_file), &buf));
+
     cork_buffer_done(&buf);
+    cork_buffer_done(&pre);
+    cork_buffer_done(&post);
+    cork_buffer_done(&preun);
+    cork_buffer_done(&postun);
 
     exec = cork_exec_new("rpmbuild");
     cork_exec_add_param(exec, "rpmbuild");
@@ -420,6 +441,10 @@ bz_rpm__package(void *user_data)
 
 error:
     cork_buffer_done(&buf);
+    cork_buffer_done(&pre);
+    cork_buffer_done(&post);
+    cork_buffer_done(&preun);
+    cork_buffer_done(&postun);
     cork_buffer_done(&param);
     return -1;
 }

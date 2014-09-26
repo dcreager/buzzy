@@ -230,6 +230,22 @@ bz_define_variables(package)
         "relative to build_dir",
         ""
     );
+
+    bz_package_variable(
+        pre_remove_script, "pre_remove_script",
+        NULL,
+        "A script to run before the package is removed, "
+        "relative to build_dir",
+        ""
+    );
+
+    bz_package_variable(
+        post_remove_script, "post_remove_script",
+        NULL,
+        "A script to run after the package is removed, "
+        "relative to build_dir",
+        ""
+    );
 }
 
 

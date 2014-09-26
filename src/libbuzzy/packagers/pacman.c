@@ -246,6 +246,10 @@ bz_pacman_add_install_scripts(struct bz_env *env,
               (env, &install_buf, "pre_install_script", "pre_install"));
     rii_check(bz_pacman_add_install_script
               (env, &install_buf, "post_install_script", "post_install"));
+    rii_check(bz_pacman_add_install_script
+              (env, &install_buf, "pre_remove_script", "pre_remove"));
+    rii_check(bz_pacman_add_install_script
+              (env, &install_buf, "post_remove_script", "post_remove"));
 
     /* If any of them added content to the install script, save that to a file
      * and reference it in the PKGBUILD. */
