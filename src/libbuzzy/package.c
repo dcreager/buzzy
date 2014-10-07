@@ -118,6 +118,13 @@ bz_define_variables(package)
     );
 
     bz_package_variable(
+        relocatable, "relocatable",
+        bz_string_value_new("false"),
+        "The installation prefix for platform-agnostic files",
+        ""
+    );
+
+    bz_package_variable(
         prefix, "prefix",
         bz_string_value_new("/usr"),
         "The installation prefix for platform-agnostic files",

@@ -315,6 +315,7 @@ bz_rpm__package(void *user_data)
     const char  *version_r;
     const char  *license;
     bool  verbose;
+    bool  relocatable;
 
     struct cork_exec  *exec;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
@@ -344,6 +345,7 @@ bz_rpm__package(void *user_data)
     rip_check(version_r = bz_env_get_string(env, "rpm.version_r", true));
     rip_check(license = bz_env_get_string(env, "license", true));
     rie_check(verbose = bz_env_get_bool(env, "verbose", true));
+    rie_check(relocatable = bz_env_get_bool(env, "relocatable", true));
 
     rii_check(bz_file_exists(cork_path_get(staging_dir), &staging_exists));
     if (CORK_UNLIKELY(!staging_exists)) {
@@ -374,6 +376,15 @@ bz_rpm__package(void *user_data)
     cork_buffer_append_printf
         (&buf, "BuildRoot: %s\n", cork_path_get(staging_dir));
     rii_check(bz_rpm_fill_deps(env, &buf, "Requires", "dependencies"));
+
+    if (relocatable) {
+        /* TODO: We don't currently verify that the package really is
+         * relocatable.  It's up to you not to lie! */
+        struct cork_path  *prefix;
+        rip_check(prefix = bz_env_get_path(env, "prefix", true));
+        cork_buffer_append_printf(&buf, "Prefix: %s\n", cork_path_get(prefix));
+    }
+
     cork_buffer_append_printf(&buf,
         "\n"
         "%%description\n"
