@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -247,13 +247,16 @@ bz_mocked__create_dir(struct cork_path *path, cork_file_mode mode)
 }
 
 static struct cork_file *
-bz_mocked__create_file(struct cork_path *path, struct cork_buffer *src)
+bz_mocked__create_file(struct cork_path *path, struct cork_buffer *src,
+                       cork_file_mode mode)
 {
     assert(mocks_enabled);
     cork_buffer_append_printf
         (&commands_run, "$ cat > %s <<EOF\n", cork_path_get(path));
     cork_buffer_append(&commands_run, src->buf, src->size);
     cork_buffer_append(&commands_run, "EOF\n", 4);
+    cork_buffer_append_printf
+        (&commands_run, "$ chmod 0%03o %s\n", mode, cork_path_get(path));
     return cork_file_new_from_path(path);
 }
 

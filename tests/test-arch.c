@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -505,6 +505,7 @@ START_TEST(test_arch_create_package_01)
         "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
         "}\n"
         "EOF\n"
+        "$ chmod 0640 /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD\n"
         "$ makepkg -sf\n"
     );
     bz_env_free(env);
@@ -548,6 +549,7 @@ START_TEST(test_arch_create_package_license_01)
         "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
         "}\n"
         "EOF\n"
+        "$ chmod 0640 /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD\n"
         "$ makepkg -sf\n"
     );
     bz_env_free(env);
@@ -600,6 +602,7 @@ START_TEST(test_arch_create_package_deps_01)
         "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
         "}\n"
         "EOF\n"
+        "$ chmod 0640 /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD\n"
         "$ makepkg -sf\n"
     );
     bz_env_free(env);
@@ -665,6 +668,8 @@ START_TEST(test_arch_create_package_with_scripts_01)
         "# do some postremoval\n"
         "}\n"
         "EOF\n"
+        "$ chmod 0640 "
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.install\n"
         "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD"
             " <<EOF\n"
         "pkgname='jansson'\n"
@@ -678,6 +683,7 @@ START_TEST(test_arch_create_package_with_scripts_01)
         "}\n"
         "install=jansson.install\n"
         "EOF\n"
+        "$ chmod 0640 /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD\n"
         "$ makepkg -sf\n"
     );
     bz_env_free(env);
@@ -739,6 +745,7 @@ START_TEST(test_arch_create_existing_package_02)
         "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
         "}\n"
         "EOF\n"
+        "$ chmod 0640 /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD\n"
         "$ makepkg -sf\n"
     );
     bz_env_free(env);

@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -65,7 +65,8 @@ struct bz_mock {
     (*create_dir)(struct cork_path *path, cork_file_mode mode);
 
     struct cork_file *
-    (*create_file)(struct cork_path *path, struct cork_buffer *src);
+    (*create_file)(struct cork_path *path, struct cork_buffer *src,
+                   cork_file_mode mode);
 
     struct cork_file *
     (*copy_file)(struct cork_path *dest, struct cork_path *src, int mode);
@@ -89,8 +90,8 @@ extern struct bz_mock  *bz_mocks;
     (bz_mocks->exec((e), (out), (err), (ec)))
 #define bz_mocked_create_dir(p, m) \
     (bz_mocks->create_dir((p), (m)))
-#define bz_mocked_create_file(p, s) \
-    (bz_mocks->create_file((p), (s)))
+#define bz_mocked_create_file(p, s, m) \
+    (bz_mocks->create_file((p), (s), (m)))
 #define bz_mocked_copy_file(d, s, m) \
     (bz_mocks->copy_file((d), (s), (m)))
 #define bz_mocked_file_exists(p, e) \
@@ -115,7 +116,8 @@ struct cork_file *
 bz_real__create_dir(struct cork_path *path, cork_file_mode mode);
 
 struct cork_file *
-bz_real__create_file(struct cork_path *path, struct cork_buffer *src);
+bz_real__create_file(struct cork_path *path, struct cork_buffer *src,
+                     cork_file_mode mode);
 
 struct cork_file *
 bz_real__copy_file(struct cork_path *dest, struct cork_path *src, int mode);
