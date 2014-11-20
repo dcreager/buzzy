@@ -1,0 +1,71 @@
+#!/bin/sh
+
+# This script should be run from within a Docker container.  It assumes that:
+#
+#   - the root source archive (i.e., the parent of the directory containing this
+#     script) is available as a volume in the Docker container at /outside
+#
+#   - the DISTRO environment variable is set to the name of the Linux distro
+#     that the container is running
+#
+#   - the UID and GID environment variables must be set to the (numeric) user
+#     and group IDs of the user running in the outside host
+#
+# The `build` script (which is in the same directory as this script) automates
+# the process of starting a Docker container and running this script in the
+# correct way.
+#
+# The script will bootstrap a version of buzzy using the standard build tools
+# (which must already be installed in the Docker container), and then use the
+# bootstrapped version to have buzzy build a proper package of itself.  The
+# final built package will be copied to /outside/packages/$VERSION/$DISTRO,
+# which brings the package outside of the Docker container and back into the
+# outside source tree.
+
+set -e
+
+if [ ! -d /outside ]; then
+    echo "Missing /outside volume"
+    exit 1
+fi
+
+if [ -z "$DISTRO" ]; then
+    echo "Missing DISTRO"
+    exit 1
+fi
+
+if [ -z "$UID" ]; then
+    echo "Missing UID"
+    exit 1
+fi
+
+if [ -z "$GID" ]; then
+    echo "Missing GID"
+    exit 1
+fi
+
+# Build the bootstrap version
+export MAKEFLAGS="-j"
+mkdir $HOME/build
+cd $HOME/build
+cmake /outside
+make
+make test
+
+# Make a better-looking source directory name, just in case this platform
+# includes debugging information in the packages.
+cd /outside
+PACKAGE_NAME=`$HOME/build/src/buzzy get name`
+VERSION=`$HOME/build/src/buzzy get version`
+sudo mkdir /src
+sudo ln -s /outside /src/$PACKAGE_NAME
+
+# Use the bootstrap version to build and install a real package
+cd /src/$PACKAGE_NAME
+$HOME/build/src/buzzy install
+
+# Copy the built package into the outside-visible volume
+PACKAGE_DIR=/outside/packages/$VERSION/$DISTRO
+sudo mkdir -p $PACKAGE_DIR
+sudo cp $HOME/.cache/buzzy/packages/* $PACKAGE_DIR
+sudo chown -R $UID:$GID $PACKAGE_DIR

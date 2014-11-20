@@ -1,0 +1,54 @@
+#!/bin/sh
+
+# Usage:
+#   $ build [distro]
+#
+# This script builds a Docker image for some Linux distro that we want to build
+# a native package for.  The distro must be the name of a directory in
+# docker/distros, which should contain a Dockerfile.  That Dockerfile should
+# build a Docker image with all of the necessary build tools installed, and with
+# a sudo-capable user named `buzzy` that we can use to perform the build.
+
+DISTRO=$1 && shift
+if [ -z "$DISTRO" ]; then
+    echo "Missing DISTRO"
+    exit 1
+fi
+
+SCRIPT=`python -c "import os; print(os.path.realpath('$0'))"`
+SCRIPT_DIR=`dirname "$SCRIPT"`
+PROJECT_DIR=`dirname "$SCRIPT_DIR"`
+
+DISTRO_DIR=$SCRIPT_DIR/distros/$DISTRO
+if [ ! -d "$DISTRO_DIR" ]; then
+    echo "Unknown distro $DISTRO"
+    exit 1
+fi
+
+if [ ! -e "$DISTRO_DIR/Dockerfile" ]; then
+    echo "Missing Dockerfile for $DISTRO"
+    exit 1
+fi
+
+UPSTREAM_DOCKER_IMAGE=`grep FROM $DISTRO_DIR/Dockerfile | awk '{ print $2 }'`
+IMAGE=buzzy-$DISTRO
+
+OLD_IMAGE_ID=`docker images -q $IMAGE`
+docker pull $UPSTREAM_DOCKER_IMAGE
+docker build -t $IMAGE $DISTRO_DIR
+
+if [ -n "$OLD_IMAGE_ID" ]; then
+    NEW_IMAGE_ID=`docker images -q $IMAGE`
+    if [ "$OLD_IMAGE_ID" != "$NEW_IMAGE_ID" ]; then
+        docker rmi "$OLD_IMAGE_ID"
+    fi
+fi
+
+docker run \
+    --rm \
+    -v "$PROJECT_DIR:/outside" \
+    -e DISTRO="$DISTRO" \
+    -e UID=`id -u` \
+    -e GID=`id -g` \
+    "$IMAGE" \
+    /outside/docker/build-inside
