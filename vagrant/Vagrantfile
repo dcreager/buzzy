@@ -18,7 +18,7 @@ EOF
   end
 
   # Ubuntu 12.10 (quantal)
-  config.vm.define :quantal do |quantal|
+  config.vm.define :quantal64 do |quantal|
     quantal.vm.box = "quantal64"
     quantal.vm.box_url = "https://s3.amazonaws.com/rj-public/quantal64.box"
     quantal.vm.synced_folder "..", "/vagrant", id: "vagrant-root"
@@ -26,7 +26,20 @@ EOF
     quantal.vm.provision :shell, :inline => <<EOF
     export DEBIAN_FRONTEND=noninteractive
     sudo apt-get update
-    sudo apt-get install -y build-essential cmake check pkg-config
+    sudo apt-get install -y build-essential cmake check pkg-config git
+EOF
+  end
+
+  # Ubuntu 12.04 (precise)
+  config.vm.define :precise32 do |precise|
+    precise.vm.box = "precise32"
+    precise.vm.box_url = "http://files.vagrantup.com/precise32.box"
+    precise.vm.synced_folder "..", "/vagrant", id: "vagrant-root"
+
+    precise.vm.provision :shell, :inline => <<EOF
+    export DEBIAN_FRONTEND=noninteractive
+    sudo apt-get update
+    sudo apt-get install -y build-essential cmake check pkg-config git
 EOF
   end
 end

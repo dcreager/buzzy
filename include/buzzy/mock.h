@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -36,6 +36,9 @@ bz_mock_subprocess_allow_execute(const char *cmd);
 void
 bz_mock_file_exists(const char *path, bool exists);
 
+void
+bz_mock_file_contents(const char *path, const char *contents);
+
 
 /* Querying which mocked functions were executed */
 
@@ -59,13 +62,20 @@ struct bz_mock {
             struct cork_stream_consumer *err, int *exit_code);
 
     struct cork_file *
-    (*create_dir)(struct cork_path *path);
+    (*create_dir)(struct cork_path *path, cork_file_mode mode);
 
     struct cork_file *
-    (*create_file)(struct cork_path *path, struct cork_buffer *src);
+    (*create_file)(struct cork_path *path, struct cork_buffer *src,
+                   cork_file_mode mode);
+
+    struct cork_file *
+    (*copy_file)(struct cork_path *dest, struct cork_path *src, int mode);
 
     int
     (*file_exists)(struct cork_path *path, bool *exists);
+
+    int
+    (*load_file)(struct cork_path *path, struct cork_buffer *dest);
 
     void
     (*print_action)(const char *message);
@@ -78,12 +88,16 @@ extern struct bz_mock  *bz_mocks;
 
 #define bz_mocked_exec(e, out, err, ec) \
     (bz_mocks->exec((e), (out), (err), (ec)))
-#define bz_mocked_create_dir(p) \
-    (bz_mocks->create_dir((p)))
-#define bz_mocked_create_file(p, s) \
-    (bz_mocks->create_file((p), (s)))
+#define bz_mocked_create_dir(p, m) \
+    (bz_mocks->create_dir((p), (m)))
+#define bz_mocked_create_file(p, s, m) \
+    (bz_mocks->create_file((p), (s), (m)))
+#define bz_mocked_copy_file(d, s, m) \
+    (bz_mocks->copy_file((d), (s), (m)))
 #define bz_mocked_file_exists(p, e) \
     (bz_mocks->file_exists((p), (e)))
+#define bz_mocked_load_file(p, d) \
+    (bz_mocks->load_file((p), (d)))
 #define bz_mocked_print_action(m) \
     (bz_mocks->print_action((m)))
 #define bz_mocked_walk_directory(p, w) \
@@ -99,13 +113,20 @@ bz_real__exec(struct cork_exec *exec, struct cork_stream_consumer *out,
               struct cork_stream_consumer *err, int *exit_code);
 
 struct cork_file *
-bz_real__create_dir(struct cork_path *path);
+bz_real__create_dir(struct cork_path *path, cork_file_mode mode);
 
 struct cork_file *
-bz_real__create_file(struct cork_path *path, struct cork_buffer *src);
+bz_real__create_file(struct cork_path *path, struct cork_buffer *src,
+                     cork_file_mode mode);
+
+struct cork_file *
+bz_real__copy_file(struct cork_path *dest, struct cork_path *src, int mode);
 
 int
 bz_real__file_exists(struct cork_path *path, bool *exists);
+
+int
+bz_real__load_file(struct cork_path *path, struct cork_buffer *dest);
 
 void
 bz_real__print_action(const char *message);

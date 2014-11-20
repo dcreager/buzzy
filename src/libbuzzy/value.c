@@ -589,26 +589,15 @@ bz_array_as_value(struct bz_array *array)
  */
 
 struct bz_map {
-    struct cork_hash_table  table;
+    struct cork_hash_table  *table;
     struct bz_value  *value;
 };
-
-static enum cork_hash_table_map_result
-free_var(struct cork_hash_table_entry *entry, void *user_data)
-{
-    const char  *key = entry->key;
-    struct bz_value  *value = entry->value;
-    cork_strfree(key);
-    bz_value_free(value);
-    return CORK_HASH_TABLE_MAP_DELETE;
-}
 
 static void
 bz_map__free(void *user_data)
 {
     struct bz_map  *map = user_data;
-    cork_hash_table_map(&map->table, free_var, NULL);
-    cork_hash_table_done(&map->table);
+    cork_hash_table_free(map->table);
     free(map);
 }
 
@@ -616,7 +605,7 @@ static struct bz_value *
 bz_map__get(void *user_data, const char *key)
 {
     struct bz_map  *map = user_data;
-    return cork_hash_table_get(&map->table, (void *) key);
+    return cork_hash_table_get(map->table, (void *) key);
 }
 
 static int
@@ -627,7 +616,7 @@ bz_map__add(void *user_data, const char *key, struct bz_value *value,
     bool  is_new;
     struct cork_hash_table_entry  *entry;
 
-    entry = cork_hash_table_get_or_create(&map->table, (void *) key, &is_new);
+    entry = cork_hash_table_get_or_create(map->table, (void *) key, &is_new);
     if (is_new) {
         entry->key = (void *) cork_strdup(key);
         entry->value = value;
@@ -649,7 +638,9 @@ struct bz_value *
 bz_map_new(void)
 {
     struct bz_map  *map = cork_new(struct bz_map);
-    cork_string_hash_table_init(&map->table, 0);
+    map->table = cork_string_hash_table_new(0, 0);
+    cork_hash_table_set_free_key(map->table, (cork_free_f) cork_strfree);
+    cork_hash_table_set_free_value(map->table, (cork_free_f) bz_value_free);
     map->value = bz_map_value_new
         (map, bz_map__free, bz_map__get, bz_map__add);
     return map->value;
@@ -661,26 +652,17 @@ bz_map_new(void)
  */
 
 struct bz_union_map {
-    struct cork_hash_table  cache;
+    struct cork_hash_table  *cache;
     cork_array(struct bz_value *)  maps;
     cork_array(struct bz_value *)  child_maps;
     struct bz_value  *value;
 };
 
-static enum cork_hash_table_map_result
-bz_union_map__free_cache(struct cork_hash_table_entry *entry, void *user_data)
-{
-    const char  *key = entry->key;
-    cork_strfree(key);
-    return CORK_HASH_TABLE_MAP_DELETE;
-}
-
 static void
 bz_union_map__free(void *user_data)
 {
     struct bz_union_map  *map = user_data;
-    cork_hash_table_map(&map->cache, bz_union_map__free_cache, NULL);
-    cork_hash_table_done(&map->cache);
+    cork_hash_table_free(map->cache);
     cork_array_done(&map->maps);
     cork_array_done(&map->child_maps);
     free(map);
@@ -758,7 +740,7 @@ bz_union_map__get(void *user_data, const char *key)
     struct cork_hash_table_entry  *entry;
     bool  is_new;
 
-    entry = cork_hash_table_get_or_create(&map->cache, (void *) key, &is_new);
+    entry = cork_hash_table_get_or_create(map->cache, (void *) key, &is_new);
     if (is_new) {
         /* We haven't tried to retrieve this key yet.  Look in through each of
          * the maps to see which ones define the key. */
@@ -773,7 +755,8 @@ struct bz_union_map *
 bz_union_map_new(void)
 {
     struct bz_union_map  *map = cork_new(struct bz_union_map);
-    cork_string_hash_table_init(&map->cache, 0);
+    map->cache = cork_string_hash_table_new(0, 0);
+    cork_hash_table_set_free_key(map->cache, (cork_free_f) cork_strfree);
     cork_pointer_array_init(&map->maps, (cork_free_f) bz_value_free);
     cork_pointer_array_init(&map->child_maps, (cork_free_f) bz_value_free);
     map->value = bz_map_value_new

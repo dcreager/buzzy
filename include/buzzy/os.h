@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -65,13 +65,19 @@ bz_subprocess_run_exec(bool verbose, bool *successful, struct cork_exec *exec);
  */
 
 int
-bz_create_file(const char *path, struct cork_buffer *src);
+bz_create_file(const char *path, struct cork_buffer *src, cork_file_mode mode);
 
 int
-bz_create_directory(const char *path);
+bz_create_directory(const char *path, cork_file_mode mode);
+
+int
+bz_copy_file(const char *dest, const char *src, int mode);
 
 int
 bz_file_exists(const char *path, bool *exists);
+
+int
+bz_load_file(const char *path, struct cork_buffer *dest);
 
 int
 bz_walk_directory(const char *path, struct cork_dir_walker *walker);

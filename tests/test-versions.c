@@ -73,6 +73,7 @@ START_TEST(test_versions)
     test_version_string("2.0+dev",      "2.0+dev");
     test_version_string("2.0.1",        "2.0.1");
     test_version_string("2.1",          "2.1");
+    test_version_string(":1:2.1",       ":1:2.1");
 
     test_version_compare_string("2.0",         "[.2]");
     test_version_compare_string("2.0.0",       "[.2]");
@@ -81,6 +82,7 @@ START_TEST(test_versions)
     test_version_compare_string("2.0+dev",     "[.2+dev]");
     test_version_compare_string("2.0.1",       "[.2.0.1]");
     test_version_compare_string("2.1",         "[.2.1]");
+    test_version_compare_string(":1:2.1",      "[:1.2.1]");
 
     /* Basic version comparisons */
     test_version_cmp("2.0",   "2.0.0",  0);
@@ -108,6 +110,11 @@ START_TEST(test_versions)
     /* Comparing multiple alpha prereleases */
     test_version_cmp("2.0~alpha.1", "2.0~alpha.2",  -1);
     test_version_cmp("2.0~alpha.9", "2.0~alpha.10", -1);
+
+    /* Comparing epochs */
+    test_version_cmp("2.0",    ":1:1.0", -1);
+    test_version_cmp(":1:1.0", ":1:1.1", -1);
+    test_version_cmp(":1:1.1", ":2:0.90", -1);
 }
 END_TEST
 

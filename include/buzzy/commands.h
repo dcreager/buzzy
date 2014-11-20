@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -28,6 +28,7 @@ CORK_LOCAL extern struct cork_command  buzzy_root;
 
 CORK_LOCAL extern struct cork_command  buzzy_build;
 CORK_LOCAL extern struct cork_command  buzzy_doc;
+CORK_LOCAL extern struct cork_command  buzzy_get;
 CORK_LOCAL extern struct cork_command  buzzy_info;
 CORK_LOCAL extern struct cork_command  buzzy_install;
 CORK_LOCAL extern struct cork_command  buzzy_test;

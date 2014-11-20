@@ -184,6 +184,7 @@ struct bz_packager_reg {
 };
 
 static struct bz_packager_reg  packagers[] = {
+    { "deb", bz_deb_packager_new },
     { "homebrew", bz_homebrew_packager_new },
     { "noop", bz_noop_packager_new },
     { "pacman", bz_pacman_packager_new },

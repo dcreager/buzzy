@@ -1,5 +1,6 @@
 /build/
 /.build/
+/packages/
 
 RELEASE-VERSION
 buzzy.pc

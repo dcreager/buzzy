@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -505,6 +505,7 @@ START_TEST(test_arch_create_package_01)
         "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
         "}\n"
         "EOF\n"
+        "$ chmod 0640 /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD\n"
         "$ makepkg -sf\n"
     );
     bz_env_free(env);
@@ -548,6 +549,7 @@ START_TEST(test_arch_create_package_license_01)
         "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
         "}\n"
         "EOF\n"
+        "$ chmod 0640 /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD\n"
         "$ makepkg -sf\n"
     );
     bz_env_free(env);
@@ -569,7 +571,9 @@ START_TEST(test_arch_create_package_deps_01)
     fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
     deps = bz_array_new();
     bz_array_append(deps, bz_string_value_new("libfoo"));
+    mock_available_package("libfoo", "2.0");
     bz_array_append(deps, bz_string_value_new("libbar >= 2.5~alpha.1"));
+    mock_available_package("libbar", "2.5alpha3");
     fail_if_error(bz_env_add_override
                   (env, "dependencies", bz_array_as_value(deps)));
     test_create_package(env, false,
@@ -583,6 +587,8 @@ START_TEST(test_arch_create_package_deps_01)
         "$ [ -f /tmp/staging ]\n"
         "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
         "$ mkdir -p .\n"
+        "$ pacman -Sddp --print-format %v libfoo\n"
+        "$ pacman -Sddp --print-format %v libbar\n"
         "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD"
             " <<EOF\n"
         "pkgname='jansson'\n"
@@ -596,6 +602,88 @@ START_TEST(test_arch_create_package_deps_01)
         "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
         "}\n"
         "EOF\n"
+        "$ chmod 0640 /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD\n"
+        "$ makepkg -sf\n"
+    );
+    bz_env_free(env);
+}
+END_TEST
+
+START_TEST(test_arch_create_package_with_scripts_01)
+{
+    DESCRIBE_TEST;
+    struct bz_version  *version;
+    struct bz_env  *env;
+    reset_everything();
+    bz_start_mocks();
+    bz_mock_subprocess("uname -m", "x86_64\n", NULL, 0);
+    bz_mock_subprocess("makepkg -sf", NULL, NULL, 0);
+    bz_mock_file_contents("source-preinst.sh", "# do some preinstallation");
+    bz_mock_file_contents("source-prerm.sh", "# do some preremoval");
+    bz_mock_file_contents
+        ("/home/test/.cache/buzzy/build/jansson-buzzy/build/built-postinst.sh",
+         "# do some postinstallation");
+    bz_mock_file_contents
+        ("/home/test/.cache/buzzy/build/jansson-buzzy/build/built-postrm.sh",
+         "# do some postremoval");
+    bz_mock_file_exists("./jansson-2.4-1-x86_64.pkg.tar.xz", false);
+    fail_if_error(version = bz_version_from_string("2.4"));
+    fail_if_error(env = bz_package_env_new(NULL, "jansson", version));
+    fail_if_error(bz_env_add_override
+                  (env, "pre_install_script",
+                   bz_string_value_new("source-preinst.sh")));
+    fail_if_error(bz_env_add_override
+                  (env, "post_install_script",
+                   bz_interpolated_value_new
+                   ("${build_dir}/built-postinst.sh")));
+    fail_if_error(bz_env_add_override
+                  (env, "pre_remove_script",
+                   bz_string_value_new("source-prerm.sh")));
+    fail_if_error(bz_env_add_override
+                  (env, "post_remove_script",
+                   bz_interpolated_value_new
+                   ("${build_dir}/built-postrm.sh")));
+    test_create_package(env, false,
+        "[1] Package jansson 2.4 (pacman)\n"
+    );
+    verify_commands_run(
+        "$ uname -m\n"
+        "$ [ -f ./jansson-2.4-1-x86_64.pkg.tar.xz ]\n"
+        "$ pacman -Sddp --print-format %v pacman\n"
+        "$ pacman -Q pacman\n"
+        "$ [ -f /tmp/staging ]\n"
+        "$ mkdir -p /home/test/.cache/buzzy/build/jansson-buzzy/pkg\n"
+        "$ mkdir -p .\n"
+        "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.install <<EOF\n"
+        "pre_install () {\n"
+        "# do some preinstallation\n"
+        "}\n"
+        "post_install () {\n"
+        "# do some postinstallation\n"
+        "}\n"
+        "pre_remove () {\n"
+        "# do some preremoval\n"
+        "}\n"
+        "post_remove () {\n"
+        "# do some postremoval\n"
+        "}\n"
+        "EOF\n"
+        "$ chmod 0640 "
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.install\n"
+        "$ cat > /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD"
+            " <<EOF\n"
+        "pkgname='jansson'\n"
+        "pkgver='2.4'\n"
+        "pkgrel='1'\n"
+        "arch=('x86_64')\n"
+        "license=('unknown')\n"
+        "package () {\n"
+        "    rm -rf \"${pkgdir}\"\n"
+        "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
+        "}\n"
+        "install=jansson.install\n"
+        "EOF\n"
+        "$ chmod 0640 /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD\n"
         "$ makepkg -sf\n"
     );
     bz_env_free(env);
@@ -657,6 +745,7 @@ START_TEST(test_arch_create_existing_package_02)
         "    cp -a '/tmp/staging' \"${pkgdir}\"\n"
         "}\n"
         "EOF\n"
+        "$ chmod 0640 /home/test/.cache/buzzy/build/jansson-buzzy/pkg/PKGBUILD\n"
         "$ makepkg -sf\n"
     );
     bz_env_free(env);
@@ -695,6 +784,7 @@ test_suite()
     tcase_add_test(tc_arch_package, test_arch_create_package_01);
     tcase_add_test(tc_arch_package, test_arch_create_package_license_01);
     tcase_add_test(tc_arch_package, test_arch_create_package_deps_01);
+    tcase_add_test(tc_arch_package, test_arch_create_package_with_scripts_01);
     tcase_add_test(tc_arch_package, test_arch_create_existing_package_01);
     tcase_add_test(tc_arch_package, test_arch_create_existing_package_02);
     suite_add_tcase(s, tc_arch_package);

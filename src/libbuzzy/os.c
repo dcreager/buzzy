@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -227,11 +227,11 @@ bz_subprocess_run(bool verbose, bool *successful, ...)
  */
 
 struct cork_file *
-bz_real__create_dir(struct cork_path *path)
+bz_real__create_dir(struct cork_path *path, cork_file_mode mode)
 {
     struct cork_file  *file = cork_file_new_from_path(path);
     ei_check(cork_file_mkdir
-             (file, 0750, CORK_FILE_RECURSIVE | CORK_FILE_PERMISSIVE));
+             (file, mode, CORK_FILE_RECURSIVE | CORK_FILE_PERMISSIVE));
     return file;
 
 error:
@@ -240,35 +240,36 @@ error:
 }
 
 int
-bz_create_directory(const char *path_string)
+bz_create_directory(const char *path_string, cork_file_mode mode)
 {
     struct cork_path  *path = cork_path_new(path_string);
     struct cork_file  *dir;
     clog_debug("Create directory %s", path_string);
-    rip_check(dir = bz_mocked_create_dir(path));
+    rip_check(dir = bz_mocked_create_dir(path, mode));
     cork_file_free(dir);
     return 0;
 }
 
 
 struct cork_file *
-bz_real__create_file(struct cork_path *path, struct cork_buffer *src)
+bz_real__create_file(struct cork_path *path, struct cork_buffer *src,
+                     cork_file_mode mode)
 {
     int  fd;
     ssize_t  bytes_written;
 
-    ei_check_posix(fd = creat(cork_path_get(path), 0640));
+    ei_check_posix(fd = creat(cork_path_get(path), mode));
 
     bytes_written = write(fd, src->buf, src->size);
     if (CORK_UNLIKELY(bytes_written == -1)) {
-        close(fd);
         cork_system_error_set();
+        close(fd);
         goto error;
     } else if (CORK_UNLIKELY(bytes_written != src->size)) {
+        cork_error_set_printf
+            (ENOSPC, "Cannot write %zu bytes to %s",
+             src->size, cork_path_get(path));
         close(fd);
-        cork_error_set(CORK_BUILTIN_ERROR, CORK_SYSTEM_ERROR,
-                       "Cannot write %zu bytes to %s",
-                       src->size, cork_path_get(path));
         goto error;
     }
 
@@ -281,12 +282,75 @@ error:
 }
 
 int
-bz_create_file(const char *path_string, struct cork_buffer *src)
+bz_create_file(const char *path_string, struct cork_buffer *src,
+               cork_file_mode mode)
 {
     struct cork_path  *path = cork_path_new(path_string);
     struct cork_file  *file;
     clog_debug("Create file %s", path_string);
-    rip_check(file = bz_mocked_create_file(path, src));
+    rip_check(file = bz_mocked_create_file(path, src, mode));
+    cork_file_free(file);
+    return 0;
+}
+
+
+#define COPY_BUF_SIZE  65536
+static char  COPY_BUF[COPY_BUF_SIZE];
+
+struct cork_file *
+bz_real__copy_file(struct cork_path *dest, struct cork_path *src, int mode)
+{
+    int  in_fd;
+    int  out_fd;
+    ssize_t  bytes_read;
+    ssize_t  bytes_written;
+
+    ei_check_posix(in_fd = open(cork_path_get(src), O_RDONLY));
+    ei_check_posix(out_fd = creat(cork_path_get(dest), mode));
+
+    while ((bytes_read = read(in_fd, COPY_BUF, COPY_BUF_SIZE)) > 0) {
+        bytes_written = write(out_fd, COPY_BUF, bytes_read);
+        if (CORK_UNLIKELY(bytes_written == -1)) {
+            cork_system_error_set();
+            close(in_fd);
+            close(out_fd);
+            goto error;
+        } else if (CORK_UNLIKELY(bytes_written != bytes_read)) {
+            cork_error_set_printf
+                (ENOSPC, "Cannot write %zu bytes to %s",
+                 bytes_read, cork_path_get(dest));
+            close(in_fd);
+            close(out_fd);
+            goto error;
+        }
+    }
+
+    if (bytes_read < 0) {
+        cork_system_error_set();
+        close(in_fd);
+        close(out_fd);
+        goto error;
+    }
+
+    ei_check_posix(close(in_fd));
+    ei_check_posix(close(out_fd));
+    cork_path_free(src);
+    return cork_file_new_from_path(dest);
+
+error:
+    cork_path_free(dest);
+    cork_path_free(src);
+    return NULL;
+}
+
+int
+bz_copy_file(const char *dest_string, const char *src_string, int mode)
+{
+    struct cork_path  *dest = cork_path_new(dest_string);
+    struct cork_path  *src = cork_path_new(src_string);
+    struct cork_file  *file;
+    clog_debug("Copy file %s to %s", src_string, dest_string);
+    rip_check(file = bz_mocked_copy_file(dest, src, mode));
     cork_file_free(file);
     return 0;
 }
@@ -309,6 +373,33 @@ bz_file_exists(const char *path_string, bool *exists)
     struct cork_path  *path = cork_path_new(path_string);
     clog_debug("Check whether %s exists", path_string);
     rc = bz_mocked_file_exists(path, exists);
+    cork_path_free(path);
+    return rc;
+}
+
+
+int
+bz_real__load_file(struct cork_path *path, struct cork_buffer *dest)
+{
+    struct cork_stream_consumer  *consumer =
+        cork_buffer_to_stream_consumer(dest);
+    ei_check(cork_consume_file_from_path
+             (consumer, cork_path_get(path), O_RDONLY));
+    cork_stream_consumer_free(consumer);
+    return 0;
+
+error:
+    cork_stream_consumer_free(consumer);
+    return -1;
+}
+
+int
+bz_load_file(const char *path_string, struct cork_buffer *dest)
+{
+    int  rc;
+    struct cork_path  *path = cork_path_new(path_string);
+    clog_debug("Read contents of %s", path_string);
+    rc = bz_mocked_load_file(path, dest);
     cork_path_free(path);
     return rc;
 }

@@ -39,6 +39,13 @@ bz_define_variables(package)
     );
 
     bz_package_variable(
+        native_name, "native_name",
+        bz_interpolated_value_new("${name}"),
+        "The native name of the package",
+        ""
+    );
+
+    bz_package_variable(
         version, "version",
         NULL,
         "The version of the package",
@@ -107,6 +114,13 @@ bz_define_variables(package)
         packager, "packager",
         bz_packager_detector_new(),
         "What packager is used to create a binary package file",
+        ""
+    );
+
+    bz_package_variable(
+        relocatable, "relocatable",
+        bz_string_value_new("false"),
+        "The installation prefix for platform-agnostic files",
         ""
     );
 
@@ -205,6 +219,38 @@ bz_define_variables(package)
         staging_dir, "staging_dir",
         bz_interpolated_value_new("${package_work_dir}/stage"),
         "Where a package's staged installation should be placed",
+        ""
+    );
+
+    bz_package_variable(
+        pre_install_script, "pre_install_script",
+        NULL,
+        "A script to run before the package is installed, "
+        "relative to build_dir",
+        ""
+    );
+
+    bz_package_variable(
+        post_install_script, "post_install_script",
+        NULL,
+        "A script to run after the package is installed, "
+        "relative to build_dir",
+        ""
+    );
+
+    bz_package_variable(
+        pre_remove_script, "pre_remove_script",
+        NULL,
+        "A script to run before the package is removed, "
+        "relative to build_dir",
+        ""
+    );
+
+    bz_package_variable(
+        post_remove_script, "post_remove_script",
+        NULL,
+        "A script to run after the package is removed, "
+        "relative to build_dir",
         ""
     );
 }
@@ -562,35 +608,16 @@ struct bz_cached_pdb {
     void  *user_data;
     cork_free_f  free_user_data;
     bz_pdb_satisfy_f  satisfy;
-    struct cork_hash_table  packages;
-    struct cork_hash_table  unique_packages;
+    struct cork_hash_table  *packages;
+    struct cork_hash_table  *unique_packages;
 };
-
-static enum cork_hash_table_map_result
-bz_cached_pdb__free_package(struct cork_hash_table_entry *entry, void *ud)
-{
-    const char  *dep_string = entry->key;
-    cork_strfree(dep_string);
-    return CORK_HASH_TABLE_MAP_DELETE;
-}
-
-static enum cork_hash_table_map_result
-bz_cached_pdb__free_unique(struct cork_hash_table_entry *entry, void *ud)
-{
-    struct bz_package  *package = entry->key;
-    bz_package_free(package);
-    return CORK_HASH_TABLE_MAP_DELETE;
-}
 
 static void
 bz_cached_pdb__free(void *user_data)
 {
     struct bz_cached_pdb  *pdb = user_data;
-    cork_hash_table_map(&pdb->packages, bz_cached_pdb__free_package, NULL);
-    cork_hash_table_done(&pdb->packages);
-    cork_hash_table_map
-        (&pdb->unique_packages, bz_cached_pdb__free_unique, NULL);
-    cork_hash_table_done(&pdb->unique_packages);
+    cork_hash_table_free(pdb->packages);
+    cork_hash_table_free(pdb->unique_packages);
     cork_free_user_data(pdb);
     free(pdb);
 }
@@ -607,7 +634,7 @@ bz_cached_pdb__satisfy(void *user_data, struct bz_dependency *dep,
     /* TODO: We might want to have the cache be aware of the value context when
      * caching packages. */
     entry = cork_hash_table_get_or_create
-        (&pdb->packages, (void *) dep_string, &is_new);
+        (pdb->packages, (void *) dep_string, &is_new);
 
     if (is_new) {
         struct bz_package  *package = pdb->satisfy(pdb->user_data, dep, ctx);
@@ -615,7 +642,7 @@ bz_cached_pdb__satisfy(void *user_data, struct bz_dependency *dep,
         entry->value = package;
         if (package != NULL) {
             cork_hash_table_put
-                (&pdb->unique_packages, package, NULL, NULL, NULL, NULL);
+                (pdb->unique_packages, package, NULL, NULL, NULL, NULL);
         }
         return package;
     } else {
@@ -632,8 +659,11 @@ bz_cached_pdb_new(const char *pdb_name,
     pdb->user_data = user_data;
     pdb->free_user_data = free_user_data;
     pdb->satisfy = satisfy;
-    cork_string_hash_table_init(&pdb->packages, 0);
-    cork_pointer_hash_table_init(&pdb->unique_packages, 0);
+    pdb->packages = cork_string_hash_table_new(0, 0);
+    cork_hash_table_set_free_key(pdb->packages, (cork_free_f) cork_strfree);
+    pdb->unique_packages = cork_pointer_hash_table_new(0, 0);
+    cork_hash_table_set_free_key
+        (pdb->unique_packages, (cork_free_f) bz_package_free);
     return bz_pdb_new
         (pdb_name, pdb, bz_cached_pdb__free, bz_cached_pdb__satisfy);
 }

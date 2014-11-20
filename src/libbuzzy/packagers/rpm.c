@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -194,14 +194,20 @@ bz_rpm_fill_one_dep(void *user_data, struct bz_value *dep_value)
     struct bz_rpm_fill_deps  *state = user_data;
     const char  *dep_string;
     struct bz_dependency  *dep;
+    struct bz_package  *dep_package;
+    struct bz_env  *dep_env;
+    const char  *dep_name;
     rip_check(dep_string = bz_scalar_value_get(dep_value, state->ctx));
     rip_check(dep = bz_dependency_from_string(dep_string));
+    rip_check(dep_package = bz_satisfy_dependency(dep, state->ctx));
+    dep_env = bz_package_env(dep_package);
+    rip_check(dep_name = bz_env_get_string(dep_env, "native_name", true));
     if (state->first) {
         state->first = false;
     } else {
         cork_buffer_append(&state->dep_buf, ", ", 2);
     }
-    cork_buffer_append_string(&state->dep_buf, dep->package_name);
+    cork_buffer_append_string(&state->dep_buf, dep_name);
     if (dep->min_version != NULL) {
         cork_buffer_append(&state->dep_buf, " >= ", 4);
         bz_version_to_rpm(dep->min_version, &state->dep_buf);
@@ -268,6 +274,33 @@ bz_rpm_spec_files__leave(struct cork_dir_walker *walker, const char *full_path,
 }
 
 static int
+bz_rpm_add_install_script(struct bz_env *env, struct cork_buffer *buf,
+                          const char *var_name)
+{
+    struct cork_path  *install_script;
+    rie_check(install_script = bz_env_get_path(env, var_name, false));
+    if (install_script != NULL) {
+        clog_debug("Load %s script from %s",
+                   var_name, cork_path_get(install_script));
+        rii_check(bz_load_file(cork_path_get(install_script), buf));
+        cork_buffer_append_string(buf, "\n");
+    }
+    return 0;
+}
+
+static int
+bz_rpm_add_script_to_spec(struct cork_buffer *spec, struct cork_buffer *script,
+                          const char *section_name)
+{
+    if (script->size > 0) {
+        clog_debug("Include %s script in spec", section_name);
+        cork_buffer_append_printf(spec, "\n%%%s\n", section_name);
+        cork_buffer_append_copy(spec, script);
+    }
+    return 0;
+}
+
+static int
 bz_rpm__package(void *user_data)
 {
     struct bz_env  *env = user_data;
@@ -282,9 +315,14 @@ bz_rpm__package(void *user_data)
     const char  *version_r;
     const char  *license;
     bool  verbose;
+    bool  relocatable;
 
     struct cork_exec  *exec;
     struct cork_buffer  buf = CORK_BUFFER_INIT();
+    struct cork_buffer  pre = CORK_BUFFER_INIT();
+    struct cork_buffer  post = CORK_BUFFER_INIT();
+    struct cork_buffer  preun = CORK_BUFFER_INIT();
+    struct cork_buffer  postun = CORK_BUFFER_INIT();
     struct cork_buffer  param = CORK_BUFFER_INIT();
     bool  staging_exists;
 
@@ -307,18 +345,24 @@ bz_rpm__package(void *user_data)
     rip_check(version_r = bz_env_get_string(env, "rpm.version_r", true));
     rip_check(license = bz_env_get_string(env, "license", true));
     rie_check(verbose = bz_env_get_bool(env, "verbose", true));
+    rie_check(relocatable = bz_env_get_bool(env, "relocatable", true));
 
     rii_check(bz_file_exists(cork_path_get(staging_dir), &staging_exists));
     if (CORK_UNLIKELY(!staging_exists)) {
-        cork_error_set
-            (CORK_BUILTIN_ERROR, CORK_SYSTEM_ERROR,
-             "Staging directory %s does not exist", cork_path_get(staging_dir));
-        return -1;
+        cork_error_set_printf
+            (ENOENT, "Staging directory %s does not exist",
+             cork_path_get(staging_dir));
+        goto error;
     }
 
+    /* For now, always call ldconfig in a post-install script, regardless of
+     * whether the package includes any shared libraries. */
+    cork_buffer_append_literal(&post, "/sbin/ldconfig\n");
+    cork_buffer_append_literal(&postun, "/sbin/ldconfig\n");
+
     /* Create the temporary directory and the packaging destination */
-    rii_check(bz_create_directory(cork_path_get(package_build_dir)));
-    rii_check(bz_create_directory(cork_path_get(binary_package_dir)));
+    rii_check(bz_create_directory(cork_path_get(package_build_dir), 0750));
+    rii_check(bz_create_directory(cork_path_get(binary_package_dir), 0750));
 
     /* Create an RPM spec file for this package */
     cork_buffer_append_printf(&buf, "Summary: %s\n", package_name);
@@ -332,6 +376,15 @@ bz_rpm__package(void *user_data)
     cork_buffer_append_printf
         (&buf, "BuildRoot: %s\n", cork_path_get(staging_dir));
     rii_check(bz_rpm_fill_deps(env, &buf, "Requires", "dependencies"));
+
+    if (relocatable) {
+        /* TODO: We don't currently verify that the package really is
+         * relocatable.  It's up to you not to lie! */
+        struct cork_path  *prefix;
+        rip_check(prefix = bz_env_get_path(env, "prefix", true));
+        cork_buffer_append_printf(&buf, "Prefix: %s\n", cork_path_get(prefix));
+    }
+
     cork_buffer_append_printf(&buf,
         "\n"
         "%%description\n"
@@ -353,8 +406,26 @@ bz_rpm__package(void *user_data)
     files.buf = &buf;
     ei_check(bz_walk_directory(cork_path_get(staging_dir), &files.parent));
 
-    ei_check(bz_create_file(cork_path_get(spec_file), &buf));
+    /* Add pre- and post-install scripts, if necessary. */
+    rii_check(bz_rpm_add_install_script(env, &pre, "pre_install_script"));
+    rii_check(bz_rpm_add_install_script(env, &post, "post_install_script"));
+    rii_check(bz_rpm_add_install_script(env, &preun, "pre_remove_script"));
+    rii_check(bz_rpm_add_install_script(env, &postun, "post_remove_script"));
+
+    /* And any installation scripts that have content. */
+    bz_rpm_add_script_to_spec(&buf, &pre, "pre");
+    bz_rpm_add_script_to_spec(&buf, &post, "post");
+    bz_rpm_add_script_to_spec(&buf, &preun, "preun");
+    bz_rpm_add_script_to_spec(&buf, &postun, "postun");
+
+    /* Create the full spec file. */
+    ei_check(bz_create_file(cork_path_get(spec_file), &buf, 0640));
+
     cork_buffer_done(&buf);
+    cork_buffer_done(&pre);
+    cork_buffer_done(&post);
+    cork_buffer_done(&preun);
+    cork_buffer_done(&postun);
 
     exec = cork_exec_new("rpmbuild");
     cork_exec_add_param(exec, "rpmbuild");
@@ -386,6 +457,10 @@ bz_rpm__package(void *user_data)
 
 error:
     cork_buffer_done(&buf);
+    cork_buffer_done(&pre);
+    cork_buffer_done(&post);
+    cork_buffer_done(&preun);
+    cork_buffer_done(&postun);
     cork_buffer_done(&param);
     return -1;
 }

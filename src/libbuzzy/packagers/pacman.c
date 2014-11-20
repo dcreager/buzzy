@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -85,6 +85,21 @@ bz_define_variables(pacman)
     );
 
     bz_package_variable(
+        architecture, "pacman.install_base",
+        bz_interpolated_value_new("${native_name}.install"),
+        "The base name of the install script file we should create",
+        ""
+    );
+
+    bz_package_variable(
+        architecture, "pacman.install",
+        bz_interpolated_value_new
+            ("${package_build_dir}/${pacman.install_base}"),
+        "The location of the install script file we should create",
+        ""
+    );
+
+    bz_package_variable(
         architecture, "pacman.arch",
         bz_interpolated_value_new("${arch}"),
         "The architecture to build pacman packages for",
@@ -157,15 +172,21 @@ bz_pacman_fill_one_dep(void *user_data, struct bz_value *dep_value)
     struct bz_pacman_fill_deps  *state = user_data;
     const char  *dep_string;
     struct bz_dependency  *dep;
+    struct bz_package  *dep_package;
+    struct bz_env  *dep_env;
+    const char  *dep_name;
     rip_check(dep_string = bz_scalar_value_get(dep_value, state->ctx));
     rip_check(dep = bz_dependency_from_string(dep_string));
+    rip_check(dep_package = bz_satisfy_dependency(dep, state->ctx));
+    dep_env = bz_package_env(dep_package);
+    rip_check(dep_name = bz_env_get_string(dep_env, "native_name", true));
     if (state->first) {
         cork_buffer_append(&state->dep_buf, "'", 1);
         state->first = false;
     } else {
         cork_buffer_append(&state->dep_buf, " '", 2);
     }
-    cork_buffer_append_string(&state->dep_buf, dep->package_name);
+    cork_buffer_append_string(&state->dep_buf, dep_name);
     if (dep->min_version != NULL) {
         cork_buffer_append(&state->dep_buf, ">=", 2);
         bz_version_to_arch(dep->min_version, &state->dep_buf);
@@ -197,6 +218,52 @@ bz_pacman_fill_deps(struct bz_env *env, struct cork_buffer *buf,
         cork_buffer_done(&state.dep_buf);
         return rc;
     }
+    return 0;
+}
+
+static int
+bz_pacman_add_install_script(struct bz_env *env, struct cork_buffer *buf,
+                             const char *var_name, const char *func_name)
+{
+    struct cork_path  *install_script;
+    rie_check(install_script = bz_env_get_path(env, var_name, false));
+    if (install_script != NULL) {
+        cork_buffer_append_printf(buf, "%s () {\n", func_name);
+        rii_check(bz_load_file(cork_path_get(install_script), buf));
+        cork_buffer_append_string(buf, "\n}\n");
+    }
+    return 0;
+}
+
+static int
+bz_pacman_add_install_scripts(struct bz_env *env,
+                              struct cork_buffer *pkgbuild_buf)
+{
+    struct cork_buffer  install_buf = CORK_BUFFER_INIT();
+
+    /* Copy each kind of script into install_buf, if present. */
+    rii_check(bz_pacman_add_install_script
+              (env, &install_buf, "pre_install_script", "pre_install"));
+    rii_check(bz_pacman_add_install_script
+              (env, &install_buf, "post_install_script", "post_install"));
+    rii_check(bz_pacman_add_install_script
+              (env, &install_buf, "pre_remove_script", "pre_remove"));
+    rii_check(bz_pacman_add_install_script
+              (env, &install_buf, "post_remove_script", "post_remove"));
+
+    /* If any of them added content to the install script, save that to a file
+     * and reference it in the PKGBUILD. */
+    if (install_buf.size > 0) {
+        struct cork_path  *install;
+        const char  *install_base;
+        rip_check(install = bz_env_get_path(env, "pacman.install", true));
+        rip_check(install_base =
+                  bz_env_get_string(env, "pacman.install_base", true));
+        rii_check(bz_create_file(cork_path_get(install), &install_buf, 0640));
+        cork_buffer_append_printf(pkgbuild_buf, "install=%s\n", install_base);
+    }
+
+    cork_buffer_done(&install_buf);
     return 0;
 }
 
@@ -245,15 +312,19 @@ bz_pacman__package(void *user_data)
 
     rii_check(bz_file_exists(cork_path_get(staging_dir), &staging_exists));
     if (CORK_UNLIKELY(!staging_exists)) {
-        cork_error_set
-            (CORK_BUILTIN_ERROR, CORK_SYSTEM_ERROR,
-             "Staging directory %s does not exist", cork_path_get(staging_dir));
+        cork_error_set_printf
+            (ENOENT, "Staging directory %s does not exist",
+             cork_path_get(staging_dir));
         return -1;
     }
 
+    /* NOTE: pacman runs ldconfig automatically, so unlike the other packagers,
+     * we do NOT need to add an ldconfig call to the post-install and
+     * post-remove scripts. */
+
     /* Create the temporary directory and the packaging destination */
-    rii_check(bz_create_directory(cork_path_get(package_build_dir)));
-    rii_check(bz_create_directory(cork_path_get(binary_package_dir)));
+    rii_check(bz_create_directory(cork_path_get(package_build_dir), 0750));
+    rii_check(bz_create_directory(cork_path_get(binary_package_dir), 0750));
 
     /* Create a PKGBUILD file for this package */
     cork_buffer_append_printf(&buf, "pkgname='%s'\n", package_name);
@@ -270,7 +341,10 @@ bz_pacman__package(void *user_data)
         cork_path_get(staging_dir)
     );
 
-    ei_check(bz_create_file(cork_path_get(pkgbuild), &buf));
+    /* Add pre- and post-install scripts, if necessary. */
+    rii_check(bz_pacman_add_install_scripts(env, &buf));
+
+    ei_check(bz_create_file(cork_path_get(pkgbuild), &buf, 0640));
     cork_buffer_done(&buf);
 
     exec_env = cork_env_clone_current();

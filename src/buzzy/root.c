@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -14,6 +14,7 @@
 static struct cork_command  *subcommands[] = {
     &buzzy_build,
     &buzzy_doc,
+    &buzzy_get,
     &buzzy_info,
     &buzzy_install,
     &buzzy_raw,

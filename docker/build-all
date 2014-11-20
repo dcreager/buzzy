@@ -1,0 +1,14 @@
+#!/bin/sh
+
+SCRIPT=`python -c "import os; print(os.path.realpath('$0'))"`
+SCRIPT_DIR=`dirname "$SCRIPT"`
+
+for DISTRO_PATH in $SCRIPT_DIR/distros/*; do
+    DISTRO=`basename "$DISTRO_PATH"`
+    echo
+    echo "--------------------------------------"
+    echo $DISTRO
+    echo "--------------------------------------"
+    echo
+    "$SCRIPT_DIR/build" "$DISTRO"
+done
