@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -57,7 +57,7 @@ test_file(const char *filename, const char *content)
 {
     struct cork_buffer  buf = CORK_BUFFER_INIT();
     cork_buffer_set_string(&buf, content);
-    fail_if_error(bz_create_file(filename, &buf));
+    fail_if_error(bz_create_file(filename, &buf, 0640));
     cork_buffer_done(&buf);
 }
 
@@ -103,6 +103,7 @@ START_TEST(test_create_file_01)
         "$ cat > test-file.txt <<EOF\n"
         "hello world\n"
         "EOF\n"
+        "$ chmod 0640 test-file.txt\n"
     );
 }
 END_TEST

@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -259,7 +259,7 @@ bz_pacman_add_install_scripts(struct bz_env *env,
         rip_check(install = bz_env_get_path(env, "pacman.install", true));
         rip_check(install_base =
                   bz_env_get_string(env, "pacman.install_base", true));
-        rii_check(bz_create_file(cork_path_get(install), &install_buf));
+        rii_check(bz_create_file(cork_path_get(install), &install_buf, 0640));
         cork_buffer_append_printf(pkgbuild_buf, "install=%s\n", install_base);
     }
 
@@ -344,7 +344,7 @@ bz_pacman__package(void *user_data)
     /* Add pre- and post-install scripts, if necessary. */
     rii_check(bz_pacman_add_install_scripts(env, &buf));
 
-    ei_check(bz_create_file(cork_path_get(pkgbuild), &buf));
+    ei_check(bz_create_file(cork_path_get(pkgbuild), &buf, 0640));
     cork_buffer_done(&buf);
 
     exec_env = cork_env_clone_current();

@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -252,12 +252,13 @@ bz_create_directory(const char *path_string, cork_file_mode mode)
 
 
 struct cork_file *
-bz_real__create_file(struct cork_path *path, struct cork_buffer *src)
+bz_real__create_file(struct cork_path *path, struct cork_buffer *src,
+                     cork_file_mode mode)
 {
     int  fd;
     ssize_t  bytes_written;
 
-    ei_check_posix(fd = creat(cork_path_get(path), 0640));
+    ei_check_posix(fd = creat(cork_path_get(path), mode));
 
     bytes_written = write(fd, src->buf, src->size);
     if (CORK_UNLIKELY(bytes_written == -1)) {
@@ -281,12 +282,13 @@ error:
 }
 
 int
-bz_create_file(const char *path_string, struct cork_buffer *src)
+bz_create_file(const char *path_string, struct cork_buffer *src,
+               cork_file_mode mode)
 {
     struct cork_path  *path = cork_path_new(path_string);
     struct cork_file  *file;
     clog_debug("Create file %s", path_string);
-    rip_check(file = bz_mocked_create_file(path, src));
+    rip_check(file = bz_mocked_create_file(path, src, mode));
     cork_file_free(file);
     return 0;
 }

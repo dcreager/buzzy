@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -297,7 +297,7 @@ bz_deb_add_script_to_package(struct bz_env *env, struct cork_buffer *script,
         struct cork_path  *deb_script;
         rip_check(deb_script = bz_env_get_path(env, var_name, true));
         clog_debug("Create %s script %s", var_name, cork_path_get(deb_script));
-        return bz_create_file(cork_path_get(deb_script), script);
+        return bz_create_file(cork_path_get(deb_script), script, 0755);
     }
     return 0;
 }
@@ -381,7 +381,7 @@ bz_deb__package(void *user_data)
     rii_check(bz_deb_add_install_script(env, &postrm, "post_remove_script"));
 
     /* Create the control file */
-    ei_check(bz_create_file(cork_path_get(control_file), &buf));
+    ei_check(bz_create_file(cork_path_get(control_file), &buf, 0640));
 
     /* And any installation scripts that have content. */
     bz_deb_add_script_to_package(env, &preinst, "deb.preinst_script");

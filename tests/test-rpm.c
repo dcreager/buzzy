@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -583,6 +583,8 @@ START_TEST(test_rpm_create_package_01)
         "%postun\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0640 "
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
         "$ rpmbuild "
             "--define _sourcedir . "
             "--define _rpmdir . "
@@ -652,6 +654,8 @@ START_TEST(test_rpm_create_package_license_01)
         "%postun\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0640 "
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
         "$ rpmbuild "
             "--define _sourcedir . "
             "--define _rpmdir . "
@@ -722,6 +726,8 @@ START_TEST(test_rpm_create_package_relocatable_01)
         "%postun\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0640 "
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
         "$ rpmbuild "
             "--define _sourcedir . "
             "--define _rpmdir . "
@@ -800,6 +806,8 @@ START_TEST(test_rpm_create_package_deps_01)
         "%postun\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0640 "
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
         "$ rpmbuild "
             "--define _sourcedir . "
             "--define _rpmdir . "
@@ -897,6 +905,8 @@ START_TEST(test_rpm_create_package_with_scripts_01)
         "/sbin/ldconfig\n"
         "# do some postremoval\n"
         "EOF\n"
+        "$ chmod 0640 "
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
         "$ rpmbuild "
             "--define _sourcedir . "
             "--define _rpmdir . "
@@ -983,6 +993,8 @@ START_TEST(test_rpm_create_existing_package_02)
         "%postun\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0640 "
+            "/home/test/.cache/buzzy/build/jansson-buzzy/pkg/jansson.spec\n"
         "$ rpmbuild "
             "--define _sourcedir . "
             "--define _rpmdir . "

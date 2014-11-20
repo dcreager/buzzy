@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -419,7 +419,7 @@ bz_rpm__package(void *user_data)
     bz_rpm_add_script_to_spec(&buf, &postun, "postun");
 
     /* Create the full spec file. */
-    ei_check(bz_create_file(cork_path_get(spec_file), &buf));
+    ei_check(bz_create_file(cork_path_get(spec_file), &buf, 0640));
 
     cork_buffer_done(&buf);
     cork_buffer_done(&pre);

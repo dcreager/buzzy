@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -574,12 +574,15 @@ START_TEST(test_deb_create_package_01)
         "Priority: optional\n"
         "Architecture: amd64\n"
         "EOF\n"
+        "$ chmod 0640 /tmp/staging/DEBIAN/control\n"
         "$ cat > /tmp/staging/DEBIAN/postinst <<EOF\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/postinst\n"
         "$ cat > /tmp/staging/DEBIAN/postrm <<EOF\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/postrm\n"
         "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
     );
     bz_env_free(env);
@@ -618,12 +621,15 @@ START_TEST(test_deb_create_package_license_01)
         "Priority: optional\n"
         "Architecture: amd64\n"
         "EOF\n"
+        "$ chmod 0640 /tmp/staging/DEBIAN/control\n"
         "$ cat > /tmp/staging/DEBIAN/postinst <<EOF\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/postinst\n"
         "$ cat > /tmp/staging/DEBIAN/postrm <<EOF\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/postrm\n"
         "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
     );
     bz_env_free(env);
@@ -671,12 +677,15 @@ START_TEST(test_deb_create_package_deps_01)
         "Architecture: amd64\n"
         "Depends: libfoo-dev, libbar-dev (>= 2.5~alpha1)\n"
         "EOF\n"
+        "$ chmod 0640 /tmp/staging/DEBIAN/control\n"
         "$ cat > /tmp/staging/DEBIAN/postinst <<EOF\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/postinst\n"
         "$ cat > /tmp/staging/DEBIAN/postrm <<EOF\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/postrm\n"
         "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
     );
     bz_env_free(env);
@@ -735,20 +744,25 @@ START_TEST(test_deb_create_package_with_scripts_01)
         "Priority: optional\n"
         "Architecture: amd64\n"
         "EOF\n"
+        "$ chmod 0640 /tmp/staging/DEBIAN/control\n"
         "$ cat > /tmp/staging/DEBIAN/preinst <<EOF\n"
         "# do some preinstallation\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/preinst\n"
         "$ cat > /tmp/staging/DEBIAN/postinst <<EOF\n"
         "/sbin/ldconfig\n"
         "# do some postinstallation\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/postinst\n"
         "$ cat > /tmp/staging/DEBIAN/prerm <<EOF\n"
         "# do some preremoval\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/prerm\n"
         "$ cat > /tmp/staging/DEBIAN/postrm <<EOF\n"
         "/sbin/ldconfig\n"
         "# do some postremoval\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/postrm\n"
         "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
     );
     bz_env_free(env);
@@ -803,12 +817,15 @@ START_TEST(test_deb_create_existing_package_02)
         "Priority: optional\n"
         "Architecture: amd64\n"
         "EOF\n"
+        "$ chmod 0640 /tmp/staging/DEBIAN/control\n"
         "$ cat > /tmp/staging/DEBIAN/postinst <<EOF\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/postinst\n"
         "$ cat > /tmp/staging/DEBIAN/postrm <<EOF\n"
         "/sbin/ldconfig\n"
         "EOF\n"
+        "$ chmod 0755 /tmp/staging/DEBIAN/postrm\n"
         "$ dpkg-deb -b /tmp/staging ./jansson_2.4_amd64.deb\n"
     );
     bz_env_free(env);
