@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------
-# Copyright © 2011-2013, RedJack, LLC.
+# Copyright © 2011-2014, RedJack, LLC.
 # All rights reserved.
 #
 # Please see the COPYING file in this distribution for license details.
@@ -113,6 +113,7 @@ set(BUZZY_SRC
     buzzy/build.c
     buzzy/buzzy.c
     buzzy/doc.c
+    buzzy/get.c
     buzzy/info.c
     buzzy/install.c
     buzzy/raw.c
