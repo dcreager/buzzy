@@ -2,7 +2,7 @@ require 'formula'
 
 class Buzzy < Formula
   homepage 'https://github.com/redjack/buzzy/'
-  version '0.4.1-dev'
+  version '0.5.0'
   url 'https://github.com/redjack/buzzy.git', :branch => 'master'
   head 'https://github.com/redjack/buzzy.git', :branch => 'develop'
 
