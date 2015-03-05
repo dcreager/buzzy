@@ -1,0 +1,6 @@
+#!/bin/sh
+
+SCRIPT=`python -c "import os; print(os.path.realpath('$0'))"`
+SCRIPT_DIR=`dirname "$SCRIPT"`
+PROJECT_DIR=`dirname "$SCRIPT_DIR"`
+s3cmd put -P -r "$PROJECT_DIR/packages/" s3://public.redjack.com/

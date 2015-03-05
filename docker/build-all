@@ -3,8 +3,7 @@
 SCRIPT=`python -c "import os; print(os.path.realpath('$0'))"`
 SCRIPT_DIR=`dirname "$SCRIPT"`
 
-for DISTRO_PATH in $SCRIPT_DIR/distros/*; do
-    DISTRO=`basename "$DISTRO_PATH"`
+for DISTRO in `cat $SCRIPT_DIR/all`; do
     echo
     echo "--------------------------------------"
     echo $DISTRO
