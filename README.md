@@ -1,5 +1,7 @@
 # Buzzy package manager
 
+[![Build Status](https://img.shields.io/travis/redjack/buzzy/develop.svg)](https://travis-ci.org/redjack/buzzy)
+
 Buzzy is a package manager that isn't tied to one particular operating system or
 distribution.  It's useful for third-party software developers that would like
 to provide native binary packages for the software that they write, without
