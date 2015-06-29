@@ -56,7 +56,6 @@ make test
 # includes debugging information in the packages.
 cd /outside
 PACKAGE_NAME=`$HOME/build/src/buzzy get name`
-VERSION=`$HOME/build/src/buzzy get version`
 sudo mkdir /src
 sudo ln -s /outside /src/$PACKAGE_NAME
 
@@ -65,7 +64,7 @@ cd /src/$PACKAGE_NAME
 $HOME/build/src/buzzy install
 
 # Copy the built package into the outside-visible volume
-PACKAGE_DIR=/outside/packages/$VERSION/$DISTRO
+PACKAGE_DIR=/outside/packages/$DISTRO
 sudo mkdir -p $PACKAGE_DIR
 sudo cp $HOME/.cache/buzzy/packages/* $PACKAGE_DIR
-sudo chown -R $UID:$GID $PACKAGE_DIR
+sudo chown -R $UID:$GID /outside/packages

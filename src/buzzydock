@@ -1,0 +1,48 @@
+#!/bin/sh
+
+usage () {
+    echo "Usage: buzzydock <distro> <command> [<options>]"
+}
+
+DISTRO=$1; shift
+if [ -z "$DISTRO" ]; then
+    usage
+    exit 1
+fi
+
+SAFE_DISTRO=`echo $DISTRO | sed -e 's/:/-/'`
+
+COMMAND=$1; shift
+if [ -z "$COMMAND" ]; then
+    usage
+    exit 1
+fi
+
+[ -n "$DOCKER" ] || DOCKER=/usr/bin/docker
+[ -n "$PACKAGE_DIR" ] || PACKAGE_DIR=$HOME/.cache/buzzy/distros
+
+if [ ! -x "$DOCKER" ]; then
+    echo "You need to have docker installed, yo"
+    exit 1
+fi
+
+if [ -n "$SSH_AUTH_SOCK" ]; then
+    SSH_AUTH_DIR=`dirname $SSH_AUTH_SOCK`
+    OPTS="-v $SSH_AUTH_DIR:$SSH_AUTH_DIR $OPTS"
+    OPTS="-e SSH_AUTH_SOCK=$SSH_AUTH_SOCK $OPTS"
+fi
+
+if [ -d "$HOME/.ssh" ]; then
+    OPTS="-v $HOME/.ssh:/home/buzzy/.ssh $OPTS"
+fi
+
+mkdir -p $PACKAGE_DIR/$SAFE_DISTRO
+
+$DOCKER run \
+    -t \
+    -v $PACKAGE_DIR/$SAFE_DISTRO:/home/buzzy/.cache/buzzy/packages \
+    -v $HOME/.cache/buzzy/repos:/home/buzzy/.cache/buzzy/repos \
+    -v $PWD:/outside -w /outside \
+    $OPTS \
+    buzzy/$DISTRO \
+    buzzy $COMMAND "$@"

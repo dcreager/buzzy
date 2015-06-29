@@ -132,3 +132,8 @@ set_target_properties(buzzy PROPERTIES
 )
 target_link_libraries(buzzy libbuzzy libcork libclogger)
 install(TARGETS buzzy DESTINATION bin)
+
+#-----------------------------------------------------------------------
+# buzzydock
+
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/buzzydock DESTINATION bin)

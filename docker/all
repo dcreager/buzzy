@@ -1,0 +1,6 @@
+arch
+centos:centos6
+centos:centos7
+debian:wheezy
+ubuntu:precise
+ubuntu:trusty

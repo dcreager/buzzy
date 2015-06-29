@@ -19,26 +19,12 @@ SCRIPT=`python -c "import os; print(os.path.realpath('$0'))"`
 SCRIPT_DIR=`dirname "$SCRIPT"`
 PROJECT_DIR=`dirname "$SCRIPT_DIR"`
 
-DISTRO_DIR=$SCRIPT_DIR/distros/$DISTRO
-if [ ! -d "$DISTRO_DIR" ]; then
-    echo "Unknown distro $DISTRO"
-    exit 1
-fi
+BUILD_IMAGE=buzzy/build-$DISTRO
 
-if [ ! -e "$DISTRO_DIR/Dockerfile" ]; then
-    echo "Missing Dockerfile for $DISTRO"
-    exit 1
-fi
-
-UPSTREAM_DOCKER_IMAGE=`grep FROM $DISTRO_DIR/Dockerfile | awk '{ print $2 }'`
-IMAGE=buzzy-$DISTRO
-
-OLD_IMAGE_ID=`docker images -q $IMAGE`
-docker pull $UPSTREAM_DOCKER_IMAGE
-docker build -t $IMAGE $DISTRO_DIR
-
+OLD_IMAGE_ID=`docker images -q $BUILD_IMAGE`
+docker pull $BUILD_IMAGE
 if [ -n "$OLD_IMAGE_ID" ]; then
-    NEW_IMAGE_ID=`docker images -q $IMAGE`
+    NEW_IMAGE_ID=`docker images -q $BUILD_IMAGE`
     if [ "$OLD_IMAGE_ID" != "$NEW_IMAGE_ID" ]; then
         docker rmi "$OLD_IMAGE_ID"
     fi
@@ -50,5 +36,5 @@ docker run \
     -e DISTRO="$DISTRO" \
     -e UID=`id -u` \
     -e GID=`id -g` \
-    "$IMAGE" \
+    "$BUILD_IMAGE" \
     /outside/docker/build-inside
