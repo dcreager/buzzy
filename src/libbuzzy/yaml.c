@@ -101,7 +101,7 @@ bz_yaml_get_scalar(yaml_document_t *doc, int node_id,
 const char *
 bz_yaml_get_string(yaml_document_t *doc, int node_id, const char *context_name)
 {
-    const char  *content;
+    const char  *content = NULL;
     size_t  size;
     rpi_check(bz_yaml_get_scalar(doc, node_id, &content, &size, context_name));
     return content;
