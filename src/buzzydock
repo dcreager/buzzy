@@ -21,10 +21,10 @@ fi
 [ -n "$DOCKER" ] || DOCKER=/usr/bin/docker
 [ -n "$PACKAGE_DIR" ] || PACKAGE_DIR=$HOME/.cache/buzzy/distros
 
-if [ ! -x "$DOCKER" ]; then
+command -v docker >/dev/null 2>&1 || {
     echo "You need to have docker installed, yo"
     exit 1
-fi
+}
 
 if [ -n "$SSH_AUTH_SOCK" ]; then
     SSH_AUTH_DIR=`dirname $SSH_AUTH_SOCK`
@@ -38,7 +38,7 @@ fi
 
 mkdir -p $PACKAGE_DIR/$SAFE_DISTRO
 
-$DOCKER run \
+docker run \
     -t \
     -v $PACKAGE_DIR/$SAFE_DISTRO:/home/buzzy/.cache/buzzy/packages \
     -v $HOME/.cache/buzzy/repos:/home/buzzy/.cache/buzzy/repos \
