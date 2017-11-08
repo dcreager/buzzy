@@ -2,9 +2,6 @@
 /.build/
 /packages/
 
-RELEASE-VERSION
-buzzy.pc
-
 /buzzy*.tar.gz
 /buzzy*.tar.bz2
 
