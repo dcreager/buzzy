@@ -1,7 +1,0 @@
-[submodule "lib/libcork"]
-	path = lib/libcork
-	url = git://github.com/redjack/libcork.git
-[submodule "lib/clogger"]
-	path = lib/clogger
-	url = git://github.com/redjack/clogger.git
-	branch = develop
