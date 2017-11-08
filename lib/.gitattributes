@@ -1,1 +1,2 @@
+/clogger/**/*                -diff -whitespace
 /libyaml/**/*                -diff -whitespace
