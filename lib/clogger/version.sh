@@ -3,7 +3,8 @@
 # Copyright © 2011-2013, RedJack, LLC.
 # All rights reserved.
 #
-# Please see the COPYING file in this distribution for license details.
+# Please see the COPYING file in this distribution for license
+# details.
 # ----------------------------------------------------------------------
 
 # Calculates the current version number.  If possible, this is the
