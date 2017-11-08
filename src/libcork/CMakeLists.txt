@@ -8,9 +8,16 @@
 # ----------------------------------------------------------------------
 
 include_directories(${CMAKE_SOURCE_DIR}/lib/libcork/include)
+include_directories(${CMAKE_BINARY_DIR}/lib/libcork/include)
 
 #-----------------------------------------------------------------------
 # Embedded libcork library
+
+configure_file(
+    ${CMAKE_SOURCE_DIR}/lib/libcork/include/libcork/config/version.h.in
+    ${CMAKE_BINARY_DIR}/lib/libcork/include/libcork/config/version.h
+    ESCAPE_QUOTES @ONLY
+)
 
 set(LIBCORK_SRC
     ${CMAKE_SOURCE_DIR}/lib/libcork/src/libcork/cli/commands.c

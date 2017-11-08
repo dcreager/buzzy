@@ -9,6 +9,7 @@
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/lib/clogger/include)
 include_directories(${CMAKE_SOURCE_DIR}/lib/libcork/include)
+include_directories(${CMAKE_BINARY_DIR}/lib/libcork/include)
 include_directories(${CMAKE_SOURCE_DIR}/lib/libyaml/include)
 
 add_subdirectory(clogger)
