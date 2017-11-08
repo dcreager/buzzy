@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------
-# Copyright © 2011-2014, RedJack, LLC.
+# Copyright © 2011-2015, RedJack, LLC.
 # All rights reserved.
 #
 # Please see the COPYING file in this distribution for license details.
@@ -51,10 +51,6 @@ make_test(test-versions)
 
 #-----------------------------------------------------------------------
 # Command-line tests
-
-if(TILERA)
-    configure_file(tile-test ${CMAKE_BINARY_DIR}/tile-test COPYONLY)
-endif(TILERA)
 
 find_package(PythonInterp)
 
