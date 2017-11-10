@@ -1,3 +1,5 @@
+dist: trust
+sudo: required
 language: c
 compiler:
   - clang
