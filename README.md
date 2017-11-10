@@ -1,6 +1,6 @@
 # Buzzy package manager
 
-[![Build Status](https://img.shields.io/travis/dcreager/buzzy/develop.svg)](https://travis-ci.org/dcreager/buzzy)
+[![Build Status](https://travis-ci.org/dcreager/buzzy.svg?branch=master)](https://travis-ci.org/dcreager/buzzy)
 
 Buzzy is a package manager that isn't tied to one particular operating system or
 distribution.  It's useful for third-party software developers that would like
