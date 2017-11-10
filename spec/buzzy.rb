@@ -1,10 +1,10 @@
 require 'formula'
 
 class Buzzy < Formula
-  homepage 'https://github.com/redjack/buzzy/'
+  homepage 'https://github.com/dcreager/buzzy/'
   version '0.5.1-dev'
-  url 'https://github.com/redjack/buzzy.git', :branch => 'master'
-  head 'https://github.com/redjack/buzzy.git', :branch => 'develop'
+  url 'https://github.com/dcreager/buzzy.git', :branch => 'master'
+  head 'https://github.com/dcreager/buzzy.git', :branch => 'develop'
 
   depends_on 'cmake' => :build
   depends_on 'check' => :build

@@ -1,6 +1,6 @@
 # Buzzy package manager
 
-[![Build Status](https://img.shields.io/travis/redjack/buzzy/develop.svg)](https://travis-ci.org/redjack/buzzy)
+[![Build Status](https://img.shields.io/travis/dcreager/buzzy/develop.svg)](https://travis-ci.org/dcreager/buzzy)
 
 Buzzy is a package manager that isn't tied to one particular operating system or
 distribution.  It's useful for third-party software developers that would like
@@ -28,7 +28,7 @@ I'm looking at you, Python on RHEL5!)
 
 We use Buzzy to build native packages of Buzzy itself.  (It would be kind of
 lame of us not to, don't you think?)  You can find binary package releases at
-our [Github releases page](https://github.com/redjack/buzzy/releases/).  So the
+our [Github releases page](https://github.com/dcreager/buzzy/releases/).  So the
 easiest way to install Buzzy is to download one of those binaries and install it
 using your normal package manager.  Buzzy (purposefully) has no runtime
 dependencies, so the single binary is all you need.
@@ -37,7 +37,7 @@ Buzzy supports installing packages on a Mac using [Homebrew](http://brew.sh/).
 If you have Homebrew installed, you can install Buzzy using the following
 command:
 
-    $ brew install https://raw.github.com/redjack/buzzy/master/spec/buzzy.rb
+    $ brew install https://raw.github.com/dcreager/buzzy/master/spec/buzzy.rb
 
 
 ## Building Buzzy
